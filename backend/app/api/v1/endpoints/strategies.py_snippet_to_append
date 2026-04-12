@@ -1,0 +1,73 @@
+from pydantic import BaseModel
+
+# --- Request Model ---
+class StrategyConfig(BaseModel):
+    name: str
+    type: str  # 'crossover', 'oscillator', 'signal'
+    indicator: str  # 'SMA', 'RSI', 'EMA'
+    params: dict  # {'period': 14, 'fast': 10, ...}
+
+@router.post("/builder")
+async def build_strategy(config: StrategyConfig, current_user: models.User = Depends(deps.get_current_user)):
+    """
+    Builds a strategy python file from frontend configuration
+    """
+    clean_name = config.name.replace(" ", "")
+    filename = f"{clean_name}.py"
+    file_path = f"{UPLOAD_DIR}/{filename}"
+    
+    # 1. কোড টেমপ্লেট জেনারেট করা
+    code = f"""import backtrader as bt
+from app.strategies.base_strategy import BaseStrategy
+
+class {clean_name}(BaseStrategy):
+    '''
+    Auto-generated Strategy: {config.name}
+    Type: {config.type.title()} | Indicator: {config.indicator}
+    '''
+    params = ("""
+    
+    # প্যারামস টিপল তৈরি
+    for k, v in config.params.items():
+        code += f"('{k}', {v}), "
+    code += ")\n\n"
+
+    # __init__ এবং next লজিক
+    code += "    def __init__(self):\n"
+    code += "        super().__init__()\n"
+    
+    if config.type == 'crossover':
+        code += f"        self.fast = bt.indicators.{config.indicator}(self.data.close, period=self.params.fast)\n"
+        code += f"        self.slow = bt.indicators.{config.indicator}(self.data.close, period=self.params.slow)\n"
+        code += "        self.crossover = bt.indicators.CrossOver(self.fast, self.slow)\n\n"
+        
+        code += "    def next(self):\n"
+        code += "        if not self.position:\n"
+        code += "            if self.crossover > 0: self.buy()\n"
+        code += "        elif self.crossover < 0: self.close()\n"
+
+    elif config.type == 'oscillator':
+        code += f"        self.ind = bt.indicators.{config.indicator}(self.data.close, period=self.params.period)\n\n"
+        
+        code += "    def next(self):\n"
+        code += "        if not self.position:\n"
+        code += "            if self.ind < self.params.lower: self.buy()\n"
+        code += "        elif self.ind > self.params.upper: self.close()\n"
+        
+    elif config.type == 'signal':
+        code += f"        self.ind = bt.indicators.{config.indicator}(self.data.close, period=self.params.period)\n"
+        code += "        self.crossover = bt.indicators.CrossOver(self.ind, 0.0)\n\n"
+        
+        code += "    def next(self):\n"
+        code += "        if not self.position:\n"
+        code += "            if self.crossover > 0: self.buy()\n"
+        code += "        elif self.crossover < 0: self.close()\n"
+
+    # 2. ফাইল সেভ করা
+    try:
+        with open(file_path, "w") as f:
+            f.write(code)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save strategy: {str(e)}")
+
+    return {"message": "Strategy created successfully!", "filename": filename}

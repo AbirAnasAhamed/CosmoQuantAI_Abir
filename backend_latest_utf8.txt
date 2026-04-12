@@ -1,0 +1,120 @@
+INFO:     172.18.0.7:60018 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:60024 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:60036 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:60040 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:36066 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:36076 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:36092 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:36106 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:36112 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:36120 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45906 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45914 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45928 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45940 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45952 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45960 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:50974 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:50976 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:50978 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:50986 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:50996 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:51002 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:56838 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:56852 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:56858 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:56866 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:56874 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:53772 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:53780 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:53758 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:58644 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:58664 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:58650 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:58680 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:58688 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:58704 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:58714 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:58730 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:58732 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:54062 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:54074 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:54078 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:54084 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:54086 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+Requirement already satisfied: hmmlearn in /usr/local/lib/python3.12/site-packages (0.3.3)
+Requirement already satisfied: statsmodels in /usr/local/lib/python3.12/site-packages (0.14.6)
+Requirement already satisfied: numpy>=1.10 in /usr/local/lib/python3.12/site-packages (from hmmlearn) (2.2.6)
+Requirement already satisfied: scikit-learn!=0.22.0,>=0.16 in /usr/local/lib/python3.12/site-packages (from hmmlearn) (1.8.0)
+Requirement already satisfied: scipy>=0.19 in /usr/local/lib/python3.12/site-packages (from hmmlearn) (1.17.1)
+Requirement already satisfied: pandas!=2.1.0,>=1.4 in /usr/local/lib/python3.12/site-packages (from statsmodels) (3.0.1)
+Requirement already satisfied: patsy>=0.5.6 in /usr/local/lib/python3.12/site-packages (from statsmodels) (1.0.2)
+Requirement already satisfied: packaging>=21.3 in /usr/local/lib/python3.12/site-packages (from statsmodels) (26.0)
+Requirement already satisfied: python-dateutil>=2.8.2 in /usr/local/lib/python3.12/site-packages (from pandas!=2.1.0,>=1.4->statsmodels) (2.9.0.post0)
+Requirement already satisfied: joblib>=1.3.0 in /usr/local/lib/python3.12/site-packages (from scikit-learn!=0.22.0,>=0.16->hmmlearn) (1.5.3)
+Requirement already satisfied: threadpoolctl>=3.2.0 in /usr/local/lib/python3.12/site-packages (from scikit-learn!=0.22.0,>=0.16->hmmlearn) (3.6.0)
+Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.12/site-packages (from python-dateutil>=2.8.2->pandas!=2.1.0,>=1.4->statsmodels) (1.17.0)
+✅ Backend System Logging attached to Redis.
+🚀 Background Market Data Task Started
+📡 Listening to Redis Log Stream...
+📡 Listening to Redis Task Updates...
+📡 Listening to Block Trade Stream...
+💰 Starting Active Bot PnL Broadcast...
+INFO:     172.18.0.7:32858 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:32868 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:37120 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:37130 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:37142 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:37158 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:37170 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:37184 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:37200 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45232 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45236 - "POST /api/v1/bots/2/action?action=stop HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45244 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45258 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45264 - "GET /api/v1/system/kill-switch HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45276 - "GET /api/v1/bots/?skip=0&limit=20 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45288 - "GET /api/v1/bots/stats HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45300 - "GET /api/v1/system/kill-switch HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45314 - "GET /api/v1/bots/?skip=0&limit=20 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45316 - "GET /api/v1/bots/stats HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45326 - "DELETE /api/v1/bots/2 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45332 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:45334 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:49432 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:49448 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:49462 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:49466 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:54260 - "GET /api/v1/market-data/exchanges HTTP/1.1" 200 OK
+INFO:     172.18.0.7:54274 - "GET /api/v1/market-data/exchanges HTTP/1.1" 200 OK
+INFO:     172.18.0.7:54282 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:54286 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+✅ Successfully loaded 4290 markets for binance
+INFO:     172.18.0.7:54296 - "GET /api/v1/market-data/pairs/binance HTTP/1.1" 200 OK
+INFO:     172.18.0.7:54306 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:54310 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:56912 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:56928 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:56940 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:56956 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:36336 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:36344 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:36348 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:36356 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:47826 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:47832 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:47848 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:47858 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:34340 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:34356 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:34362 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:34366 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:41190 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:41204 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:41220 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:41228 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:57670 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:57678 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:57690 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT:USDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:57700 - "GET /api/v1/market-depth/heatmap?symbol=DOGE%2FUSDT&exchange=binance&bucket_size=50&depth=100 HTTP/1.1" 200 OK

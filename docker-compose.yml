@@ -1,0 +1,106 @@
+services:
+  # 1. Backend Service (FastAPI)
+  backend:
+    build: ./backend
+    container_name: cosmoquant_backend
+    command: bash -c "pip install hmmlearn statsmodels && sed -i 's/\r$$//' prestart.sh && bash prestart.sh && uvicorn app.main:app --host 0.0.0.0 --port 8000 --timeout-keep-alive 65"
+    restart: always
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - PYTHONUNBUFFERED=1
+      - NUMBA_CACHE_DIR=/tmp
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+
+  # 2. Celery Worker (Background Tasks) - NEW
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cosmo_celery_worker
+    command: celery -A app.core.celery_app worker --loglevel=warning
+    volumes:
+      - ./backend:/app
+      - /var/run/docker.sock:/var/run/docker.sock  # Docker socket for log monitoring
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+    restart: always
+
+  # 2b. Celery Beat (Scheduler) - NEW
+  celery_beat:
+    build: ./backend
+    container_name: cosmo_celery_beat
+    command: celery -A app.core.celery_app beat --loglevel=warning
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
+      - db
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+    restart: always
+
+  # 3. Redis Service - NEW
+  redis:
+    image: redis:7-alpine
+    container_name: cosmoquant_redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+
+  # 4. Frontend Service
+  frontend:
+    build: ./frontend
+    container_name: cosmoquant_frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - VITE_BACKEND_URL=http://localhost:8000
+      - INTERNAL_BACKEND_URL=http://backend:8000
+
+  # 5. Database Service
+  db:
+    image: timescale/timescaledb-ha:pg16
+    container_name: cosmoquant_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cosmouser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password_here}
+      POSTGRES_DB: ${POSTGRES_DB:-cosmoquant_db}
+    expose:
+      - "5432"
+    volumes:
+      - postgres_data:/home/postgres/pgdata/data
+
+volumes:
+  postgres_data:

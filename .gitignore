@@ -1,0 +1,94 @@
+# Logs
+logs
+backend/logs/*.log
+!backend/logs/.gitkeep
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Node.js
+**/node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+**/venv/
+**/.venv/
+**/env/
+**/.env/
+**/ENV/
+env.bak/
+venv.bak/
+
+# Testing & Quality
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment Variables (Sensitive Data)
+.env
+.env.*
+!.env.example
+# Allowing .env files for personal use (User Request)
+!.env
+!.env.*
+
+# Data Feeds (CSV & Trade Data)
+backend/app/data_feeds/
+backend/app/reports/
+*.csv
+
+# OS Generated Files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# User Uploads
+backend/static/avatars/
+verify_export_feature.py
+celerybeat-schedule

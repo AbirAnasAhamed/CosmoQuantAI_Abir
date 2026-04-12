@@ -1,0 +1,26 @@
+[
+  {
+    "title": "BOJ Summary of Opinions",
+    "country": "JPY",
+    "date": "2026-03-29T19:50:00-04:00",
+    "impact": "Low",
+    "forecast": "",
+    "previous": ""
+  },
+  {
+    "title": "German Prelim CPI m/m",
+    "country": "EUR",
+    "date": "2026-03-30T02:29:00-04:00",
+    "impact": "Medium",
+    "forecast": "1.1%",
+    "previous": "0.2%"
+  },
+  {
+    "title": "KOF Economic Barometer",
+    "country": "CHF",
+    "date": "2026-03-30T03:00:00-04:00",
+    "impact": "Low",
+    "forecast": "101.1",
+    "previous": "104.2"
+  }
+]

@@ -1,0 +1,230 @@
+import apiClient from './client';
+
+export interface BacktestRequest {
+    symbol: string;
+    timeframe: string;
+    secondary_timeframe?: string;
+    strategy: string;
+    initial_cash: number;
+    start_date?: string;
+    end_date?: string;
+    params: Record<string, any>;
+    custom_data_file?: string | null;
+    commission?: number;
+    slippage?: number;
+    leverage?: number; // ✅ NEW
+    stop_loss?: number;
+    take_profit?: number;
+    trailing_stop?: number;
+}
+
+export interface OptimizationRequest {
+    symbol: string;
+    timeframe: string;
+    strategy: string;
+    initial_cash: number;
+    start_date?: string;
+    end_date?: string;
+    params: Record<string, { start: number; end: number; step: number }>;
+    method: 'grid' | 'genetic';
+    population_size?: number;
+    generations?: number;
+    commission?: number;
+    slippage?: number;
+}
+
+export interface BatchBacktestParams {
+    strategies: string[];
+    symbol: string;
+    timeframe: string;
+    initial_cash: number;
+    start_date?: string;
+    end_date?: string;
+    commission?: number;
+    slippage?: number;
+}
+
+export interface WalkForwardRequest {
+    symbol: string;
+    timeframe: string;
+    strategy: string;
+    initial_cash: number;
+    params: Record<string, any>;
+    start_date: string;
+    end_date: string;
+    train_window_days: number;
+    test_window_days: number;
+    method?: string;
+    population_size?: number;
+    generations?: number;
+    commission?: number;
+    slippage?: number;
+    leverage?: number;
+    opt_target?: string; // ✅ New
+    min_trades?: number; // ✅ New
+}
+
+// --- API Calls Updated with '/v1' prefix and correct router paths ---
+
+export const runBacktestApi = async (payload: BacktestRequest) => {
+    // আগে ছিল: '/backtest/run' -> এখন: '/v1/backtest/run'
+    const response = await apiClient.post('/backtest/run', payload);
+    return response.data;
+};
+
+export const runBatchBacktest = async (params: BatchBacktestParams) => {
+    // আগে ছিল: '/backtest/batch-run' -> এখন: '/v1/backtest/batch-run'
+    const response = await apiClient.post('/backtest/batch-run', params);
+    return response.data;
+};
+
+export const runOptimizationApi = async (payload: OptimizationRequest) => {
+    // আগে ছিল: '/backtest/optimize' -> এখন: '/v1/backtest/optimize'
+    const response = await apiClient.post('/backtest/optimize', payload);
+    return response.data;
+};
+
+export const runWalkForwardApi = async (payload: WalkForwardRequest) => {
+    const response = await apiClient.post('/backtest/walk-forward', payload);
+    return response.data;
+};
+
+export const getBacktestStatus = async (taskId: string) => {
+    // আগে ছিল: `/backtest/status/${taskId}` -> এখন: `/v1/backtest/status/${taskId}`
+    const response = await apiClient.get(`/backtest/status/${taskId}`);
+    return response.data;
+};
+
+export const getTaskStatus = async (taskId: string) => {
+    // এটি getBacktestStatus এর মতোই
+    const response = await apiClient.get(`/backtest/status/${taskId}`);
+    return response.data;
+};
+
+export const getExchangeList = async () => {
+    // আগে ছিল: '/exchanges' -> এখন: '/v1/market-data/exchanges'
+    const response = await apiClient.get('/market-data/exchanges');
+    return response.data;
+};
+
+export const getExchangeMarkets = async (exchangeId: string) => {
+    // আগে ছিল: `/markets/${exchangeId}` -> এখন: `/v1/market-data/markets/${exchangeId}`
+    const response = await apiClient.get(`/market-data/markets/${exchangeId}`);
+    return response.data;
+};
+
+export const uploadStrategyFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // আগে ছিল: '/strategies/upload' -> এখন: '/v1/strategies/upload'
+    const response = await apiClient.post('/strategies/upload', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data;
+};
+
+export const uploadBacktestDataFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // আগে ছিল: '/backtest/upload-data' (যা ভুল ছিল)
+    // এখন: '/v1/market-data/upload' (কারণ market_data.py তে upload হ্যান্ডলার আছে)
+    const response = await apiClient.post('/market-data/upload', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.data;
+};
+
+export const generateStrategy = async (prompt: string) => {
+    // আগে ছিল: '/strategies/generate' -> এখন: '/v1/strategies/generate'
+    const response = await apiClient.post('/strategies/generate', { prompt });
+    return response.data;
+};
+
+export const fetchCustomStrategyList = async () => {
+    // আগে ছিল: '/strategies/list' -> এখন: '/v1/strategies/list'
+    const response = await apiClient.get('/strategies/list');
+    return response.data;
+};
+
+export const fetchStrategyCode = async (strategyName: string) => {
+    // আগে ছিল: `/strategies/source/${strategyName}` -> এখন: `/v1/strategies/source/${strategyName}`
+    const response = await apiClient.get(`/strategies/source/${strategyName}`);
+    return response.data;
+};
+
+export const revokeBacktestTask = async (taskId: string) => {
+    // আগে ছিল: `/backtest/revoke/${taskId}` -> এখন: `/v1/backtest/revoke/${taskId}`
+    const response = await apiClient.post(`/backtest/revoke/${taskId}`);
+    return response.data;
+};
+
+export const downloadCandles = async (payload: { exchange: string; symbol: string; timeframe: string; start_date: string }) => {
+    // আগে ছিল: '/download/candles' -> এখন: '/v1/backtest/download/candles'
+    const response = await apiClient.post('/backtest/download/candles', payload);
+    return response.data;
+};
+
+export const downloadTrades = async (payload: { exchange: string; symbol: string; start_date: string }) => {
+    // আগে ছিল: '/download/trades' -> এখন: '/v1/backtest/download/trades'
+    const response = await apiClient.post('/backtest/download/trades', payload);
+    return response.data;
+};
+
+export const getDownloadStatus = async (taskId: string) => {
+    // আগে ছিল: `/download/status/${taskId}` -> এখন: `/v1/backtest/download/status/${taskId}`
+    const response = await apiClient.get(`/backtest/download/status/${taskId}`);
+    return response.data;
+};
+
+export const syncMarketData = async (symbol: string, timeframe: string, start_date: string, end_date: string) => {
+    // আগে ছিল: '/market-data/sync' -> এখন: '/v1/market-data/sync'
+    const response = await apiClient.post('/market-data/sync', null, {
+        params: { symbol, timeframe, start_date, end_date }
+    });
+    return response.data;
+};
+
+export const fetchStandardStrategyParams = async () => {
+    // আগে ছিল: '/strategies/standard-params' -> এখন: '/v1/strategies/standard-params'
+    const response = await apiClient.get('/strategies/standard-params');
+    return response.data;
+};
+
+// **নতুন ফাংশন** (আপনার লগের 404 এরর ফিক্স করার জন্য)
+// ব্যাকএন্ডে এটি `backtest.py` তে `/trade-files` হিসেবে আছে
+export const fetchTradeFiles = async () => {
+    const response = await apiClient.get('/backtest/trade-files');
+    return response.data;
+};
+
+export const convertData = async (payload: { filename: string; timeframe: string }) => {
+    // আগে ভুল ছিল: '/v1/convert-data'
+    // ✅ সঠিক রাউট: '/v1/backtest/convert-data'
+    const response = await apiClient.post('/backtest/convert-data', payload);
+    return response.data;
+};
+
+
+export const downloadBacktestReportApi = async (taskId: string) => {
+    //আমরা ব্যবহার করি 'blob' টাইপ, কারণ এটি একটি PDF ফাইল
+    const response = await apiClient.get(`/backtest/download-report/${taskId}`, {
+        responseType: 'blob',
+    });
+    return response.data;
+};
+
+export const backtestService = {
+    runBacktest: runBacktestApi,
+    runOptimization: runOptimizationApi,
+    runWalkForward: runWalkForwardApi,
+    runBatchBacktest: runBatchBacktest, // ✅ Added Batch
+    getStatus: getTaskStatus,
+    revokeTask: revokeBacktestTask,
+    downloadReport: downloadBacktestReportApi
+};

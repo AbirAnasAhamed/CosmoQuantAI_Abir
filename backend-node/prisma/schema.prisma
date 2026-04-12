@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AnalystRating {
+  id                String   @id @default(uuid())
+  symbol            String   @unique
+  strongBuy         Int      @default(0)
+  buy               Int      @default(0)
+  hold              Int      @default(0)
+  sell              Int      @default(0)
+  strongSell        Int      @default(0)
+  consensus         String?
+  targetHigh        Float?
+  targetLow         Float?
+  targetMean        Float?
+  updatedAt         DateTime @updatedAt
+}
