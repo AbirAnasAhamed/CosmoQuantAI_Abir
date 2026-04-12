@@ -204,12 +204,14 @@ class WallHunterBot:
         self.enable_supertrend_entry_trigger = config.get("enable_supertrend_entry_trigger", False)
         self.supertrend_trend_unlock_mode = config.get("enable_supertrend_trend_unlock_mode", False)
         self.enable_supertrend_trailing_sl = config.get("enable_supertrend_trailing_sl", False)
+        self.enable_supertrend_exit = config.get("enable_supertrend_exit", False)
+        self.supertrend_exit_timeout = config.get("supertrend_exit_timeout", 5)
         self.supertrend_period = config.get("supertrend_period", 10)
         self.supertrend_multiplier = config.get("supertrend_multiplier", 3.0)
         self.supertrend_timeframe = config.get("supertrend_timeframe", "5m")
         self.supertrend_candle_close = config.get("supertrend_candle_close", False)
         
-        any_supertrend_enabled = self.enable_supertrend_trend_filter or self.enable_supertrend_entry_trigger or self.enable_supertrend_trailing_sl
+        any_supertrend_enabled = self.enable_supertrend_trend_filter or self.enable_supertrend_entry_trigger or self.enable_supertrend_trailing_sl or self.enable_supertrend_exit
         self.supertrend_tracker = SupertrendTracker(
             exchange_id=self.exchange_id,
             symbol=self.symbol,
@@ -1375,7 +1377,8 @@ class WallHunterBot:
 
     async def execute_snipe(self, wall_price: float, side: str, current_mid_price: float, best_bid: float = None, best_ask: float = None, override_order_type: str = None, override_limit_price: float = None):
         # Select correct entry order type depending on the strategy mode
-        snipe_order_type = override_order_type if override_order_type else (self.sell_order_type if getattr(self, 'strategy_mode', 'long') == 'short' else self.buy_order_type)
+        # User explicitly requested STRICT POST-ONLY limit entry mode for all WallHunter Bot trades.
+        snipe_order_type = override_order_type if override_order_type else "limit"
         
         # Determine Maker vs Taker pricing based on the chosen entry order type
         if snipe_order_type == "limit":
@@ -1808,6 +1811,25 @@ class WallHunterBot:
         # -----------------------------------------------------------------
 
         exit_order_type = self.buy_order_type if getattr(self, 'strategy_mode', 'long') == "short" else self.sell_order_type
+
+        # --- NEW: Supertrend Maker-to-Taker Fallback Dual-Exit ---
+        supertrend_reversal = False
+        if getattr(self, 'enable_supertrend_exit', False) and getattr(self, 'supertrend_tracker', None):
+            # Check for reversal based on mode. Reversal to opposite direction means exit.
+            if getattr(self, 'strategy_mode', 'long') == 'short':
+                if self.supertrend_tracker.is_entry_signal('buy'): # Reverses to LONG -> exit short
+                    supertrend_reversal = True
+            else:
+                if self.supertrend_tracker.is_entry_signal('sell'): # Reverses to SHORT -> exit long
+                    supertrend_reversal = True
+                    
+        if supertrend_reversal and not self.active_pos.get('fallback_exit_in_progress'):
+            self.logger.warning(f"🚨 Supertrend Reversal Detected! Triggering Maker-to-Taker Exit.")
+            self.active_pos['fallback_exit_in_progress'] = True # Prevent duplicate triggers
+            self._save_state()
+            asyncio.create_task(self._execute_fallback_exit())
+            return
+        # ---------------------------------------------------------
 
         # 0. Self-Healing: If limit TP order is missing but required (e.g. after restart), place it.
         if (exit_order_type == 'limit' or self.active_pos.get('micro_scalp')) and not self.active_pos.get('limit_order_id') and not self.is_paper_trading:
@@ -2340,6 +2362,110 @@ class WallHunterBot:
             self._clear_state()
             self.active_pos = None
             self.logger.info("Exit: Take Profit Hit")
+
+    async def _execute_fallback_exit(self):
+        """
+        Executes a Maker-to-Taker fallback exit when Supertrend reversal triggers.
+        It cancels any existing TP limit orders, places a Maker exit order at the current Best Bid/Ask,
+        waits `supertrend_exit_timeout` seconds, and if unfilled, sweeps at Market.
+        """
+        if not self.active_pos or self.is_paper_trading: return
+        
+        try:
+            # 1. Cancel existing limit TP order if it exists
+            limit_id = self.active_pos.get('limit_order_id')
+            if limit_id:
+                try:
+                    await self.engine.cancel_order(limit_id)
+                    self.logger.info(f"🗑️ Cancelled existing Limit TP {limit_id} for Dual-Exit.")
+                except Exception as e:
+                    self.logger.warning(f"⚠️ Could not cancel existing TP {limit_id} (may have just filled): {e}")
+            
+            # 2. Fetch current best bid/ask to place a Maker order
+            limit_size = market_depth_service._normalize_order_book_limit(self.exchange_id, 5) if hasattr(market_depth_service, '_normalize_order_book_limit') else 5
+            ob = await self.public_exchange.fetch_order_book(self.symbol, limit=limit_size)
+            best_bid = ob['bids'][0][0] if ob['bids'] else 0
+            best_ask = ob['asks'][0][0] if ob['asks'] else 0
+            
+            close_side = "buy" if getattr(self, 'strategy_mode', 'long') == "short" else "sell"
+            # For maker exit: stay on same side. Long exit = Sell = ask side. Short exit = Buy = bid side.
+            maker_price = best_ask if close_side == "sell" else best_bid
+            amount = self.active_pos['amount']
+            
+            self.logger.info(f"🛡️ Dual-Exit Step 1: Placing Maker {close_side.upper()} order at {maker_price:.6f}")
+            maker_res = await self.engine.execute_trade(close_side, amount, maker_price, order_type="limit", params={"postOnly": True})
+            
+            if not maker_res or not maker_res.get('id'):
+                self.logger.error("❌ Failed to place Maker exit order. Aborting Fallback, reverting to next Risk tick.")
+                self.active_pos['fallback_exit_in_progress'] = False
+                self._save_state()
+                return
+                
+            fallback_id = maker_res['id']
+            timeout_sec = getattr(self, 'supertrend_exit_timeout', 5)
+            
+            # 3. Wait up to timeout amount
+            self.logger.info(f"⏳ Waiting {timeout_sec}s for Maker Fallback Exit ({fallback_id}) to fill...")
+            filled = False
+            for step in range(timeout_sec * 2): # Check every 0.5 sec
+                await asyncio.sleep(0.5)
+                try:
+                    status = await self.engine.exchange.fetch_order(fallback_id, self.symbol)
+                    if status and status.get('status') in ['closed', 'filled']:
+                        self.logger.info("✅ Maker Fallback Exit filled completely!")
+                        filled = True
+                        break
+                except Exception: pass
+            
+            # 4. If not completely filled by timeout, cancel remainder and Sweep
+            if not filled:
+                try:
+                    status = await self.engine.exchange.fetch_order(fallback_id, self.symbol)
+                    if status and status.get('status') == 'open':
+                        self.logger.warning(f"⚠️ Fallback Maker order {fallback_id} timed out. Cancelling and sweeping remainder...")
+                        await self.engine.cancel_order(fallback_id)
+                        await asyncio.sleep(0.5)
+                        
+                        final_status = await self.engine.exchange.fetch_order(fallback_id, self.symbol)
+                        filled_amt = final_status.get('filled', 0.0)
+                        
+                        filled_proper = float(self.engine.exchange.amount_to_precision(self.symbol, filled_amt)) if hasattr(self.engine.exchange, 'amount_to_precision') else filled_amt
+                        remaining_base = max(0.0, amount - filled_proper)
+                        
+                        if remaining_base > 0:
+                            self.logger.info(f"🧹 Sweeping remainder at TAKER (Market): {remaining_base} {self.symbol}")
+                            sweep_amount = float(self.engine.exchange.amount_to_precision(self.symbol, remaining_base))
+                            await self.engine.execute_trade(close_side, sweep_amount, maker_price, order_type="market")
+                            self.logger.info("✅ Taker sweep completed.")
+                except Exception as e:
+                    self.logger.error(f"Error during Maker-to-Taker fallback sweep: {e}")
+                    
+            # 5. Calculate final position PnL and cleanup
+            # Wait a tick so exchange resolves execution
+            await asyncio.sleep(1.0)
+            
+            # We assume position is closed. To be accurate, we'd query trades or use Maker price.
+            if getattr(self, 'strategy_mode', 'long') == "short":
+                pnl_val = (self.active_pos['entry'] - maker_price) * amount
+            else:
+                pnl_val = (maker_price - self.active_pos['entry']) * amount
+                
+            self.total_realized_pnl += pnl_val
+            self.total_executed_orders += 1
+            if pnl_val > 0:
+                self.total_wins += 1
+            else:
+                self.total_losses += 1
+                
+            await self._send_telegram(f"⚡ WallHunter EXIT - Supertrend Fallback Hit!\nPair: {self.symbol}\nMode: {getattr(self, 'strategy_mode', 'long').upper()}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
+            self._clear_state()
+            self.active_pos = None
+            
+        except Exception as e:
+            self.logger.error(f"Critical error in Fallback Exit loop: {e}")
+            if self.active_pos:
+                self.active_pos['fallback_exit_in_progress'] = False
+                self._save_state()
 
     async def stop(self):
         """বট স্টপ করার জন্য রিসোর্স ক্লিনআপ"""
