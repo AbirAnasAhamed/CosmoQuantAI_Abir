@@ -13,6 +13,7 @@ from datetime import datetime
 from app.core.redis import redis_manager # ✅ Import RedisManager
 from app.services.liquidation_service import liquidation_service # ✅ Import Liquidation Service
 from app.services.block_trade_worker import block_trade_worker # ✅ Import Block Trade Worker
+from app.services.block_trade_monitor import block_trade_monitor # ✅ Import Block Trade Monitor (needed for shutdown)
 from app.services.orderbook_snapshot_service import orderbook_snapshot_service # ✅ Import Orderbook Snapshot Service
 from app.services.binance_liq_stream import liquidation_stream # ✅ Import Binance Liquidation Stream
 from app.services.portfolio_price_service import portfolio_price_service # ✅ Import Portfolio Price Service
@@ -529,7 +530,10 @@ async def shutdown_event():
 
     # Stop Block Trade Worker
     await block_trade_worker.stop()
-    await block_trade_monitor.close_exchanges()
+    try:
+        await block_trade_monitor.close_exchanges()
+    except Exception as e:
+        logger.warning(f"[Shutdown] block_trade_monitor.close_exchanges() failed (non-fatal): {e}")
 
     # Stop Orderbook Snapshot Service
     await orderbook_snapshot_service.stop_recording_loop()
