@@ -1547,8 +1547,11 @@ class WallHunterFuturesStrategy:
                 return
 
             if current_price >= self.active_pos['tp']:
-                should_exit = True
-                reason = "Take Profit"
+                if exit_order_type == 'limit' and self.active_pos.get('limit_order_id') and not self.is_paper_trading:
+                    pass # Exchange will natively fill the limit order
+                else:
+                    should_exit = True
+                    reason = "Take Profit"
             elif current_price <= self.active_pos['sl']:
                 should_exit = True
                 reason = "Stop Loss"
@@ -1559,8 +1562,11 @@ class WallHunterFuturesStrategy:
                 return
 
             if current_price <= self.active_pos['tp']:
-                should_exit = True
-                reason = "Take Profit"
+                if exit_order_type == 'limit' and self.active_pos.get('limit_order_id') and not self.is_paper_trading:
+                    pass # Exchange will natively fill the limit order
+                else:
+                    should_exit = True
+                    reason = "Take Profit"
             elif current_price >= self.active_pos['sl']:
                 should_exit = True
                 reason = "Stop Loss"
@@ -1772,6 +1778,7 @@ class WallHunterFuturesStrategy:
         side = self.active_pos['side']
         entry = self.active_pos['entry']
         amount = self.active_pos['amount']
+        exit_order_type = self.sell_order_type if side == "long" else self.buy_order_type
         
         sell_amount_raw = amount * (self.partial_tp_pct / 100)
         
