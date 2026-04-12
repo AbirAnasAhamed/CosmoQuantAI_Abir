@@ -11,7 +11,6 @@ from app.utils import RedisLogHandler
 import ccxt.async_support as ccxt
 from datetime import datetime
 from app.core.redis import redis_manager # ✅ Import RedisManager
-from app.core.redis import redis_manager # ✅ Import RedisManager
 from app.services.liquidation_service import liquidation_service # ✅ Import Liquidation Service
 from app.services.block_trade_worker import block_trade_worker # ✅ Import Block Trade Worker
 from app.services.orderbook_snapshot_service import orderbook_snapshot_service # ✅ Import Orderbook Snapshot Service
@@ -607,7 +606,8 @@ async def websocket_block_trades(websocket: WebSocket):
 @app.websocket("/ws/system-alerts")
 async def websocket_system_alerts(websocket: WebSocket):
     """Live Docker log alert stream. Frontend connects here to receive real-time
-    ERROR/WARNING/CRITICAL alerts from all backend containers."""
+    ERROR and CRITICAL alerts from all backend containers.
+    WARNING-level events are intentionally suppressed — only actionable issues appear."""
     await manager.connect(websocket, "system_alerts")
     try:
         while True: await websocket.receive_text()

@@ -2,18 +2,23 @@
 Docker Log Monitor Service
 ===========================
 A background service that continuously scans all Docker container logs
-for ERROR, CRITICAL, WARNING, EXCEPTION, and TRACEBACK patterns.
+for ERROR, CRITICAL, EXCEPTION, and TRACEBACK patterns.
 
-When a problem is detected, it:
+WARNINGs are intentionally suppressed from the system monitor and Telegram
+alerts because they are mostly harmless operational noise (retries, successful
+news fetches logged at WARNING level, rate-limit pauses that resolve on their
+own, etc.).  Only genuine errors that need human intervention are surfaced.
+
+When a real problem is detected, it:
 1. Deduplicates using Redis (5-minute cooldown per unique error)
 2. Sends a beautifully formatted Telegram alert to ALL users
    who have notifications enabled in their settings
 
 Architecture:
   Celery Task (every 60s) → fetch last 60s of logs from each container
-                           → regex pattern match
+                           → regex pattern match  (WARNING suppressed)
                            → Redis dedup check
-                           → Telegram notify (via NotificationSettings)
+                           → Telegram notify (ERROR / CRITICAL only)
 """
 
 import re
@@ -61,6 +66,9 @@ ERROR_PATTERNS = [
 ]
 
 # Patterns that indicate a WARNING (yellow alert 🟡)
+# NOTE: WARNINGs are classified internally for colour-coding in the live log
+# terminal, but they are NOT sent to Telegram and NOT published to the
+# system-monitor alert widget.  Only ERROR / CRITICAL go there.
 WARNING_PATTERNS = [
     re.compile(r'\bWARNING\b', re.IGNORECASE),
     re.compile(r'\bWARN\b'),
@@ -74,6 +82,28 @@ WARNING_PATTERNS = [
     re.compile(r'403 Forbidden', re.IGNORECASE),
     re.compile(r'401 Unauthorized', re.IGNORECASE),
     re.compile(r'\bHTTP 4\d{2}\b'), # Any 4xx error (as warning)
+]
+
+# ── Harmless WARNING-level noise to demote to INFO ──────────────────────────
+# These are messages that Python/Celery logs at WARNING level but are actually
+# successful or routine operations — they must NOT appear in the system monitor
+# or trigger Telegram alerts.
+NOISE_WARNING_PATTERNS = [
+    # Successful market data / news fetches reported at WARNING by some tasks
+    re.compile(r'Market News Fetch Completed', re.IGNORECASE),
+    re.compile(r'News fetch executed successfully', re.IGNORECASE),
+    re.compile(r'Fetch Completed', re.IGNORECASE),
+    re.compile(r'executed successfully', re.IGNORECASE),
+    re.compile(r'items fetched', re.IGNORECASE),
+    # Celery task success noise
+    re.compile(r'Task succeeded in', re.IGNORECASE),
+    re.compile(r'new items\.?\s*$', re.IGNORECASE),   # "3 new items."
+    # Routine rate-limit pauses that self-heal
+    re.compile(r'sleeping for \d+ second', re.IGNORECASE),
+    re.compile(r'backing off', re.IGNORECASE),
+    # Scheduled-task heartbeat noise
+    re.compile(r'beat: Waking up', re.IGNORECASE),
+    re.compile(r'Scheduler: Sending due task', re.IGNORECASE),
 ]
 
 # Lines to IGNORE (avoid spam from known-harmless patterns)
@@ -138,9 +168,19 @@ def classify_log_line(line: str) -> Optional[str]:
     """
     Classify a log line by severity.
     Returns: 'CRITICAL', 'ERROR', 'WARNING', or None (if not an alert)
+
+    'WARNING' is returned for the live-terminal colour-coding only.
+    The alert pipeline (system monitor widget + Telegram) skips WARNING entirely
+    — see scan_docker_logs_and_notify().
     """
-    # Skip boring lines first (fast path)
+    # Skip boring / harmless lines first (fast path)
     for pattern in IGNORE_PATTERNS:
+        if pattern.search(line):
+            return None
+
+    # Demote known-harmless WARNING-level noise to INFO (return None)
+    # e.g. "Market News Fetch Completed. 3 new items." logged at WARNING level
+    for pattern in NOISE_WARNING_PATTERNS:
         if pattern.search(line):
             return None
 
@@ -313,18 +353,21 @@ async def scan_docker_logs_and_notify():
                 line = log_lines[i]
                 severity = classify_log_line(line)
 
-                if severity:
+                # ── WARNING-only lines are silently skipped in the alert pipeline.
+                # They are still colour-coded in the live terminal (publish_all_container_logs)
+                # but must NOT appear in the system-monitor alert widget or Telegram.
+                if severity and severity != 'WARNING':
                     # Collect context: this line + up to 4 following lines
                     context_lines = [line]
                     for j in range(1, 5):
                         if i + j < len(log_lines):
                             next_line = log_lines[i + j]
                             # Include continuation lines (indented, or part of traceback)
-                            if next_line.strip() and not classify_log_line(next_line) in ('ERROR', 'CRITICAL', 'WARNING'):
+                            if next_line.strip() and not classify_log_line(next_line) in ('ERROR', 'CRITICAL'):
                                 context_lines.append(next_line)
                             elif next_line.strip().startswith(' ') or next_line.strip().startswith('\t'):
                                 context_lines.append(next_line)
-                    
+
                     # Deduplication fingerprint
                     fingerprint = make_fingerprint(container_name, line)
 
@@ -340,7 +383,8 @@ async def scan_docker_logs_and_notify():
                             now_utc=now_utc,
                         )
 
-                        # --- Publish to Redis for WebSocket broadcast (live frontend widget) ---
+                        # --- Publish to Redis for WebSocket broadcast (system monitor widget) ---
+                        # Only ERROR / CRITICAL reach this point — WARNINGs are excluded above.
                         try:
                             import json as _json
                             alert_payload = _json.dumps({
@@ -356,22 +400,21 @@ async def scan_docker_logs_and_notify():
                         except Exception as pub_err:
                             logger.warning(f"[LogMonitor] Redis publish failed: {pub_err}")
 
-                        # Send to ALL users with notifications enabled (Only for Errors and Critical bugs)
-                        if severity in ('ERROR', 'CRITICAL'):
-                            for user_settings in active_users:
-                                try:
-                                    await NotificationService.send_message(
-                                        db=db,
-                                        user_id=user_settings.user_id,
-                                        message=message,
-                                    )
-                                    alerts_sent += 1
-                                    logger.info(
-                                        f"[LogMonitor] Alert sent to user {user_settings.user_id} "
-                                        f"— {container_name} {severity}"
-                                    )
-                                except Exception as e:
-                                    logger.error(f"[LogMonitor] Failed to notify user {user_settings.user_id}: {e}")
+                        # Send Telegram alert to all users with notifications enabled
+                        for user_settings in active_users:
+                            try:
+                                await NotificationService.send_message(
+                                    db=db,
+                                    user_id=user_settings.user_id,
+                                    message=message,
+                                )
+                                alerts_sent += 1
+                                logger.info(
+                                    f"[LogMonitor] Alert sent to user {user_settings.user_id} "
+                                    f"— {container_name} {severity}"
+                                )
+                            except Exception as e:
+                                logger.error(f"[LogMonitor] Failed to notify user {user_settings.user_id}: {e}")
 
                 i += 1
 
