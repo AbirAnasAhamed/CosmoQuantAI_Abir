@@ -901,8 +901,9 @@ def run_session_monitor_task():
 @celery_app.task
 def monitor_docker_logs():
     """
-    Periodic Task: Scan all Docker container logs for ERROR / WARNING patterns
+    Periodic Task: Scan all Docker container logs for ERROR and CRITICAL patterns
     and send Telegram notifications to users who have alerts enabled.
+    WARNING-level events are intentionally suppressed to reduce noise.
 
     Runs every 60 seconds via Celery Beat.
     Uses Redis for 5-minute cooldown deduplication to prevent spam.
