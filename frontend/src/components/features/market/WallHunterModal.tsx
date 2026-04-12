@@ -144,6 +144,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         enableSupertrendEntryTrigger: false,
         enableSupertrendTrendUnlockMode: false,
         enableSupertrendTrailingSl: false,
+        enableSupertrendExit: false,
+        supertrendExitTimeout: 5,
         supertrendPeriod: 10,
         supertrendMultiplier: 3.0,
         supertrendTimeframe: '5m',
@@ -314,6 +316,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             enableSupertrendEntryTrigger: c.enable_supertrend_entry_trigger !== undefined ? c.enable_supertrend_entry_trigger : false,
                             enableSupertrendTrendUnlockMode: c.enable_supertrend_trend_unlock_mode !== undefined ? c.enable_supertrend_trend_unlock_mode : false,
                             enableSupertrendTrailingSl: c.enable_supertrend_trailing_sl !== undefined ? c.enable_supertrend_trailing_sl : false,
+                            enableSupertrendExit: c.enable_supertrend_exit !== undefined ? c.enable_supertrend_exit : false,
+                            supertrendExitTimeout: c.supertrend_exit_timeout || 5,
                             supertrendPeriod: c.supertrend_period || 10,
                             supertrendMultiplier: c.supertrend_multiplier || 3.0,
                             supertrendTimeframe: c.supertrend_timeframe || '5m',
@@ -624,6 +628,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     enable_supertrend_entry_trigger: form.enableSupertrendBot ? form.enableSupertrendEntryTrigger : false,
                     enable_supertrend_trend_unlock_mode: form.enableSupertrendBot ? form.enableSupertrendTrendUnlockMode : false,
                     enable_supertrend_trailing_sl: form.enableSupertrendBot ? form.enableSupertrendTrailingSl : false,
+                    enable_supertrend_exit: form.enableSupertrendBot ? form.enableSupertrendExit : false,
+                    supertrend_exit_timeout: form.supertrendExitTimeout,
                     supertrend_period: form.supertrendPeriod,
                     supertrend_multiplier: form.supertrendMultiplier,
                     supertrend_timeframe: form.supertrendTimeframe,
@@ -1459,11 +1465,38 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 <p className="text-xs font-bold text-white uppercase">Entry Trigger</p>
                                                 <div className={`w-3 h-3 rounded-full ${form.enableSupertrendEntryTrigger ? 'bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.8)]' : 'bg-gray-600'}`}></div>
                                             </div>
-                                            <div className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between col-span-2 ${form.enableSupertrendTrailingSl ? 'bg-sky-500/20 border-sky-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('enableSupertrendTrailingSl', !form.enableSupertrendTrailingSl)}>
+                                            <div className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${form.enableSupertrendTrailingSl ? 'bg-sky-500/20 border-sky-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('enableSupertrendTrailingSl', !form.enableSupertrendTrailingSl)}>
                                                 <p className="text-xs font-bold text-white uppercase">Dynamic Trailing SL</p>
                                                 <div className={`w-3 h-3 rounded-full ${form.enableSupertrendTrailingSl ? 'bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.8)]' : 'bg-gray-600'}`}></div>
                                             </div>
+                                            <div className={`p-3 rounded-xl border cursor-pointer transition-all ${form.enableSupertrendExit ? 'bg-red-500/20 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.15)]' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('enableSupertrendExit', !form.enableSupertrendExit)}>
+                                                <div className="flex items-center justify-between">
+                                                    <p className="text-xs font-bold text-white uppercase">Reversal Dual-Exit</p>
+                                                    <div className={`w-3 h-3 rounded-full ${form.enableSupertrendExit ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]' : 'bg-gray-600'}`}></div>
+                                                </div>
+                                                <p className="text-[9px] text-gray-400 mt-1 leading-tight">Fallback to Market if Post-Only Exit unfills in time.</p>
+                                            </div>
                                         </div>
+
+                                        {form.enableSupertrendExit && (
+                                            <div className="mb-4 animate-fadeIn bg-red-500/5 p-3 rounded-xl border border-red-500/20">
+                                                <div className="flex justify-between items-end mb-1">
+                                                    <label className="text-[10px] font-bold text-red-400 uppercase tracking-wider flex justify-between w-full">
+                                                        <span>Maker-to-Taker Exit Timeout</span>
+                                                        <span className="text-xs font-mono text-white">{form.supertrendExitTimeout} Sec</span>
+                                                    </label>
+                                                </div>
+                                                <input 
+                                                    type="range" 
+                                                    min="1" 
+                                                    max="60" 
+                                                    step="1" 
+                                                    className="w-full h-1.5 accent-red-500 bg-white/10 rounded-lg appearance-none cursor-pointer" 
+                                                    value={form.supertrendExitTimeout} 
+                                                    onChange={(e) => handleFormChange('supertrendExitTimeout', parseInt(e.target.value))} 
+                                                />
+                                            </div>
+                                        )}
 
                                         {form.enableSupertrendEntryTrigger && (
                                             <div className="mb-4 animate-fadeIn">
