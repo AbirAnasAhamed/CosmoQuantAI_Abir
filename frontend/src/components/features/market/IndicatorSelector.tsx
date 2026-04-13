@@ -172,6 +172,8 @@ export interface IndicatorSettings {
     msbObFibFactor: number;
     msbObShowZigzag: boolean;
     msbObDeleteBroken: boolean;
+    // Candlestick Patterns
+    showCandlestickPatterns: boolean;
 }
 
 interface IndicatorSelectorProps {
@@ -520,6 +522,21 @@ export const IndicatorSelector: React.FC<IndicatorSelectorProps> = ({ settings, 
                                    </div>
                                </div>
                            )}
+                        </div>
+
+                        {/* Candlestick Patterns Indicator */}
+                        <div className="flex flex-col gap-2 p-2 hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg transition-colors group border-t border-gray-100 dark:border-white/5 mt-1 pt-3">
+                           <div className="flex items-center justify-between">
+                            <label className="flex items-center cursor-pointer flex-1">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.showCandlestickPatterns}
+                                    onChange={() => toggleIndicator('showCandlestickPatterns')}
+                                    className="w-4 h-4 text-brand-primary bg-gray-100 border-gray-300 rounded focus:ring-brand-primary dark:focus:ring-brand-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                />
+                                <span className="ml-3 text-sm font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-500 group-hover:from-yellow-300 group-hover:to-orange-400 transition-colors">Candlestick Patterns</span>
+                            </label>
+                           </div>
                         </div>
 
                         <div className="flex flex-col gap-2 p-2 hover:bg-gray-50 dark:hover:bg-white/5 rounded-lg transition-colors group">
