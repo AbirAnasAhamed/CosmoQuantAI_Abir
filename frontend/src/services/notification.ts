@@ -17,6 +17,7 @@ export interface NotificationSettings {
     alert_weekly_summary: boolean;
     alert_server_errors: boolean;
     broadcast_live_logs: boolean;
+    alert_market_news: boolean;
     updated_at?: string;
 }
 

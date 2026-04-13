@@ -236,8 +236,11 @@ class NewsService:
                     from app.services.notification import NotificationService
                     from app.models.notification import NotificationSettings
                     
-                    # Fetch all users with enabled notifications
-                    active_notifications = db.query(NotificationSettings).filter(NotificationSettings.is_enabled == True).all()
+                    # Fetch all users with enabled notifications for market news
+                    active_notifications = db.query(NotificationSettings).filter(
+                        NotificationSettings.is_enabled == True,
+                        NotificationSettings.alert_market_news == True
+                    ).all()
                     
                     for r in new_resources:
                         # Default Message
