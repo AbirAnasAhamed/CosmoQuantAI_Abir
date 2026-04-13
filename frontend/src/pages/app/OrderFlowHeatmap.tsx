@@ -4,6 +4,7 @@ import { createChart, ISeriesApi, CandlestickData, CandlestickSeries, LineSeries
 import { useLevel2MarketData } from '@/hooks/useLevel2MarketData';
 import { useOrderFlowData } from '../../hooks/useOrderFlowData';
 import { useHeatmapData } from '../../hooks/useHeatmapData';
+import { useIcebergEvents } from '../../hooks/useIcebergEvents.tsx';
 import { useVolumeFilter } from '../../hooks/useVolumeFilter';
 import { marketDepthService } from '../../services/marketDepthService';
 import { HeatmapSymbolSelector } from '../../components/features/market/HeatmapSymbolSelector';
@@ -88,6 +89,7 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
     const [trendFinderData, setTrendFinderData] = useState<TrendFinderResult | null>(null);
     const { vpvrData, cvdData, footprintData } = useOrderFlowData(symbol, exchange, interval);
     const { heatmapData: realHeatmapData } = useHeatmapData(symbol, exchange);
+    useIcebergEvents(symbol);
     const godModeData = useGodModeData(symbol);
     const [sessionsData, setSessionsData] = useState<{ a: SessionData[]; b: SessionData[]; c: SessionData[]; d: SessionData[]; }>({
         a: [], b: [], c: [], d: []

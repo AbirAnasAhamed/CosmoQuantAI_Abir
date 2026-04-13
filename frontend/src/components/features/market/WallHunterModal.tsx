@@ -93,6 +93,11 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         absorptionThreshold: 50000,
         absorptionWindow: 10,
 
+        // --- NEW: Iceberg & Hidden Wall Trigger ---
+        enableIcebergTrigger: false,
+        icebergTimeWindowSecs: 10,
+        icebergMinAbsorbedVol: 100000,
+
         // --- NEW: BTC Correlation Filter ---
         enableBtcCorrelation: false,
         btcCorrelationThreshold: 0.5,
@@ -286,6 +291,10 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             enableAbsorption: c.enable_absorption !== undefined ? c.enable_absorption : false,
                             absorptionThreshold: c.absorption_threshold || 50000,
                             absorptionWindow: c.absorption_window || 10,
+
+                            enableIcebergTrigger: c.enable_iceberg_trigger !== undefined ? c.enable_iceberg_trigger : false,
+                            icebergTimeWindowSecs: c.iceberg_time_window_secs || 10,
+                            icebergMinAbsorbedVol: c.iceberg_min_absorbed_vol || 100000,
 
                             enableBtcCorrelation: c.enable_btc_correlation !== undefined ? c.enable_btc_correlation : false,
                             btcCorrelationThreshold: c.btc_correlation_threshold || 0.7,
@@ -579,6 +588,11 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     enable_absorption: form.enableAbsorption,
                     absorption_threshold: form.absorptionThreshold,
                     absorption_window: form.absorptionWindow,
+
+                    // Iceberg & Hidden Wall Trigger
+                    enable_iceberg_trigger: form.enableIcebergTrigger,
+                    iceberg_time_window_secs: form.icebergTimeWindowSecs,
+                    iceberg_min_absorbed_vol: form.icebergMinAbsorbedVol,
 
                     // BTC Correlation Filter
                     enable_btc_correlation: form.enableBtcCorrelation,
@@ -1172,6 +1186,49 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                     </div>
                                 )}
                             </div>
+
+                                        {/* ICEBERG / HIDDEN WALL TRIGGER */}
+                                        <div className={`mt-3 p-3 rounded-lg border transition-all ${form.enableIcebergTrigger ? 'bg-purple-500/10 border-purple-500/50' : 'bg-black/20 border-white/5'}`}>
+                                            <div className="flex items-center justify-between cursor-pointer" onClick={() => handleFormChange('enableIcebergTrigger', !form.enableIcebergTrigger)}>
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-10 h-5 rounded-full p-1 transition-colors flex items-center ${form.enableIcebergTrigger ? 'bg-purple-500' : 'bg-gray-700'}`}>
+                                                        <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${form.enableIcebergTrigger ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                                    </div>
+                                                    <span className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1">
+                                                        💎 Iceberg / Hidden Wall Trigger
+                                                        <div className="group relative">
+                                                            <svg className="w-3 h-3 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
+                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 p-2 bg-black border border-white/10 rounded-lg text-[9px] text-gray-300 hidden group-hover:block z-50 shadow-xl backdrop-blur-md">
+                                                                Detects hidden institutional limit orders ("Reloading Walls") by correlating high trade tape volume against persistent orderbook depth. Bypasses standard volume rules for highest-priority entry.
+                                                            </div>
+                                                        </div>
+                                                    </span>
+                                                </div>
+                                                {form.enableIcebergTrigger && (
+                                                    <span className="text-[9px] font-bold text-purple-400 bg-purple-500/20 px-2 py-0.5 rounded-full">HIGH PRIORITY</span>
+                                                )}
+                                            </div>
+                                            {form.enableIcebergTrigger && (
+                                                <div className="mt-3 space-y-3 animate-fadeIn">
+                                                    <div>
+                                                        <div className="flex justify-between items-end mb-1">
+                                                            <label className="text-[9px] font-bold text-gray-400 uppercase">Min. Absorbed Volume ($)</label>
+                                                            <span className="text-xs font-mono font-bold text-purple-400">${form.icebergMinAbsorbedVol.toLocaleString()}</span>
+                                                        </div>
+                                                        <input type="range" min="5000" max="2000000" step="5000" className="w-full h-1.5 accent-purple-500 bg-white/10 rounded-lg appearance-none cursor-pointer" value={form.icebergMinAbsorbedVol} onChange={(e) => handleFormChange('icebergMinAbsorbedVol', parseFloat(e.target.value))} />
+                                                        <p className="text-[8px] text-gray-500 mt-1">Total trade $ that must hit a price level before confirming the hidden wall.</p>
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex justify-between items-end mb-1">
+                                                            <label className="text-[9px] font-bold text-gray-400 uppercase">Detection Window (sec)</label>
+                                                            <span className="text-xs font-mono font-bold text-purple-400">{form.icebergTimeWindowSecs}s</span>
+                                                        </div>
+                                                        <input type="range" min="2" max="60" step="1" className="w-full h-1.5 accent-purple-500 bg-white/10 rounded-lg appearance-none cursor-pointer" value={form.icebergTimeWindowSecs} onChange={(e) => handleFormChange('icebergTimeWindowSecs', parseInt(e.target.value))} />
+                                                        <p className="text-[8px] text-gray-500 mt-1">Rolling time window to accumulate and analyse trade tape data.</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
 
                             <div className={`border rounded-xl p-4 transition-colors cursor-pointer ${form.enableLiqTrigger ? 'bg-rose-500/5 border-rose-500/50' : 'bg-transparent border-white/10 hover:border-white/30'}`} onClick={() => handleFormChange('enableLiqTrigger', !form.enableLiqTrigger)}>
                                 <div className="flex items-center justify-between mb-2">

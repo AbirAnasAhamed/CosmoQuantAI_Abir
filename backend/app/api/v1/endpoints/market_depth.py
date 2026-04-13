@@ -164,3 +164,56 @@ async def websocket_market_depth(websocket: WebSocket, exchange_id: str, symbol:
         await websocket.close()
     except Exception:
         pass
+
+@router.websocket("/ws/events")
+async def websocket_heatmap_events(websocket: WebSocket, symbol: str = None):
+    await websocket.accept()
+    
+    redis = redis_manager.get_redis()
+    if not redis:
+        await websocket.close(code=1011, reason="Redis connection failed")
+        return
+
+    pubsub = redis.pubsub()
+    await pubsub.subscribe("heatmap_events")
+
+    async def redis_listener():
+        try:
+            async for message in pubsub.listen():
+                if message["type"] == "message":
+                    data = message["data"]
+                    payload = json.loads(data)
+                    if symbol and payload.get("symbol") != symbol:
+                        continue
+                    await websocket.send_text(data)
+        except Exception:
+            pass
+
+    async def client_listener():
+        try:
+            while True:
+                await websocket.receive_text()
+        except Exception:
+            pass
+
+    redis_task = asyncio.create_task(redis_listener())
+    client_task = asyncio.create_task(client_listener())
+    
+    done, pending = await asyncio.wait(
+        [redis_task, client_task],
+        return_when=asyncio.FIRST_COMPLETED
+    )
+    
+    for task in pending:
+        task.cancel()
+        
+    try:
+        await pubsub.unsubscribe("heatmap_events")
+        await pubsub.close()
+    except Exception:
+        pass
+    try:
+        await websocket.close()
+    except Exception:
+        pass
+
