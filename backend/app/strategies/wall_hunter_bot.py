@@ -933,13 +933,14 @@ class WallHunterBot:
             if self.enable_ut_trend_filter: trigger_logs_console.append(f"  └─ Trend Filter: ON")
             if self.enable_ut_trailing_sl: trigger_logs_console.append(f"  └─ Trailing SL: ON")
 
-        any_st = getattr(self, 'enable_supertrend_trend_filter', False) or getattr(self, 'enable_supertrend_entry_trigger', False) or getattr(self, 'enable_supertrend_trailing_sl', False)
+        any_st = getattr(self, 'enable_supertrend_trend_filter', False) or getattr(self, 'enable_supertrend_entry_trigger', False) or getattr(self, 'enable_supertrend_trailing_sl', False) or getattr(self, 'enable_supertrend_exit', False)
         if any_st:
             st_mode = "Standalone" if (not getattr(self, 'enable_wall_trigger', False) and not getattr(self, 'enable_liq_trigger', False)) else "Confluence"
             trigger_logs_console.append(f"- Supertrend: ACTIVE ({st_mode})")
             if getattr(self, 'enable_supertrend_entry_trigger', False): trigger_logs_console.append(f"  └─ Entry Trigger: ON")
             if getattr(self, 'enable_supertrend_trend_filter', False): trigger_logs_console.append(f"  └─ Trend Filter: ON")
             if getattr(self, 'enable_supertrend_trailing_sl', False): trigger_logs_console.append(f"  └─ Trailing SL: ON")
+            if getattr(self, 'enable_supertrend_exit', False): trigger_logs_console.append(f"  └─ Reversal Dual-Exit: ON ({getattr(self, 'supertrend_exit_timeout', 5)}s)")
             
         trigger_console_str = "\n".join(trigger_logs_console)
 

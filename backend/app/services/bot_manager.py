@@ -312,6 +312,8 @@ class BotManager:
                     adv.append(f"ATR (P:{config.get('atr_period', 14)})")
                 if config.get('enable_micro_scalp'):
                     adv.append(f"Micro-Scalp")
+                if config.get('enable_supertrend_exit'):
+                    adv.append(f"ST Dual-Exit ({config.get('supertrend_exit_timeout', 5)}s Maker->Taker)")
 
                 if adv:
                     adv_str = " | ".join(adv)
