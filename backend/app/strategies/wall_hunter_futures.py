@@ -440,19 +440,68 @@ class WallHunterFuturesStrategy:
                         to_cancel = [o for o in open_orders if str(o.get('clientOrderId', '')).startswith(prefix) or str(o.get('info', {}).get('clientOrderId', '')).startswith(prefix)]
                         
                         if to_cancel:
-                            self.logger.info(f"🧹 Found {len(to_cancel)} dangling orders for Bot {self.bot_id}. Clearing...")
+                            self.logger.info(f"🧹 Found {len(to_cancel)} dangling orders for Bot {self.bot_id}. Analyzing...")
+                            expected_entry_side = "sell" if getattr(self, 'strategy_mode', 'long') == "short" else "buy"
+                            
+                            orders_to_clear = []
+                            adopted = False
+                            
                             for order in to_cancel:
-                                try:
-                                    await self.private_exchange.cancel_order(order['id'], self.symbol)
-                                except Exception as cancel_err:
-                                    self.logger.warning(f"Failed to cancel order {order['id']}: {cancel_err}")
-                            self.logger.info(f"✅ Dangling orders for Bot {self.bot_id} cleared.")
+                                order_side = order.get('side', '').lower()
+                                
+                                if not recovered_pos and not adopted:
+                                    fallback_price = order.get('average') or order.get('price') or self.highest_price
+                                    
+                                    if order_side == expected_entry_side:
+                                        self.logger.info(f"🌟 Adopting dangling {order_side.upper()} order {order['id']} as pending ENTRY!")
+                                        self.active_pos = {
+                                            "entry": fallback_price,
+                                            "amount": order.get('amount') or self.config.get("amount_per_trade", 0.0),
+                                            "sl": fallback_price * 1.5 if order_side == "sell" else fallback_price * 0.5,
+                                            "tp": fallback_price * 0.5 if order_side == "sell" else fallback_price * 1.5,
+                                            "tp1": fallback_price * 0.5 if order_side == "sell" else fallback_price * 1.5,
+                                            "tp1_hit": False,
+                                            "breakeven_hit": False,
+                                            "tsl_activated": False,
+                                            "entry_order_id": order['id'],
+                                            "limit_order_id": None,
+                                            "micro_scalp": getattr(self, 'enable_micro_scalp', False)
+                                        }
+                                    else:
+                                        self.logger.info(f"🌟 Adopting dangling {order_side.upper()} order {order['id']} as pending EXIT (Take Profit)!")
+                                        assumed_entry = fallback_price * 1.05 if order_side == "buy" else fallback_price * 0.95
+                                        self.active_pos = {
+                                            "entry": assumed_entry,
+                                            "amount": order.get('amount') or self.config.get("amount_per_trade", 0.0),
+                                            "sl": assumed_entry * 1.5 if getattr(self, 'strategy_mode', 'long') == "short" else assumed_entry * 0.5, # Safe fallback SL
+                                            "tp": fallback_price,
+                                            "tp1": fallback_price,
+                                            "tp1_hit": False,
+                                            "breakeven_hit": False,
+                                            "tsl_activated": False,
+                                            "entry_order_id": None,
+                                            "limit_order_id": order['id'],
+                                            "micro_scalp": getattr(self, 'enable_micro_scalp', False)
+                                        }
+                                        
+                                    recovered_pos = self.active_pos
+                                    adopted = True
+                                    self._save_state()
+                                else:
+                                    orders_to_clear.append(order)
+                                    
+                            if orders_to_clear:
+                                self.logger.info(f"🧹 Clearing {len(orders_to_clear)} invalid/duplicate dangling orders...")
+                                for order in orders_to_clear:
+                                    try:
+                                        await self.private_exchange.cancel_order(order['id'], self.symbol)
+                                    except Exception as cancel_err:
+                                        self.logger.warning(f"Failed to cancel order {order['id']}: {cancel_err}")
+                                self.logger.info(f"✅ Dangling orders for Bot {self.bot_id} cleared.")
                         else:
                             self.logger.info(f"✨ No dangling orders found for Bot {self.bot_id}. Isolation check complete.")
                     except Exception as e:
                         self.logger.warning(f"⚠️ Could not perform safe order cleanup: {e}")
-                    except Exception as e:
-                        logger.warning(f"⚠️ Could not clear open orders on startup: {e}")
             
             # ৩. এক্সিকিউশন ইঞ্জিন
             engine_config = self.config.copy()

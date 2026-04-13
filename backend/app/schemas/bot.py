@@ -127,6 +127,8 @@ class StrategyConfig(BaseModel):
     enable_supertrend_entry_trigger: Optional[bool] = False
     enable_supertrend_trend_unlock_mode: Optional[bool] = False
     enable_supertrend_trailing_sl: Optional[bool] = False
+    enable_supertrend_exit: Optional[bool] = False
+    supertrend_exit_timeout: Optional[int] = 5
     supertrend_period: Optional[int] = 10
     supertrend_multiplier: Optional[float] = 3.0
     supertrend_timeframe: Optional[str] = "5m"
