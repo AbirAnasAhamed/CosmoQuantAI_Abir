@@ -394,6 +394,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
             let optimalVol = form.vol;
             let optimalSpread = form.spread;
             let optimalAmount = form.amount;
+            let optimalIcebergVol = form.icebergMinAbsorbedVol;
 
             if (deepBids.length > 0 && deepAsks.length > 0) {
                 const bestBid = deepBids[0].price;
@@ -466,13 +467,31 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                         optimalAmount = parseFloat(targetUsdVal.toFixed(2));
                     }
                 }
-            }
+                // --- SMART ICEBERG VOLUME (QUOTE VALUE BASED) ---
+                // Iceberg absorption must be HARDER to trigger than a normal wall.
+                // We use p95 quote value (price × size) of the full order book depth.
+                // This ensures only massive institutional absorption qualifies.
+                const allQuoteValues = [
+                    ...deepBids.map((b: any) => b.price * b.size),
+                    ...deepAsks.map((a: any) => a.price * a.size),
+                ];
+                if (allQuoteValues.length > 0) {
+                    allQuoteValues.sort((a, b) => a - b);
+                    const p95Idx = Math.floor(allQuoteValues.length * 0.95);
+                    const p95QuoteVal = allQuoteValues[p95Idx];
+                    // Use 3× the p95 quote value: iceberg must absorb significantly more than a single top-book level
+                    const rawIcebergVol = p95QuoteVal * 3;
+                    // Round to nearest $5,000 for cleanliness
+                    optimalIcebergVol = Math.max(5000, Math.round(rawIcebergVol / 5000) * 5000);
+                }
+            } // end: if (deepBids.length > 0 && deepAsks.length > 0)
 
             setForm(prev => ({
                 ...prev,
                 vol: optimalVol,
                 spread: optimalSpread,
-                amount: optimalAmount
+                amount: optimalAmount,
+                icebergMinAbsorbedVol: optimalIcebergVol,
             }));
             
             setErrorMsg("✅ Parameters auto-detected!");
