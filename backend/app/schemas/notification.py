@@ -20,6 +20,7 @@ class NotificationSettingsBase(BaseModel):
     alert_weekly_summary: bool = True
     alert_server_errors: bool = True
     broadcast_live_logs: bool = True
+    alert_market_news: bool = True
 
 class NotificationSettingsCreate(NotificationSettingsBase):
     pass
