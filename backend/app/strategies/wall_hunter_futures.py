@@ -597,13 +597,14 @@ class WallHunterFuturesStrategy:
                 if getattr(self, 'enable_ut_trend_filter', False): ut_summary_str += "  └─ Trend Filter: ON\n"
                 if getattr(self, 'enable_ut_trailing_sl', False): ut_summary_str += "  └─ Trailing SL: ON\n"
 
-            any_supertrend = getattr(self, 'enable_supertrend_trend_filter', False) or getattr(self, 'enable_supertrend_entry_trigger', False) or getattr(self, 'enable_supertrend_trailing_sl', False)
+            any_supertrend = getattr(self, 'enable_supertrend_trend_filter', False) or getattr(self, 'enable_supertrend_entry_trigger', False) or getattr(self, 'enable_supertrend_trailing_sl', False) or getattr(self, 'enable_supertrend_exit', False)
             if any_supertrend:
                 st_mode = "Standalone" if (not getattr(self, 'enable_wall_trigger', False) and not getattr(self, 'enable_liq_trigger', False)) else "Confluence"
                 ut_summary_str += f"Supertrend Alerts: ACTIVE ({st_mode})\n"
                 if getattr(self, 'enable_supertrend_entry_trigger', False): ut_summary_str += "  └─ Entry Trigger: ON\n"
                 if getattr(self, 'enable_supertrend_trend_filter', False): ut_summary_str += "  └─ Trend Filter: ON\n"
                 if getattr(self, 'enable_supertrend_trailing_sl', False): ut_summary_str += "  └─ Trailing SL: ON\n"
+                if getattr(self, 'enable_supertrend_exit', False): ut_summary_str += f"  └─ Reversal Dual-Exit: ON ({getattr(self, 'supertrend_exit_timeout', 5)}s)\n"
 
             startup_msg = (
                 f"🟢 WallHunter Bot [ID {self.bot_id}] Started!\n"
