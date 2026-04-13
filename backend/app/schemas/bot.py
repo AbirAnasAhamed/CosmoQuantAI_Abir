@@ -81,6 +81,11 @@ class StrategyConfig(BaseModel):
     btc_time_window: Optional[int] = 15
     btc_min_move_pct: Optional[float] = 0.1
 
+    # --- Iceberg & Hidden Wall Trigger ---
+    enable_iceberg_trigger: Optional[bool] = False
+    iceberg_time_window_secs: Optional[int] = 5
+    iceberg_min_absorbed_vol: Optional[float] = 100000.0
+
     # --- Buy Order Type Logic ---
     buy_order_type: Optional[str] = "market"
     limit_buffer: Optional[float] = 1.0

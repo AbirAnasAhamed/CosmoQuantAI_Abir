@@ -9,6 +9,7 @@ from app.strategies.order_block_bot import OrderBlockExecutionEngine
 from app.services.notification import NotificationService
 from app.db.session import SessionLocal
 from app.strategies.helpers.absorption_tracker import AbsorptionTracker
+from app.strategies.helpers.iceberg_tracker import IcebergTracker
 from app.services.market_depth_service import market_depth_service
 from app.strategies.helpers.trend_finder import AdaptiveTrendFinder
 from app.strategies.helpers.ut_bot_tracker import UTBotTracker
@@ -144,6 +145,15 @@ class WallHunterBot:
         self.absorption_tracker = AbsorptionTracker(
             window_seconds=self.absorption_window, 
             threshold=self.absorption_threshold
+        )
+        
+        # --- NEW FEATURES: Iceberg & Hidden Wall Trigger ---
+        self.enable_iceberg_trigger = config.get("enable_iceberg_trigger", False)
+        self.iceberg_time_window_secs = config.get("iceberg_time_window_secs", 5)
+        self.iceberg_min_absorbed_vol = config.get("iceberg_min_absorbed_vol", 100000.0)
+        self.iceberg_tracker = IcebergTracker(
+            window_seconds=self.iceberg_time_window_secs,
+            min_absorbed_vol=self.iceberg_min_absorbed_vol
         )
         
         # --- BRAND NEW: BTC Correlation Filter ---
@@ -414,6 +424,22 @@ class WallHunterBot:
             updates.append(f"Absorption Window: {self.absorption_window}s -> {new_config['absorption_window']}s")
             self.absorption_window = new_config.get("absorption_window")
             self.absorption_tracker.update_params(window_seconds=self.absorption_window)
+
+        if "enable_iceberg_trigger" in new_config and new_config["enable_iceberg_trigger"] != self.enable_iceberg_trigger:
+            status = "ON" if new_config["enable_iceberg_trigger"] else "OFF"
+            updates.append(f"Iceberg Trigger: {status}")
+            self.enable_iceberg_trigger = new_config.get("enable_iceberg_trigger")
+
+        if "iceberg_time_window_secs" in new_config and new_config["iceberg_time_window_secs"] != self.iceberg_time_window_secs:
+            updates.append(f"Iceberg Window: {self.iceberg_time_window_secs}s -> {new_config['iceberg_time_window_secs']}s")
+            self.iceberg_time_window_secs = new_config.get("iceberg_time_window_secs")
+            self.iceberg_tracker.update_params(window_seconds=self.iceberg_time_window_secs)
+
+        if "iceberg_min_absorbed_vol" in new_config and new_config["iceberg_min_absorbed_vol"] != self.iceberg_min_absorbed_vol:
+            updates.append(f"Iceberg Min Vol: {self.iceberg_min_absorbed_vol} -> {new_config['iceberg_min_absorbed_vol']}")
+            self.iceberg_min_absorbed_vol = new_config.get("iceberg_min_absorbed_vol")
+            self.iceberg_tracker.update_params(min_absorbed_vol=self.iceberg_min_absorbed_vol)
+            
             
         if "enable_btc_correlation" in new_config and new_config["enable_btc_correlation"] != self.enable_btc_correlation:
             status = "ON" if new_config["enable_btc_correlation"] else "OFF"
@@ -879,7 +905,7 @@ class WallHunterBot:
         else:
             self._liq_task = None
             
-        if self.config.get('enable_absorption', False):
+        if self.config.get('enable_absorption', False) or getattr(self, 'enable_iceberg_trigger', False):
             self._trades_task = asyncio.create_task(self._trades_listener())
         else:
             self._trades_task = None
@@ -1035,6 +1061,10 @@ class WallHunterBot:
                 mid_price = (best_bid + best_ask) / 2
                 current_time = time.time()
 
+                if self.enable_iceberg_trigger:
+                    self.iceberg_tracker.update_orderbook(orderbook['bids'], orderbook['asks'])
+
+
                 if not self.active_pos:
                     if getattr(self, 'supertrend_trend_unlock_mode', False) and getattr(self, 'supertrend_tracker', None):
                         closed_only = getattr(self, 'supertrend_candle_close', False)
@@ -1061,6 +1091,48 @@ class WallHunterBot:
                     if not self.enable_wall_trigger:
                         self._publish_status(mid_price)
                         continue
+
+                    # === ICEBERG DETECTION PRIORITY ===
+                    # If iceberg_detected, execute IMMEDIATELY ignoring wall lifetime and regular volume requirements.
+                    if self.enable_iceberg_trigger:
+                        target_side = "buy" if getattr(self, 'strategy_mode', 'long') == 'long' else "sell"
+                        
+                        ice_res = self.iceberg_tracker.check_for_iceberg(target_side, mid_price)
+                        if ice_res and ice_res.get('iceberg_detected'):
+                            price = ice_res['price']
+                            self.logger.info(f"💎 ICEBERG TRIGGER! Massive absorption detected defending {price}. Executing high-priority Snipe!")
+                            
+                            # Publish WebSocket Event directly to Heatmap Channel
+                            try:
+                                event_payload = {
+                                    "type": "ICEBERG_DETECTED",
+                                    "symbol": self.symbol,
+                                    "side": target_side,
+                                    "price": price,
+                                    "absorbed_vol": ice_res.get("absorbed_vol", 0),
+                                    "limit_vol_remaining": ice_res.get("limit_vol_remaining", 0)
+                                }
+                                self.redis.publish("heatmap_events", json.dumps(event_payload))
+                            except Exception as e:
+                                self.logger.error(f"Failed to publish Heatmap event: {e}")
+
+                            if self.enable_proxy_wall:
+                                try:
+                                    native_book = await self.public_exchange.fetch_order_book(self.symbol, limit=5)
+                                    native_best_bid = native_book['bids'][0][0]
+                                    native_best_ask = native_book['asks'][0][0]
+                                    native_mid = (native_best_bid + native_best_ask) / 2
+                                    await self.execute_snipe(price, target_side, native_mid, native_best_bid, native_best_ask)
+                                except Exception as e:
+                                    self.logger.warning(f"Error fetching native execution book for proxy snipe: {e}. Falling back to proxy price.")
+                                    await self.execute_snipe(price, target_side, mid_price, best_bid, best_ask)
+                            else:
+                                await self.execute_snipe(price, target_side, mid_price, best_bid, best_ask)
+                                
+                            self.tracked_walls.clear()
+                            continue # Skip the rest of the loop for this tick
+                    # === END ICEBERG SEC ===
+
 
                     # 1. বর্তমান অর্ডার বুকের ওয়ালগুলো ফিল্টার করা
                     current_walls = {}
@@ -2299,7 +2371,14 @@ class WallHunterBot:
                             sweep_amount_raw = remaining_base
                             sweep_amount = float(self.engine.exchange.amount_to_precision(self.symbol, sweep_amount_raw))
                             
-                            await self.engine.execute_trade(close_side, sweep_amount, current_price, order_type="market")
+                            sweep_params = {}
+                            if close_side == "buy":
+                                acquired_quote = sweep_amount_raw * float(self.active_pos['entry']) * 0.995
+                                safe_quote = float(self.public_exchange.price_to_precision(self.symbol, acquired_quote)) if hasattr(self.public_exchange, 'price_to_precision') else acquired_quote
+                                sweep_params['quoteOrderQty'] = safe_quote
+                                sweep_params['cost'] = safe_quote
+                            
+                            await self.engine.execute_trade(close_side, sweep_amount, current_price, order_type="market", params=sweep_params)
                             self.logger.info("✅ Market sweep completed.")
                 except Exception as e:
                     self.logger.error(f"Error checking SL partial fill sweep: {e}")
@@ -2375,7 +2454,14 @@ class WallHunterBot:
                                 sweep_amount_raw = remaining_base
                                 sweep_amount = float(self.engine.exchange.amount_to_precision(self.symbol, sweep_amount_raw))
                                 
-                                await self.engine.execute_trade(close_side, sweep_amount, current_price, order_type="market")
+                                sweep_params = {}
+                                if close_side == "buy":
+                                    acquired_quote = sweep_amount_raw * float(self.active_pos['entry']) * 0.995
+                                    safe_quote = float(self.public_exchange.price_to_precision(self.symbol, acquired_quote)) if hasattr(self.public_exchange, 'price_to_precision') else acquired_quote
+                                    sweep_params['quoteOrderQty'] = safe_quote
+                                    sweep_params['cost'] = safe_quote
+                                
+                                await self.engine.execute_trade(close_side, sweep_amount, current_price, order_type="market", params=sweep_params)
                                 self.logger.info("✅ Market sweep for Final TP completed.")
                     except Exception as e:
                         self.logger.error(f"Error checking Final TP partial fill sweep: {e}")
@@ -2493,7 +2579,13 @@ class WallHunterBot:
                         if remaining_base >= min_amount:
                             self.logger.info(f"🧹 Sweeping remainder at TAKER (Market): {remaining_base} {self.symbol}")
                             sweep_amount = float(self.engine.exchange.amount_to_precision(self.symbol, remaining_base)) if hasattr(self.engine.exchange, 'amount_to_precision') else remaining_base
-                            await self.engine.execute_trade(close_side, sweep_amount, maker_price, order_type="market")
+                            sweep_params = {}
+                            if close_side == "buy":
+                                acquired_quote = remaining_base * float(self.active_pos['entry']) * 0.995
+                                safe_quote = float(self.public_exchange.price_to_precision(self.symbol, acquired_quote)) if hasattr(self.public_exchange, 'price_to_precision') else acquired_quote
+                                sweep_params['quoteOrderQty'] = safe_quote
+                                sweep_params['cost'] = safe_quote
+                            await self.engine.execute_trade(close_side, sweep_amount, maker_price, order_type="market", params=sweep_params)
                             self.logger.info("✅ Taker sweep completed.")
                         else:
                             self.logger.info(f"✨ Remaining balance {remaining_base} is below exchange minimum ({min_amount}). Considering position closed.")
@@ -2698,7 +2790,10 @@ class WallHunterBot:
                     a = float(trade['amount'])
                     s = trade['side'] # 'buy' (hits ask) or 'sell' (hits bid)
                     
-                    self.absorption_tracker.add_trade(p, a, s)
+                    if getattr(self, 'enable_absorption', False):
+                        self.absorption_tracker.add_trade(p, a, s)
+                    if getattr(self, 'enable_iceberg_trigger', False):
+                        self.iceberg_tracker.add_trade(p, a, s)
                     
             except Exception as e:
                 if self.running:

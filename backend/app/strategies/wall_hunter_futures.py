@@ -7,6 +7,7 @@ import ccxt.pro as ccxt_pro
 from app.utils import get_redis_client
 from app.strategies.order_block_bot import OrderBlockExecutionEngine
 from app.strategies.helpers.absorption_tracker import AbsorptionTracker
+from app.strategies.helpers.iceberg_tracker import IcebergTracker
 from app.strategies.helpers.trend_finder import AdaptiveTrendFinder
 from app.strategies.helpers.ut_bot_tracker import UTBotTracker
 from app.strategies.helpers.ut_standalone_listener import UTStandaloneListener
@@ -150,6 +151,15 @@ class WallHunterFuturesStrategy:
         self.absorption_tracker = AbsorptionTracker(
             threshold=self.absorption_threshold,
             window_seconds=self.absorption_window
+        )
+        
+        # --- NEW FEATURES: Iceberg & Hidden Wall Trigger ---
+        self.enable_iceberg_trigger = self.config.get("enable_iceberg_trigger", False)
+        self.iceberg_time_window_secs = self.config.get("iceberg_time_window_secs", 5)
+        self.iceberg_min_absorbed_vol = self.config.get("iceberg_min_absorbed_vol", 100000.0)
+        self.iceberg_tracker = IcebergTracker(
+            window_seconds=self.iceberg_time_window_secs,
+            min_absorbed_vol=self.iceberg_min_absorbed_vol
         )
         
         # --- BRAND NEW: BTC Correlation Filter ---
@@ -544,7 +554,7 @@ class WallHunterFuturesStrategy:
             else:
                 self._liq_task = None
                 
-            if self.config.get('enable_absorption', False):
+            if self.config.get('enable_absorption', False) or getattr(self, 'enable_iceberg_trigger', False):
                 self._trades_task = asyncio.create_task(self._trades_listener())
             else:
                 self._trades_task = None
@@ -833,7 +843,46 @@ class WallHunterFuturesStrategy:
                             if self.unlocked_ut_dir != "sell":
                                 self.unlocked_ut_dir = "sell"
                                 self.logger.info("🔓 [UT Bot] Trend Unlocked for SELL (Short) trades!")
+                    
+                    if self.enable_iceberg_trigger:
+                        self.iceberg_tracker.update_orderbook(orderbook['bids'], orderbook['asks'])
+                        
+                        target_side = "buy" if self.direction in ['long', 'auto'] else "sell"
+                        
+                        ice_res = self.iceberg_tracker.check_for_iceberg(target_side, mid_price)
+                        if ice_res and ice_res.get('iceberg_detected'):
+                            price = ice_res['price']
+                            self.logger.info(f"💎 ICEBERG TRIGGER! Massive absorption detected defending {price}. Executing high-priority Snipe!")
+                            
+                            try:
+                                event_payload = {
+                                    "type": "ICEBERG_DETECTED",
+                                    "symbol": self.symbol,
+                                    "side": target_side,
+                                    "price": price,
+                                    "absorbed_vol": ice_res.get("absorbed_vol", 0),
+                                    "limit_vol_remaining": ice_res.get("limit_vol_remaining", 0)
+                                }
+                                self.redis.publish("heatmap_events", json.dumps(event_payload))
+                            except Exception as e:
+                                self.logger.error(f"Failed to publish Heatmap event: {e}")
+
+                            if self.enable_proxy_wall:
+                                try:
+                                    native_book = await self.public_exchange.fetch_order_book(self.symbol, limit=5)
+                                    native_best_bid = native_book['bids'][0][0]
+                                    native_best_ask = native_book['asks'][0][0]
+                                    native_mid = (native_best_bid + native_best_ask) / 2
+                                    await self.execute_snipe(price, target_side, native_mid, native_best_bid, native_best_ask)
+                                except Exception as e:
+                                    self.logger.warning(f"Error fetching native execution book for proxy snipe: {e}. Falling back to proxy price.")
+                                    await self.execute_snipe(price, target_side, mid_price, best_bid, best_ask)
+                            else:
+                                await self.execute_snipe(price, target_side, mid_price, best_bid, best_ask)
                                 
+                            self.tracked_walls.clear()
+                            continue
+
                     if not self.enable_wall_trigger:
                         self._publish_status(mid_price)
                         continue
@@ -2302,6 +2351,15 @@ class WallHunterFuturesStrategy:
                 self.absorption_window = new_config["absorption_window"]
                 self.absorption_tracker.update_params(window_seconds=self.absorption_window)
             
+            if "enable_iceberg_trigger" in new_config: self.enable_iceberg_trigger = new_config["enable_iceberg_trigger"]
+            if "iceberg_time_window_secs" in new_config: 
+                self.iceberg_time_window_secs = new_config["iceberg_time_window_secs"]
+                self.iceberg_tracker.update_params(window_seconds=self.iceberg_time_window_secs)
+            if "iceberg_min_absorbed_vol" in new_config:
+                self.iceberg_min_absorbed_vol = new_config["iceberg_min_absorbed_vol"]
+                self.iceberg_tracker.update_params(min_absorbed_vol=self.iceberg_min_absorbed_vol)
+
+            
             asyncio.create_task(self._send_telegram(f"⚙️ *Live Config Update*\n{self.symbol} Futures Bot\n\n" + "\n".join([f"• {u}" for u in updates])))
 
     async def _vpvr_updater_loop(self):
@@ -2343,7 +2401,10 @@ class WallHunterFuturesStrategy:
                     p = float(trade['price'])
                     a = float(trade['amount'])
                     s = trade['side'] # 'buy' (hits ask) or 'sell' (hits bid)
-                    self.absorption_tracker.add_trade(p, a, s)
+                    if getattr(self, 'enable_absorption', False):
+                        self.absorption_tracker.add_trade(p, a, s)
+                    if getattr(self, 'enable_iceberg_trigger', False):
+                        self.iceberg_tracker.add_trade(p, a, s)
                     
             except Exception as e:
                 if self.running:
