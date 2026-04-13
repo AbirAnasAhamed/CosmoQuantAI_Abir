@@ -236,6 +236,11 @@ class BotManager:
                         liq_info += f" [{'+'.join(l_extra)}]"
                     triggers.append(liq_info)
                     
+                if config.get('enable_iceberg_trigger'):
+                    ice_vol = config.get('iceberg_min_absorbed_vol', 100000.0)
+                    ice_win = config.get('iceberg_time_window_secs', 10)
+                    triggers.append(f"Iceberg [${ice_vol:,.0f}/{ice_win}s] ⚡PRIORITY")
+                    
                 if config.get('enable_dual_engine'):
                     if not config.get('enable_wall_trigger') and not config.get('enable_liq_trigger'):
                         triggers.append(f"Dual Engine Standalone ({config.get('dual_engine_mode', 'Classic')})")
@@ -263,6 +268,14 @@ class BotManager:
                     abs_thresh = config.get('absorption_threshold', 50000.0)
                     abs_win = config.get('absorption_window', 10.0)
                     dynamic_logs.append(f"🧬 CVD Absorption: ON (${abs_thresh:,.0f} / {abs_win}s)")
+
+                # Iceberg / Hidden Wall Trigger Info
+                if config.get('enable_iceberg_trigger'):
+                    ice_vol = config.get('iceberg_min_absorbed_vol', 100000.0)
+                    ice_win = config.get('iceberg_time_window_secs', 10)
+                    dynamic_logs.append(f"💎 Iceberg Trigger: ON | Min Absorbed: ${ice_vol:,.0f} | Window: {ice_win}s | Priority: HIGHEST (Vol Bypass)")
+                else:
+                    dynamic_logs.append(f"💎 Iceberg Trigger: OFF")
 
                 # BTC Correlation Filter Info
                 if config.get('enable_btc_correlation'):
