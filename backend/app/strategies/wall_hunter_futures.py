@@ -2017,14 +2017,21 @@ class WallHunterFuturesStrategy:
                         final_status = await self.engine.exchange.fetch_order(fallback_id, self.symbol)
                         filled_amt = final_status.get('filled', 0.0)
                         
-                        filled_proper = float(self.engine.exchange.amount_to_precision(self.symbol, filled_amt)) if hasattr(self.engine.exchange, 'amount_to_precision') else filled_amt
+                        min_amount = 0.00000001
+                        if hasattr(self.public_exchange, 'markets') and self.public_exchange.markets:
+                            market = self.public_exchange.markets.get(self.symbol, {})
+                            min_amount = market.get('limits', {}).get('amount', {}).get('min', 0.00000001)
+
+                        filled_proper = float(self.engine.exchange.amount_to_precision(self.symbol, filled_amt)) if (hasattr(self.engine.exchange, 'amount_to_precision') and filled_amt >= min_amount) else filled_amt
                         remaining_base = max(0.0, amount - filled_proper)
-                        
-                        if remaining_base > 0:
+
+                        if remaining_base >= min_amount:
                             logger.info(f"🧹 Sweeping remainder at TAKER (Market): {remaining_base} {self.symbol}")
                             sweep_amount = float(self.engine.exchange.amount_to_precision(self.symbol, remaining_base)) if hasattr(self.engine.exchange, 'amount_to_precision') else remaining_base
                             await self.engine.execute_trade(close_side, sweep_amount, maker_price, order_type="market", params={"reduceOnly": True})
                             logger.info("✅ Taker sweep completed.")
+                        else:
+                            logger.info(f"✨ Remaining balance {remaining_base} is below exchange minimum ({min_amount}). Considering position closed.")
                 except Exception as e:
                     logger.error(f"Error during Maker-to-Taker fallback sweep: {e}")
                     
