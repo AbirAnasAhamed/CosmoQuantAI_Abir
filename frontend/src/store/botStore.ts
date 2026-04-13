@@ -168,6 +168,7 @@ export const useBotStore = create<BotState>((set) => ({
         msbObFibFactor: 0.33,
         msbObShowZigzag: true,
         msbObDeleteBroken: true,
+        showCandlestickPatterns: false,
     },
     setIndicatorSettings: (settings) => set({ indicatorSettings: settings }),
 }));

@@ -75,6 +75,7 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
     const utBotMarkersRef = useRef<any[]>([]);
     const quantumAiMarkersRef = useRef<any[]>([]);
     const botTradeMarkersRef = useRef<any[]>([]);
+    const patternMarkersRef = useRef<any[]>([]);
     const wallLinesRef = useRef<Map<string, any>>(new Map());
     const currentPriceLineRef = useRef<any>(null);
     const lastCandleRef = useRef<CandlestickData | null>(null);
@@ -101,6 +102,7 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
     const [quantumAiData, setQuantumAiData] = useState<QuantumAiResult[]>([]);
     const [supertrendData, setSupertrendData] = useState<SupertrendDataPoint[]>([]);
     const [msbObData, setMsbObData] = useState<MsbObResult | null>(null);
+    const [patternData, setPatternData] = useState<any[]>([]); // Added for patterns
     
     // Default to the right side (rough estimate, can be adjusted by screen size)
     const [quantumAiHudPos, setQuantumAiHudPos] = useState(() => {
@@ -274,6 +276,7 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
                     low: parseFloat(k.low),
                     close: parseFloat(k.close),
                     volume: parseFloat(k.volume || 100),
+                    patterns: k.patterns || [],
                 }));
                 if (candlestickSeriesRef.current && isMounted) {
                     candlestickSeriesRef.current.setData(candles);
@@ -331,8 +334,9 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
                                 shape: d.isBuy ? 'arrowUp' : 'arrowDown',
                                 text: d.isBuy ? 'BUY' : 'SELL'
                             }));
-                            const allMarkers = [...botTradeMarkersRef.current, ...utBotMarkersRef.current].sort((a, b) => a.time - b.time);
-                            markersPluginRef.current?.setMarkers(allMarkers);
+                            // Replaced by safeSetMarkers inside effect or wait to sync
+                            // We can just rely on the existing interval/effects, but for instant UI update we call it
+                            setTimeout(safeSetMarkers, 100);
                         }
                     }
                 }
@@ -434,16 +438,14 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
                text: d.isBuy ? 'BUY' : 'SELL'
            }));
            
-           const allMarkers = [...botTradeMarkersRef.current, ...utBotMarkersRef.current].sort((a, b) => a.time - b.time);
-           markersPluginRef.current?.setMarkers(allMarkers);
+           setTimeout(safeSetMarkers, 50);
         } else if (!indicatorSettings.showUTBot && utBotSeriesRef.current) {
            const newCandles = data.map(c => ({ ...c, color: undefined, wickColor: undefined }));
            candlestickSeriesRef.current?.setData(newCandles);
            allCandlesRef.current = newCandles;
            utBotMarkersRef.current = [];
            
-           const allMarkers = [...botTradeMarkersRef.current].sort((a, b) => a.time - b.time);
-           markersPluginRef.current?.setMarkers(allMarkers);
+           setTimeout(safeSetMarkers, 50);
         }
 
     }, [indicatorSettings]);
@@ -719,6 +721,42 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
         return () => clearInterval(intervalId);
     }, [indicatorSettings]);
 
+    // ── Safe Marker Setter Utility ──
+    const safeSetMarkers = () => {
+        if (!markersPluginRef.current) return;
+        const allMarkers = [
+            ...botTradeMarkersRef.current,
+            ...utBotMarkersRef.current,
+            ...quantumAiMarkersRef.current,
+            ...patternMarkersRef.current,
+        ];
+        
+        const grouped = allMarkers.reduce((acc, curr) => {
+             if (!acc[curr.time]) acc[curr.time] = [];
+             acc[curr.time].push(curr);
+             return acc;
+        }, {} as Record<string, any[]>);
+        
+        const deduplicatedMarkers = Object.keys(grouped).map(timeStr => {
+             const items = grouped[timeStr];
+             const bullItems = items.filter(i => i.position === 'belowBar');
+             const bearItems = items.filter(i => i.position === 'aboveBar');
+             const inItems = items.filter(i => i.position === 'inBar');
+             
+             const final = [];
+             if (bullItems.length > 0) final.push({ ...bullItems[0], text: Array.from(new Set(bullItems.map(i => i.text))).filter(t => t).join(', ') });
+             if (bearItems.length > 0) final.push({ ...bearItems[0], text: Array.from(new Set(bearItems.map(i => i.text))).filter(t => t).join(', ') });
+             if (inItems.length > 0) final.push({ ...inItems[0], text: Array.from(new Set(inItems.map(i => i.text))).filter(t => t).join(', ') });
+             return final;
+        }).flat().sort((a, b) => a.time - b.time);
+        
+        try {
+            markersPluginRef.current.setMarkers(deduplicatedMarkers);
+        } catch (err) {
+            console.error('Failed to set markers:', err);
+        }
+    };
+
     // ── Quantum AI Marker Rendering Effect ──
     useEffect(() => {
         if (!markersPluginRef.current) return;
@@ -737,13 +775,51 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
                         : `⚡ ${Math.round(d.bearConfidence)}%`,
                 }));
         }
-        const allMarkers = [
-            ...botTradeMarkersRef.current,
-            ...utBotMarkersRef.current,
-            ...quantumAiMarkersRef.current,
-        ].sort((a, b) => a.time - b.time);
-        markersPluginRef.current.setMarkers(allMarkers);
+        safeSetMarkers();
     }, [quantumAiData, indicatorSettings.showQuantumAI]);
+
+    // ── Candlestick Pattern Interval & Marker Data ──
+    useEffect(() => {
+        if (!indicatorSettings.showCandlestickPatterns) {
+            setPatternData([]);
+            return;
+        }
+
+        const runPatternExtraction = () => {
+            const candles = allCandlesRef.current;
+            if (candles.length === 0) return;
+            const markers: any[] = [];
+            candles.forEach(c => {
+                if (c.patterns && c.patterns.length > 0) {
+                    c.patterns.forEach((p: any) => {
+                        const isBullish = p.direction === 'bullish';
+                        markers.push({
+                            time: c.time,
+                            position: isBullish ? 'belowBar' : 'aboveBar',
+                            color: isBullish ? '#22c55e' : '#ef4444',
+                            shape: isBullish ? 'arrowUp' : 'arrowDown',
+                            text: p.name
+                        });
+                    });
+                }
+            });
+            setPatternData(markers);
+        };
+
+        setTimeout(runPatternExtraction, 0);
+        const pid = setInterval(runPatternExtraction, 2000);
+        return () => clearInterval(pid);
+    }, [indicatorSettings.showCandlestickPatterns]);
+
+    useEffect(() => {
+        if (!markersPluginRef.current) return;
+        if (!indicatorSettings.showCandlestickPatterns) {
+            patternMarkersRef.current = [];
+        } else {
+            patternMarkersRef.current = patternData;
+        }
+        safeSetMarkers();
+    }, [patternData, indicatorSettings.showCandlestickPatterns]);
 
     // Buffer market data updates
     useEffect(() => {

@@ -319,6 +319,10 @@ class MarketDepthService:
                     "volume": candle[5]
                 })
 
+            # Decorate data with mathematical candlestick patterns
+            from app.helpers.candlestick_patterns import attach_candlestick_patterns
+            formatted_data = attach_candlestick_patterns(formatted_data)
+
             if redis:
                 # Cache for timeframe duration (e.g. 1m -> 60s, 1h -> 3600s)
                 # Simplified TTL: 10 seconds to allow fast Supertrend reaction for active candles
