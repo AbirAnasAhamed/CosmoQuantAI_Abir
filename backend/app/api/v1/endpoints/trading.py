@@ -20,6 +20,8 @@ class OrderRequest(BaseModel):
     amount: float
     price: Optional[float] = None
     exchange_id: str = 'binance'
+    api_key_id: Optional[int] = None
+    params: Optional[dict] = {}
 
 class ConnectionTestRequest(BaseModel):
     exchange_id: str
@@ -78,72 +80,31 @@ async def place_order(
     current_user: models.User = Depends(deps.get_current_user)
 ):
     """Place a REAL order on the exchange"""
-    
-    # ১. ব্যবহারকারীর API Key খুঁজে বের করা
-    api_key_record = db.query(models.ApiKey).filter(
-        models.ApiKey.user_id == current_user.id,
-        models.ApiKey.exchange == order.exchange_id,
-        models.ApiKey.is_enabled == True
-    ).first()
-
-    if not api_key_record:
-        raise HTTPException(status_code=404, detail=f"No active API key found for {order.exchange_id}")
-
-    exchange = None
     try:
-        # ২. সিক্রেট কি ডিক্রিপ্ট করা এবং এক্সচেঞ্জ সেটআপ
-        decrypted_secret = decrypt_key(api_key_record.secret_key)
-        exchange_class = getattr(ccxt, order.exchange_id, None)
-        
-        if not exchange_class:
-             raise HTTPException(status_code=400, detail="Unsupported exchange")
-
-        exchange_config = {
-            'apiKey': api_key_record.api_key,
-            'secret': decrypted_secret,
-            'enableRateLimit': True,
-            'options': {
-                'adjustForTimeDifference': True,
-                'recvWindow': 60000 if order.exchange_id.lower() == 'mexc' else 10000
-            }
-        }
-        
-        if hasattr(api_key_record, 'passphrase') and api_key_record.passphrase:
-            try:
-                exchange_config['password'] = decrypt_key(api_key_record.passphrase)
-            except Exception:
-                exchange_config['password'] = api_key_record.passphrase
-
-        exchange = exchange_class(exchange_config)
-
-        # ৩. অর্ডার প্লেস করা
-        response = None
-        if order.type.lower() == 'market':
-            response = await exchange.create_market_order(order.symbol, order.side, order.amount)
-        elif order.type.lower() == 'limit':
-            if not order.price:
-                raise HTTPException(status_code=400, detail="Price is required for limit orders")
-            response = await exchange.create_limit_order(order.symbol, order.side, order.amount, order.price)
-        else:
-             raise HTTPException(status_code=400, detail="Invalid order type")
-
-        return {
-            "id": response['id'],
-            "symbol": response['symbol'],
-            "status": response.get('status', 'open'),
-            "side": response['side'],
-            "amount": response['amount'],
-            "price": response.get('price') or response.get('average'),
-            "message": "Order placed successfully"
-        }
-
+        from app.services.manual_trade_service import manual_trade_service
+        return await manual_trade_service.place_manual_trade(db, current_user.id, order)
+    except HTTPException as he:
+        raise he
     except Exception as e:
         logger.error(f"Order placement failed: {e}")
         raise HTTPException(status_code=500, detail=f"Exchange Error: {str(e)}")
-    
-    finally:
-        if exchange:
-            await exchange.close()
+
+@router.get("/api-key-balance/{api_key_id}")
+async def get_api_key_balance(
+    api_key_id: int,
+    symbol: str,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """Fetch free margin balance mapped to a specific API key & symbol"""
+    try:
+        from app.services.manual_trade_service import manual_trade_service
+        return await manual_trade_service.get_fast_balance(db, current_user.id, api_key_id, symbol)
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Balance fetch failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Balance Error: {str(e)}")
 
 @router.post("/sor/preview")
 async def preview_sor_order(

@@ -37,6 +37,7 @@ import { HeatmapSubNav } from '../../components/features/market/HeatmapSubNav';
 import { BotSettingsTab } from '../../components/features/market/BotSettingsTab';
 import { BotLogsTab } from '../../components/features/market/BotLogsTab';
 import { WallHunterModal } from '../../components/features/market/WallHunterModal';
+import { ManualTradeModal } from '../../components/features/market/ManualTradeModal';
 import { DualEngineDashboard } from '../../components/features/market/DualEngineDashboard';
 import { WatchlistScanner } from '../../components/features/market/WatchlistScanner';
 import { botService } from '../../services/botService';
@@ -2347,6 +2348,9 @@ const OrderFlowHeatmap: React.FC = () => {
                     </button>
                 )
             }
+
+            {/* MANUAL TRADE MODAL */}
+            <ManualTradeModal symbol={symbol} currentPrice={currentPrice} />
 
             <WallHunterModal
                 isOpen={isWallHunterOpen}
