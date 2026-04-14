@@ -155,14 +155,15 @@ class ManualTradeService:
             else:
                 raise HTTPException(status_code=400, detail="Invalid order type. Use 'market' or 'limit'.")
 
-            # Calculate Latency
-            latency_msg = ""
-            client_timestamp = getattr(order_req, 'client_timestamp', None)
-            if client_timestamp:
-                latency_ms = int(time.time() * 1000) - client_timestamp
-                # Avoid negative latency due to clock sync issues between client/server
-                latency_ms = max(0, latency_ms)
-                latency_msg = f"⏱ Execution Time: {latency_ms} ms ⚡\n"
+            # Calculate Latency (using backend perf_counter to eliminate PC-Server clock drift)
+            latency_ms = 0
+            if hasattr(order_req, '_backend_start_time'):
+                latency_ms = int((time.perf_counter() - getattr(order_req, '_backend_start_time')) * 1000)
+            else:
+                # Fallback if somehow not set, just assume 0 or fast
+                latency_ms = 0
+            
+            latency_msg = f"⏱ Execution Time: {latency_ms} ms ⚡\n"
             
             # Send Telegram Notification
             try:

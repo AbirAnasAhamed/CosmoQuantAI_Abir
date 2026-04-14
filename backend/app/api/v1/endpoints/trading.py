@@ -82,6 +82,9 @@ async def place_order(
 ):
     """Place a REAL order on the exchange"""
     try:
+        import time
+        order._backend_start_time = time.perf_counter()
+        
         from app.services.manual_trade_service import manual_trade_service
         return await manual_trade_service.place_manual_trade(db, current_user.id, order)
     except HTTPException as he:
