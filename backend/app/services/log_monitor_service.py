@@ -133,6 +133,21 @@ IGNORE_PATTERNS = [
     # ── Proxy connection issues (benign/transient/startup) ───────────────────
     re.compile(r'ended by the other party', re.IGNORECASE),
     re.compile(r'writeAfterFIN', re.IGNORECASE),
+    # ── PostgreSQL / TimescaleDB controlled shutdown ──────────────────────────
+    # These appear whenever the DB container is restarted via docker-compose
+    # (docker stop / restart / down). They are NOT crashes — "administrator
+    # command" means Postgres received a SIGTERM from Docker and shut down
+    # gracefully.  The container auto-restarts via restart: always, so no
+    # action is required and these must never trigger a Telegram alert.
+    re.compile(r'due to administrator command', re.IGNORECASE),
+    re.compile(r'terminating background worker.*TimescaleDB', re.IGNORECASE),
+    re.compile(r'background worker.*exited with exit code 1', re.IGNORECASE),
+    re.compile(r'logical replication launcher.*exited', re.IGNORECASE),
+    re.compile(r'TimescaleDB Background Worker', re.IGNORECASE),
+    re.compile(r'database system is shut down', re.IGNORECASE),
+    re.compile(r'received fast shutdown request', re.IGNORECASE),
+    re.compile(r'aborting any active transactions', re.IGNORECASE),
+    re.compile(r'shutting down', re.IGNORECASE),
 ]
 
 # Patterns that look like errors but should be downgraded to WARNING
