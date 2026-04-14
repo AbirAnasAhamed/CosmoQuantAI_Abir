@@ -29,7 +29,7 @@ class BracketOrderService:
         try:
             # Decrypt keys
             decrypted_api_key = decrypt_key(api_key_record.api_key)
-            decrypted_secret = decrypt_key(api_key_record.api_secret)
+            decrypted_secret = decrypt_key(api_key_record.secret_key)
             passphrase = decrypt_key(api_key_record.passphrase) if getattr(api_key_record, 'passphrase', None) else None
             
             exchange = await get_or_create_exchange(
