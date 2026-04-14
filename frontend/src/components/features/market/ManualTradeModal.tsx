@@ -25,6 +25,7 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
   const [tradeSide, setTradeSide] = useState<'Buy' | 'Sell'>('Buy');
   const [marginMode, setMarginMode] = useState<'cross' | 'isolated'>('isolated');
   const [reduceOnly, setReduceOnly] = useState<boolean>(false);
+  const [isAutoLimit, setIsAutoLimit] = useState<boolean>(true);
   const [positionData, setPositionData] = useState<FastPositionResponse | null>(null);
   const [isLoadingPosition, setIsLoadingPosition] = useState(false);
 
@@ -98,15 +99,26 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
     setIsSubmitting(true);
     // Simulate API call for now since backend route is not ready
     try {
+      if (orderType === 'Limit' && !isAutoLimit && (!limitPrice || Number(limitPrice) <= 0)) {
+        toast.error("Please enter a valid limit price or enable Auto Limit.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const paramsPayload: any = isFutures ? { leverage, marginMode, reduceOnly } : {};
+      if (orderType === 'Limit' && isAutoLimit) {
+         paramsPayload.autoBestLimit = true;
+      }
+
       const payload = {
         symbol,
         side,
         type: orderType,
         amount: Number(size),
-        price: orderType === 'Limit' ? Number(limitPrice) : undefined,
+        price: orderType === 'Limit' ? (isAutoLimit ? 0 : Number(limitPrice)) : undefined,
         exchange_id: 'binance', // backend fallback
         api_key_id: selectedApi ? Number(selectedApi) : undefined,
-        params: isFutures ? { leverage, marginMode, reduceOnly } : undefined,
+        params: Object.keys(paramsPayload).length > 0 ? paramsPayload : undefined,
         client_timestamp: Date.now()
       };
       await manualTradeService.placeOrder(payload as any);
@@ -240,18 +252,38 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="space-y-1 overflow-hidden"
+                    className="space-y-3 overflow-hidden"
                   >
-                    <label className="text-xs text-gray-400 font-medium">Limit Price</label>
-                    <div className="relative">
-                      <input 
-                        type="number"
-                        value={limitPrice}
-                        onChange={(e) => setLimitPrice(e.target.value)}
-                        className="w-full bg-black/30 border border-white/10 rounded-lg py-2 px-3 pl-8 text-white text-sm focus:outline-none focus:border-brand-primary/50 transition-colors"
-                      />
-                      <span className="absolute left-3 top-2 text-gray-500 text-sm">$</span>
+                    {/* Switch: Auto Best Limit */}
+                    <div className="flex items-center justify-between bg-black/20 p-2 rounded-lg border border-brand-primary/20 cursor-pointer" onClick={() => setIsAutoLimit(!isAutoLimit)}>
+                       <div className="flex flex-col">
+                          <span className="text-xs font-bold text-brand-primary">Auto Best Limit (Post-Only)</span>
+                          <span className="text-[10px] text-gray-500">Snipes entry at Best Bid/Ask without Taker Fees</span>
+                       </div>
+                       <div className={`relative w-8 h-4 rounded-full transition-colors ${isAutoLimit ? 'bg-brand-primary' : 'bg-gray-600'}`}>
+                          <MotionDiv 
+                             className="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full"
+                             animate={{ x: isAutoLimit ? 16 : 0 }}
+                             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                          />
+                       </div>
                     </div>
+
+                    {!isAutoLimit && (
+                        <div className="space-y-1">
+                          <label className="text-xs text-gray-400 font-medium">Limit Price</label>
+                          <div className="relative">
+                            <input 
+                              type="number"
+                              value={limitPrice}
+                              disabled={isAutoLimit}
+                              onChange={(e) => setLimitPrice(e.target.value)}
+                              className="w-full bg-black/30 border border-white/10 rounded-lg py-2 px-3 pl-8 text-white text-sm focus:outline-none focus:border-brand-primary/50 transition-colors disabled:opacity-50"
+                            />
+                            <span className="absolute left-3 top-2 text-gray-500 text-sm">$</span>
+                          </div>
+                        </div>
+                    )}
                   </MotionDiv>
                 )}
               </AnimatePresence>

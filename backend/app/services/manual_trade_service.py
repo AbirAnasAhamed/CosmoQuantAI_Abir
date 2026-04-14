@@ -223,8 +223,23 @@ class ManualTradeService:
                     order_req.symbol, order_req.side, order_req.amount, ex_params
                 )
             elif order_req.type.lower() == 'limit':
-                if not getattr(order_req, 'price', None):
+                if params.get('autoBestLimit'):
+                    try:
+                        ob = await exchange.fetch_order_book(order_req.symbol, limit=5)
+                        if order_req.side.lower() == 'buy':
+                            if not ob.get('bids'): raise ValueError("No bids found in orderbook.")
+                            order_req.price = ob['bids'][0][0]
+                        else:
+                            if not ob.get('asks'): raise ValueError("No asks found in orderbook.")
+                            order_req.price = ob['asks'][0][0]
+                        ex_params['postOnly'] = True
+                    except Exception as e:
+                        logger.error(f"Failed to auto-detect best limit price: {e}")
+                        raise HTTPException(status_code=500, detail=f"Failed to auto-fetch best limit price: {e}")
+
+                if not getattr(order_req, 'price', None) or order_req.price <= 0:
                     raise HTTPException(status_code=400, detail="Price is required for limit orders")
+                
                 response = await exchange.create_limit_order(
                     order_req.symbol, order_req.side, order_req.amount, order_req.price, ex_params
                 )
