@@ -18,6 +18,7 @@ from app.services.orderbook_snapshot_service import orderbook_snapshot_service #
 from app.services.binance_liq_stream import liquidation_stream # ✅ Import Binance Liquidation Stream
 from app.services.portfolio_price_service import portfolio_price_service # ✅ Import Portfolio Price Service
 from app.services.god_mode_liquidation_service import god_mode_service # ✅ Import God Mode Liquidation Service
+from app.services import exchange_pool # ✅ Import Exchange Pool (ManualTradeModal fast-path)
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
@@ -543,6 +544,9 @@ async def shutdown_event():
 
     # Stop Portfolio Price Service
     await portfolio_price_service.stop()
+
+    # Close all cached Exchange Connections (ManualTradeModal pool)
+    await exchange_pool.close_all()
 
     print("✅ All background tasks stopped.")
 
