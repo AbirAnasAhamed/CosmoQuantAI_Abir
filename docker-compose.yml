@@ -3,7 +3,7 @@ services:
   backend:
     build: ./backend
     container_name: cosmoquant_backend
-    command: bash -c "pip install hmmlearn statsmodels && sed -i 's/\r$$//' prestart.sh && bash prestart.sh && uvicorn app.main:app --host 0.0.0.0 --port 8000 --timeout-keep-alive 65"
+    command: bash -c "sed -i 's/\\r$$//' prestart.sh && bash prestart.sh && uvicorn app.main:app --host 0.0.0.0 --port 8000 --timeout-keep-alive 65"
     restart: always
     volumes:
       - ./backend:/app
@@ -28,7 +28,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: cosmo_celery_worker
-    command: celery -A app.core.celery_app worker --loglevel=warning
+    command: celery -A app.core.celery_app worker --loglevel=warning --concurrency=1
     volumes:
       - ./backend:/app
       - /var/run/docker.sock:/var/run/docker.sock  # Docker socket for log monitoring

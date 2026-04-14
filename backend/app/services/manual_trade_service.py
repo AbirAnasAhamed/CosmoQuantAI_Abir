@@ -70,17 +70,25 @@ class ManualTradeService:
             # For spot like DOGE/FDUSD -> quote is FDUSD
             parts = symbol.split('/')
             if len(parts) > 1:
+                base_part = parts[0]
                 quote_part = parts[1].split(':')[0]
             else:
+                base_part = symbol
                 quote_part = "USDT" # default fallback
                 
-            free_margin = balance.get(quote_part, {}).get('free')
-            if free_margin is None:
-                free_margin = 0.0
+            base_free = balance.get(base_part, {}).get('free')
+            if base_free is None:
+                base_free = 0.0
+                
+            quote_free = balance.get(quote_part, {}).get('free')
+            if quote_free is None:
+                quote_free = 0.0
             
             return {
-                "currency": quote_part,
-                "free": float(free_margin),
+                "base": base_part,
+                "base_free": float(base_free),
+                "quote": quote_part,
+                "quote_free": float(quote_free),
                 "is_futures": is_futures
             }
             

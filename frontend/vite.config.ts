@@ -54,6 +54,7 @@ export default defineConfig(({ mode }) => {
       },
       watch: {
         usePolling: true,
+        ignored: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**']
       },
       proxy: {
         // Specific proxy for WebSockets to avoid interfering with regular HTTP calls
