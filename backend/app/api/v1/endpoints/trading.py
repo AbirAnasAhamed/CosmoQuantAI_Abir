@@ -12,7 +12,13 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-# --- Schemas ---
+class AttachedTPConfig(BaseModel):
+    enabled: bool
+    mode: str  # 'percentage' or 'price'
+    value: float
+    order_type: str  # 'Limit' or 'Market'
+    timeout_mins: float  # Background threshold for limit order monitor
+
 class OrderRequest(BaseModel):
     symbol: str
     side: str # 'buy' or 'sell'
@@ -23,6 +29,7 @@ class OrderRequest(BaseModel):
     api_key_id: Optional[int] = None
     params: Optional[dict] = {}
     client_timestamp: Optional[int] = None
+    attached_tp: Optional[AttachedTPConfig] = None
 
 class ConnectionTestRequest(BaseModel):
     exchange_id: str

@@ -28,6 +28,13 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
   const [isAutoLimit, setIsAutoLimit] = useState<boolean>(true);
   const [positionData, setPositionData] = useState<FastPositionResponse | null>(null);
   const [isLoadingPosition, setIsLoadingPosition] = useState(false);
+  const [tpConfig, setTpConfig] = useState({
+    enabled: false,
+    mode: 'percentage' as 'percentage' | 'price',
+    value: '',
+    orderType: 'Limit' as 'Limit' | 'Market',
+    timeoutMins: 5
+  });
 
   // Fetch API Keys
   React.useEffect(() => {
@@ -110,7 +117,7 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
          paramsPayload.autoBestLimit = true;
       }
 
-      const payload = {
+      const payload: any = {
         symbol,
         side,
         type: orderType,
@@ -121,7 +128,18 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
         params: Object.keys(paramsPayload).length > 0 ? paramsPayload : undefined,
         client_timestamp: Date.now()
       };
-      await manualTradeService.placeOrder(payload as any);
+
+      if (tpConfig.enabled && tpConfig.value && Number(tpConfig.value) > 0) {
+         payload.attached_tp = {
+             enabled: true,
+             mode: tpConfig.mode,
+             value: Number(tpConfig.value),
+             order_type: tpConfig.orderType,
+             timeout_mins: tpConfig.timeoutMins
+         };
+      }
+
+      await manualTradeService.placeOrder(payload);
       toast.success(`Successfully placed ${side} ${orderType} order for ${symbol}`);
       setIsSubmitting(false);
       setIsOpen(false);
@@ -352,6 +370,102 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Bracket Order (Attached TP) Panel */}
+              <div className="space-y-3 bg-black/20 p-3 rounded-lg border border-brand-primary/10 transition-all">
+                  <div className="flex justify-between items-center cursor-pointer" onClick={() => setTpConfig({...tpConfig, enabled: !tpConfig.enabled})}>
+                      <div className="flex flex-col">
+                          <span className="text-xs font-bold text-gray-300 group-hover:text-white transition-colors">Attached Take-Profit (Bracket)</span>
+                          <span className="text-[10px] text-gray-500">Auto-trigger scalp exit once entry fills</span>
+                      </div>
+                      <div className={`relative w-8 h-4 rounded-full transition-colors ${tpConfig.enabled ? 'bg-brand-primary' : 'bg-gray-600'}`}>
+                          <MotionDiv 
+                             className="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full"
+                             animate={{ x: tpConfig.enabled ? 16 : 0 }}
+                             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                          />
+                      </div>
+                  </div>
+                  
+                  <AnimatePresence>
+                     {tpConfig.enabled && (
+                        <MotionDiv
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="space-y-3 overflow-hidden pt-2 border-t border-white/5"
+                        >
+                            {/* Layout Grid */}
+                            <div className="grid grid-cols-2 gap-2">
+                                {/* TP Order Type */}
+                                <div className="space-y-1">
+                                    <label className="text-[10px] text-gray-400 font-medium">TP Order Type</label>
+                                    <div className="flex bg-black/40 rounded border border-white/5 p-0.5">
+                                        {(['Limit', 'Market'] as const).map(type => (
+                                            <button
+                                                key={type}
+                                                onClick={() => setTpConfig({...tpConfig, orderType: type})}
+                                                className={`flex-1 text-[10px] py-1 rounded transition-colors ${tpConfig.orderType === type ? 'bg-brand-primary text-white font-bold' : 'text-gray-500 hover:text-white'}`}
+                                            >
+                                                {type}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Gap Mode */}
+                                <div className="space-y-1">
+                                    <label className="text-[10px] text-gray-400 font-medium">Gap Mode</label>
+                                    <div className="flex bg-black/40 rounded border border-white/5 p-0.5">
+                                        <button
+                                            onClick={() => setTpConfig({...tpConfig, mode: 'percentage'})}
+                                            className={`flex-1 text-[10px] py-1 rounded transition-colors ${tpConfig.mode === 'percentage' ? 'bg-brand-primary text-white font-bold' : 'text-gray-500 hover:text-white'}`}
+                                        >
+                                            %
+                                        </button>
+                                        <button
+                                            onClick={() => setTpConfig({...tpConfig, mode: 'price'})}
+                                            className={`flex-1 text-[10px] py-1 rounded transition-colors ${tpConfig.mode === 'price' ? 'bg-brand-primary text-white font-bold' : 'text-gray-500 hover:text-white'}`}
+                                        >
+                                            $
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* Target Gap & Timeout */}
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] text-gray-400 font-medium">Target Gap</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="number"
+                                            value={tpConfig.value}
+                                            onChange={(e) => setTpConfig({...tpConfig, value: e.target.value})}
+                                            placeholder={tpConfig.mode === 'percentage' ? "e.g. 1.5" : "e.g. 0.005"}
+                                            className="w-full bg-black/30 border border-white/10 rounded py-1 px-2 pr-6 text-white text-xs focus:outline-none focus:border-brand-primary/50"
+                                        />
+                                        <span className="absolute right-2 top-1.5 text-[10px] text-brand-primary font-bold">{tpConfig.mode === 'percentage' ? '%' : '$'}</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] text-gray-400 font-medium">Monitor Limit (Mins)</label>
+                                    <div className="flex items-center space-x-2">
+                                        <input 
+                                            type="range"
+                                            min="1" max="15" step="1"
+                                            value={tpConfig.timeoutMins}
+                                            onChange={(e) => setTpConfig({...tpConfig, timeoutMins: Number(e.target.value)})}
+                                            className="w-full accent-brand-primary h-1 bg-black/50 rounded appearance-none"
+                                        />
+                                        <span className="text-[10px] text-gray-300 w-4 text-right">{tpConfig.timeoutMins}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </MotionDiv>
+                     )}
+                  </AnimatePresence>
               </div>
 
               {/* Futures Options Panel */}

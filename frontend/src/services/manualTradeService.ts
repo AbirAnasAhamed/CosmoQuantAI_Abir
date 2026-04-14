@@ -14,6 +14,13 @@ export interface OrderPayload {
     reduceOnly?: boolean;
   };
   client_timestamp?: number;
+  attached_tp?: {
+    enabled: boolean;
+    mode: 'percentage' | 'price';
+    value: number;
+    order_type: 'Limit' | 'Market';
+    timeout_mins: number;
+  };
 }
 
 export interface ApiKey {

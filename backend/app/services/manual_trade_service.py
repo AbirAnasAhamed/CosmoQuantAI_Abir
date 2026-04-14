@@ -13,6 +13,7 @@ from app import models
 from app.core.security import decrypt_key
 from app.services.exchange_pool import get_or_create_exchange
 from app.services.notification import NotificationService
+from app.services.bracket_order_service import bracket_order_service
 from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
@@ -269,6 +270,22 @@ class ManualTradeService:
                 asyncio.create_task(NotificationService.send_message(db, user_id, msg))
             except Exception as notify_err:
                 logger.warning(f"Failed to trigger telegram notification: {notify_err}")
+
+            # [Bracket Order Link]
+            if getattr(order_req, 'attached_tp', None) and order_req.attached_tp.enabled:
+                initial_price = response.get('price') or response.get('average') or getattr(order_req, 'price', 0.0)
+                asyncio.create_task(
+                    bracket_order_service.monitor_and_execute_tp(
+                        api_key_record=api_key_record,
+                        entry_order_id=response.get('id'),
+                        symbol=order_req.symbol,
+                        side=order_req.side,
+                        amount=order_req.amount,
+                        is_futures=is_futures,
+                        tp_config=order_req.attached_tp.dict(),
+                        initial_entry_price=float(initial_price) if initial_price else 0.0
+                    )
+                )
 
             return {
                 "id": response.get('id'),
