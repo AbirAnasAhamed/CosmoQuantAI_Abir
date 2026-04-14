@@ -87,7 +87,8 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
         price: orderType === 'Limit' ? Number(limitPrice) : undefined,
         exchange_id: 'binance', // backend fallback
         api_key_id: selectedApi ? Number(selectedApi) : undefined,
-        params: isFutures ? { leverage } : undefined
+        params: isFutures ? { leverage } : undefined,
+        client_timestamp: Date.now()
       };
       await manualTradeService.placeOrder(payload as any);
       toast.success(`Successfully placed ${side} ${orderType} order for ${symbol}`);
