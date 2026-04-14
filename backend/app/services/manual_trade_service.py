@@ -6,10 +6,13 @@ Exchange Connection Pool ব্যবহার করে ultra-low latency order
 """
 
 import logging
+import time
+import asyncio
 from sqlalchemy.orm import Session
 from app import models
 from app.core.security import decrypt_key
 from app.services.exchange_pool import get_or_create_exchange
+from app.services.notification import NotificationService
 from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
@@ -151,6 +154,29 @@ class ManualTradeService:
                 )
             else:
                 raise HTTPException(status_code=400, detail="Invalid order type. Use 'market' or 'limit'.")
+
+            # Calculate Latency
+            latency_msg = ""
+            client_timestamp = getattr(order_req, 'client_timestamp', None)
+            if client_timestamp:
+                latency_ms = int(time.time() * 1000) - client_timestamp
+                # Avoid negative latency due to clock sync issues between client/server
+                latency_ms = max(0, latency_ms)
+                latency_msg = f"⏱ Execution Time: {latency_ms} ms ⚡\n"
+            
+            # Send Telegram Notification
+            try:
+                msg = (
+                    f"🎯 *Manual Trade Executed!*\n"
+                    f"Exchange: {api_key_record.exchange.capitalize()}\n"
+                    f"Pair: {order_req.symbol}\n"
+                    f"Side: {order_req.side.upper()}\n"
+                    f"Amount: {order_req.amount}\n"
+                    f"{latency_msg}"
+                )
+                asyncio.create_task(NotificationService.send_message(db, user_id, msg))
+            except Exception as notify_err:
+                logger.warning(f"Failed to trigger telegram notification: {notify_err}")
 
             return {
                 "id": response.get('id'),

@@ -22,6 +22,7 @@ class OrderRequest(BaseModel):
     exchange_id: str = 'binance'
     api_key_id: Optional[int] = None
     params: Optional[dict] = {}
+    client_timestamp: Optional[int] = None
 
 class ConnectionTestRequest(BaseModel):
     exchange_id: str

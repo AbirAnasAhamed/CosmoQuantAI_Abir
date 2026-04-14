@@ -11,6 +11,7 @@ export interface OrderPayload {
   params?: {
     leverage?: number;
   };
+  client_timestamp?: number;
 }
 
 export interface ApiKey {
