@@ -61,7 +61,16 @@ class ManualTradeService:
         is_futures = ':' in symbol
         try:
             exchange = await ManualTradeService._get_exchange(api_key_record, is_futures)
-            balance = await exchange.fetch_balance()
+            
+            parts = symbol.split('/')
+            base_part = parts[0] if len(parts) > 1 else symbol
+            quote_part = parts[1].split(':')[0] if len(parts) > 1 else "USDT"
+            
+            # Pass symbol constraints if the exchange supports lightweight fetching
+            try:
+                balance = await exchange.fetch_balance({'coin': quote_part})
+            except:
+                balance = await exchange.fetch_balance()
 
             # Symbol থেকে base এবং quote বের করা
             # Futures: DOGE/USDT:USDT → base=DOGE, quote=USDT
