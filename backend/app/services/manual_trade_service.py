@@ -104,6 +104,68 @@ class ManualTradeService:
             raise HTTPException(status_code=500, detail=f"Balance Error: {str(e)}")
 
     @staticmethod
+    async def get_active_position(db: Session, user_id: int, api_key_id: int, symbol: str) -> dict:
+        """
+        Fetches the current open position for the requested symbol.
+        Used for calculating 'Reduce Only' percentages reliably.
+        """
+        api_key_record = db.query(models.ApiKey).filter(
+            models.ApiKey.id == api_key_id,
+            models.ApiKey.user_id == user_id,
+            models.ApiKey.is_enabled == True
+        ).first()
+
+        if not api_key_record:
+            raise HTTPException(status_code=404, detail="API Key not found or inactive")
+
+        is_futures = ':' in symbol
+        if not is_futures:
+             # Spot markets don't have "positions", just balances.
+             return {"amount": 0.0, "side": "none"}
+            
+        try:
+            exchange = await ManualTradeService._get_exchange(api_key_record, is_futures)
+            
+            # Use fetch_positions for the specific symbol
+            # CCXT usually returns a list of positions for the symbol (or all if omitted).
+            positions = await exchange.fetch_positions([symbol])
+            
+            # Find the active position for this symbol
+            active_pos = None
+            for p in positions:
+                 if p.get('symbol') == symbol and float(p.get('contracts', 0) or p.get('info', {}).get('positionAmt', 0)) != 0:
+                     active_pos = p
+                     break
+            
+            if not active_pos:
+                 return {"amount": 0.0, "side": "none"}
+                 
+            # Extract position data consistently across exchanges
+            # Binance uses 'positionAmt', CCXT standard uses 'contracts' and 'side' ('long' or 'short')
+            raw_amt = float(active_pos.get('contracts', 0))
+            if raw_amt == 0:
+                 # Fallback for Binance/MEXC if contracts is missing
+                 raw_amt = abs(float(active_pos.get('info', {}).get('positionAmt', 0)))
+            
+            side = active_pos.get('side', 'none').lower()
+            if side == 'none':
+                 # Infer from positionAmt sign if available
+                 pos_amt = float(active_pos.get('info', {}).get('positionAmt', 0))
+                 if pos_amt > 0: side = 'long'
+                 elif pos_amt < 0: side = 'short'
+            
+            return {
+                 "amount": float(raw_amt),
+                 "side": side
+            }
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Fast position fetch failed: {api_key_record.exchange} {e}")
+            raise HTTPException(status_code=500, detail=f"Position Error: {str(e)}")
+
+    @staticmethod
     async def place_manual_trade(db: Session, user_id: int, order_req) -> dict:
         """
         Exchange Connection Pool ব্যবহার করে ultra-fast order execution।
@@ -131,26 +193,40 @@ class ManualTradeService:
             # Pool থেকে Exchange নেওয়া — প্রথমবার ~800ms, পরে ~5ms
             exchange = await ManualTradeService._get_exchange(api_key_record, is_futures)
 
-            # Leverage সেট করা (ফিউচার্স হলে)
+            # Leverage and Margin Mode (Futures)
             params = getattr(order_req, 'params', {}) or {}
-            leverage = params.get('leverage')
+            ex_params = {} # arguments passed to create_order
 
-            if is_futures and leverage:
-                try:
-                    await exchange.set_leverage(leverage, order_req.symbol)
-                except Exception as lev_e:
-                    logger.warning(f"Leverage set skipped (may already be set): {lev_e}")
+            if is_futures:
+                leverage = params.get('leverage')
+                margin_mode = params.get('marginMode')
+                reduce_only = params.get('reduceOnly', False)
+                
+                if reduce_only:
+                    ex_params['reduceOnly'] = True
 
-            # অর্ডার Execute
+                if margin_mode:
+                    try:
+                        await exchange.set_margin_mode(margin_mode, order_req.symbol)
+                    except Exception as mm_e:
+                        logger.warning(f"Margin mode set skipped (may already be set or unsupported): {mm_e}")
+
+                if leverage:
+                    try:
+                        await exchange.set_leverage(leverage, order_req.symbol)
+                    except Exception as lev_e:
+                        logger.warning(f"Leverage set skipped (may already be set): {lev_e}")
+
+            # Execute Trade
             if order_req.type.lower() == 'market':
                 response = await exchange.create_market_order(
-                    order_req.symbol, order_req.side, order_req.amount
+                    order_req.symbol, order_req.side, order_req.amount, ex_params
                 )
             elif order_req.type.lower() == 'limit':
                 if not getattr(order_req, 'price', None):
                     raise HTTPException(status_code=400, detail="Price is required for limit orders")
                 response = await exchange.create_limit_order(
-                    order_req.symbol, order_req.side, order_req.amount, order_req.price
+                    order_req.symbol, order_req.side, order_req.amount, order_req.price, ex_params
                 )
             else:
                 raise HTTPException(status_code=400, detail="Invalid order type. Use 'market' or 'limit'.")

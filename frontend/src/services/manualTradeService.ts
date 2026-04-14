@@ -10,6 +10,8 @@ export interface OrderPayload {
   api_key_id?: number | null;
   params?: {
     leverage?: number;
+    marginMode?: 'cross' | 'isolated';
+    reduceOnly?: boolean;
   };
   client_timestamp?: number;
 }
@@ -31,6 +33,11 @@ export interface FastBalanceResponse {
   is_futures: boolean;
 }
 
+export interface FastPositionResponse {
+  amount: number;
+  side: 'long' | 'short' | 'none';
+}
+
 export const manualTradeService = {
   getApiKeys: async () => {
     const response = await api.get('/users/api-keys');
@@ -40,6 +47,11 @@ export const manualTradeService = {
   getFastBalance: async (apiKeyId: number, symbol: string) => {
     const response = await api.get(`/trading/api-key-balance/${apiKeyId}?symbol=${symbol}`);
     return response.data as FastBalanceResponse;
+  },
+
+  getActivePosition: async (apiKeyId: number, symbol: string) => {
+    const response = await api.get(`/trading/api-key-position/${apiKeyId}?symbol=${symbol}`);
+    return response.data as FastPositionResponse;
   },
 
   placeOrder: async (order: OrderPayload) => {

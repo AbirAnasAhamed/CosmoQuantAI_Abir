@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, TrendingUp, TrendingDown, DollarSign, ChevronDown } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { manualTradeService, ApiKey, FastBalanceResponse } from '../../../services/manualTradeService';
+import { manualTradeService, ApiKey, FastBalanceResponse, FastPositionResponse } from '../../../services/manualTradeService';
 
 const MotionButton = motion.button as any;
 const MotionDiv = motion.div as any;
@@ -23,6 +23,10 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
   const [balanceData, setBalanceData] = useState<FastBalanceResponse | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [tradeSide, setTradeSide] = useState<'Buy' | 'Sell'>('Buy');
+  const [marginMode, setMarginMode] = useState<'cross' | 'isolated'>('isolated');
+  const [reduceOnly, setReduceOnly] = useState<boolean>(false);
+  const [positionData, setPositionData] = useState<FastPositionResponse | null>(null);
+  const [isLoadingPosition, setIsLoadingPosition] = useState(false);
 
   // Fetch API Keys
   React.useEffect(() => {
@@ -45,6 +49,7 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
     const fetchBalance = async () => {
       if (!selectedApi || !isOpen) return;
       setIsLoadingBalance(true);
+      setIsLoadingPosition(true);
       try {
         const data = await manualTradeService.getFastBalance(Number(selectedApi), symbol);
         setBalanceData(data);
@@ -52,6 +57,20 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
         setBalanceData(null);
       } finally {
         setIsLoadingBalance(false);
+      }
+
+      // Automatically try to fetch active position if it's a futures pair
+      if (symbol.includes(':')) {
+         try {
+            const pos = await manualTradeService.getActivePosition(Number(selectedApi), symbol);
+            setPositionData(pos);
+         } catch(e) {
+            setPositionData(null);
+         } finally {
+            setIsLoadingPosition(false);
+         }
+      } else {
+         setIsLoadingPosition(false);
       }
     };
     fetchBalance();
@@ -87,7 +106,7 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
         price: orderType === 'Limit' ? Number(limitPrice) : undefined,
         exchange_id: 'binance', // backend fallback
         api_key_id: selectedApi ? Number(selectedApi) : undefined,
-        params: isFutures ? { leverage } : undefined,
+        params: isFutures ? { leverage, marginMode, reduceOnly } : undefined,
         client_timestamp: Date.now()
       };
       await manualTradeService.placeOrder(payload as any);
@@ -241,14 +260,19 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
               <div className="space-y-1">
                 <div className="flex justify-between items-end">
                     <label className="text-xs text-gray-400 font-medium">Order Size ({balanceData ? (balanceData.base || symbol.split('/')[0]) : symbol.split('/')[0]})</label>
-                    <span className="text-[10px] text-gray-500">
+                    <span className="text-[10px] text-gray-500 text-right">
                        Balance: <span className="text-gray-300">
-                          {isLoadingBalance ? "Loading..." : balanceData ? (
+                          {isLoadingBalance ? "..." : balanceData ? (
                              isFutures ? `${(balanceData.quote_free || 0).toFixed(2)} ${balanceData.quote || 'USDT'}` :
                              tradeSide === 'Buy' ? `${(balanceData.quote_free || 0).toFixed(2)} ${balanceData.quote || 'USDT'}` :
                              `${(balanceData.base_free || 0).toFixed(4)} ${balanceData.base || symbol.split('/')[0]}`
                           ) : "N/A"}
                        </span>
+                       {isFutures && reduceOnly && (
+                          <div className="text-[10px] text-brand-primary">
+                             Pos: {isLoadingPosition ? "..." : (positionData && positionData.amount > 0 ? `${positionData.amount} (${positionData.side.toUpperCase()})` : "0")}
+                          </div>
+                       )}
                     </span>
                 </div>
                 <div className="relative">
@@ -273,7 +297,12 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
                             let maxTokens = 0;
                             
                             if (isFutures) {
-                               maxTokens = ((balanceData.quote_free || 0) * leverage) / currentPrice;
+                               if (reduceOnly && positionData && positionData.amount > 0) {
+                                  // contextual sizing: calculation based on active open position size
+                                  maxTokens = positionData.amount;
+                               } else {
+                                  maxTokens = ((balanceData.quote_free || 0) * leverage) / currentPrice;
+                               }
                             } else if (tradeSide === 'Buy') {
                                maxTokens = (balanceData.quote_free || 0) / currentPrice;
                             } else {
@@ -293,13 +322,29 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
                 </div>
               </div>
 
-              {/* Leverage */}
+              {/* Futures Options Panel */}
               {isFutures && (
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs text-gray-400 font-medium">Leverage</label>
-                    <span className="text-xs bg-brand-primary/20 text-brand-primary px-2 py-0.5 rounded font-mono font-bold">{leverage}x</span>
+                <div className="space-y-3 bg-black/20 p-3 rounded-lg border border-white/5">
+                  {/* Margin Mode & Leverage Header */}
+                  <div className="flex justify-between items-center text-xs text-gray-400 font-medium">
+                    <div className="flex bg-black/40 rounded p-0.5 border border-white/5">
+                        <button 
+                          onClick={() => setMarginMode('cross')}
+                          className={`px-2 py-0.5 rounded transition-colors ${marginMode === 'cross' ? 'bg-brand-primary text-white font-bold' : 'hover:text-white'}`}
+                        >
+                          Cross
+                        </button>
+                        <button 
+                          onClick={() => setMarginMode('isolated')}
+                          className={`px-2 py-0.5 rounded transition-colors ${marginMode === 'isolated' ? 'bg-brand-primary text-white font-bold' : 'hover:text-white'}`}
+                        >
+                          Isolated
+                        </button>
+                    </div>
+                    <span className="text-xs bg-brand-primary/20 text-brand-primary px-2 py-0.5 rounded font-mono font-bold tracking-wider">{leverage}x</span>
                   </div>
+                  
+                  {/* Leverage Slider */}
                   <input 
                     type="range" 
                     min="1" 
@@ -308,6 +353,17 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
                     onChange={(e) => setLeverage(Number(e.target.value))}
                     className="w-full accent-brand-primary h-1.5 bg-black/50 rounded-lg appearance-none cursor-pointer"
                   />
+
+                  {/* Reduce Only Checkbox */}
+                  <label className="flex items-center space-x-2 cursor-pointer group w-max">
+                    <input 
+                       type="checkbox" 
+                       checked={reduceOnly}
+                       onChange={(e) => setReduceOnly(e.target.checked)}
+                       className="form-checkbox bg-black/40 border-white/20 text-brand-primary rounded focus:ring-0 focus:ring-offset-0 cursor-pointer w-4 h-4"
+                    />
+                    <span className="text-xs text-gray-400 group-hover:text-white transition-colors">Reduce Only (Close Position)</span>
+                  </label>
                 </div>
               )}
 
