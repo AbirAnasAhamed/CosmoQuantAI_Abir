@@ -23,8 +23,10 @@ export interface ApiKey {
 }
 
 export interface FastBalanceResponse {
-  currency: string;
-  free: number;
+  base: string;
+  base_free: number;
+  quote: string;
+  quote_free: number;
   is_futures: boolean;
 }
 

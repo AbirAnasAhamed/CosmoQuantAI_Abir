@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, TrendingUp, TrendingDown, DollarSign, ChevronDown } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { manualTradeService, ApiKey } from '../../../services/manualTradeService';
+import { manualTradeService, ApiKey, FastBalanceResponse } from '../../../services/manualTradeService';
 
 const MotionButton = motion.button as any;
 const MotionDiv = motion.div as any;
@@ -20,9 +20,9 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedApi, setSelectedApi] = useState<string>('');
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
-  const [balance, setBalance] = useState<number | null>(null);
-  const [balanceCurrency, setBalanceCurrency] = useState<string>('USDT');
+  const [balanceData, setBalanceData] = useState<FastBalanceResponse | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [tradeSide, setTradeSide] = useState<'Buy' | 'Sell'>('Buy');
 
   // Fetch API Keys
   React.useEffect(() => {
@@ -47,10 +47,9 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
       setIsLoadingBalance(true);
       try {
         const data = await manualTradeService.getFastBalance(Number(selectedApi), symbol);
-        setBalance(data.free);
-        setBalanceCurrency(data.currency);
+        setBalanceData(data);
       } catch (e) {
-        setBalance(null);
+        setBalanceData(null);
       } finally {
         setIsLoadingBalance(false);
       }
@@ -151,6 +150,30 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
               className="p-4 space-y-4 cursor-default"
               onPointerDown={(e) => e.stopPropagation()}
             >
+              {/* Buy / Sell Tabs */}
+              <div className="flex p-1 rounded-lg bg-black/40 border border-white/5 mb-2">
+                <button
+                  onClick={() => setTradeSide('Buy')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all uppercase tracking-wider ${
+                    tradeSide === 'Buy' 
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/50 shadow-[0_0_10px_rgba(34,197,94,0.15)]' 
+                      : 'text-gray-500 hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  {isFutures ? 'Long' : 'Buy'}
+                </button>
+                <button
+                  onClick={() => setTradeSide('Sell')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all uppercase tracking-wider ${
+                    tradeSide === 'Sell' 
+                      ? 'bg-red-500/20 text-red-400 border border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.15)]' 
+                      : 'text-gray-500 hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  {isFutures ? 'Short' : 'Sell'}
+                </button>
+              </div>
+
               {/* API Account Selector */}
               <div className="space-y-1">
                 <div className="flex justify-between items-end">
@@ -216,8 +239,16 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
               {/* Size */}
               <div className="space-y-1">
                 <div className="flex justify-between items-end">
-                    <label className="text-xs text-gray-400 font-medium">Order Size</label>
-                    <span className="text-[10px] text-gray-500">Balance: <span className="text-gray-300">{isLoadingBalance ? "Loading..." : balance !== null ? `${balance.toFixed(2)} ${balanceCurrency}` : "N/A"}</span></span>
+                    <label className="text-xs text-gray-400 font-medium">Order Size ({balanceData ? (balanceData.base || symbol.split('/')[0]) : symbol.split('/')[0]})</label>
+                    <span className="text-[10px] text-gray-500">
+                       Balance: <span className="text-gray-300">
+                          {isLoadingBalance ? "Loading..." : balanceData ? (
+                             isFutures ? `${(balanceData.quote_free || 0).toFixed(2)} ${balanceData.quote || 'USDT'}` :
+                             tradeSide === 'Buy' ? `${(balanceData.quote_free || 0).toFixed(2)} ${balanceData.quote || 'USDT'}` :
+                             `${(balanceData.base_free || 0).toFixed(4)} ${balanceData.base || symbol.split('/')[0]}`
+                          ) : "N/A"}
+                       </span>
+                    </span>
                 </div>
                 <div className="relative">
                   <input 
@@ -236,8 +267,19 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
                         key={pct} 
                         className="flex-1 py-1 text-[10px] font-bold rounded border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
                         onClick={() => {
-                          if (balance !== null) {
-                            const val = pct === '100%' ? balance : balance * Number(pct.replace('%','')) / 100;
+                          if (balanceData && currentPrice > 0) {
+                            const percentage = Number(pct.replace('%','')) / 100;
+                            let maxTokens = 0;
+                            
+                            if (isFutures) {
+                               maxTokens = ((balanceData.quote_free || 0) * leverage) / currentPrice;
+                            } else if (tradeSide === 'Buy') {
+                               maxTokens = (balanceData.quote_free || 0) / currentPrice;
+                            } else {
+                               maxTokens = balanceData.base_free || 0;
+                            }
+                            
+                            const val = maxTokens * percentage;
                             // truncate to 4 decimals to avoid precision errors
                             const formattedVal = Math.floor(val * 10000) / 10000;
                             setSize(formattedVal.toString());
@@ -271,23 +313,17 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
               {/* Action Buttons */}
               <div className="flex space-x-3 pt-2">
                 <button
-                  onClick={() => handleTrade('Buy')}
+                  onClick={() => handleTrade(tradeSide)}
                   disabled={isSubmitting}
-                  className="flex-1 py-3 px-4 rounded-xl bg-green-500/20 hover:bg-green-500 text-green-400 hover:text-white border border-green-500/50 font-bold flex flex-col items-center justify-center transition-all disabled:opacity-50 group hover:shadow-[0_0_15px_rgba(34,197,94,0.4)]"
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold flex flex-col items-center justify-center transition-all disabled:opacity-50 group border ${
+                     tradeSide === 'Buy' 
+                       ? 'bg-green-500/20 hover:bg-green-500 text-green-400 hover:text-white border-green-500/50 hover:shadow-[0_0_15px_rgba(34,197,94,0.4)]'
+                       : 'bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white border-red-500/50 hover:shadow-[0_0_15px_rgba(239,68,68,0.4)]'
+                  }`}
                 >
                   <div className="flex items-center space-x-2">
-                    <TrendingUp className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
-                    <span className="text-sm uppercase tracking-wider">{isFutures ? 'Long' : 'Buy'}</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => handleTrade('Sell')}
-                  disabled={isSubmitting}
-                  className="flex-1 py-3 px-4 rounded-xl bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/50 font-bold flex flex-col items-center justify-center transition-all disabled:opacity-50 group hover:shadow-[0_0_15px_rgba(239,68,68,0.4)]"
-                >
-                  <div className="flex items-center space-x-2">
-                    <TrendingDown className="w-5 h-5 group-hover:translate-y-0.5 transition-transform" />
-                    <span className="text-sm uppercase tracking-wider">{isFutures ? 'Short' : 'Sell'}</span>
+                    {tradeSide === 'Buy' ? <TrendingUp className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" /> : <TrendingDown className="w-5 h-5 group-hover:translate-y-0.5 transition-transform" />}
+                    <span className="text-sm uppercase tracking-wider">Execute {isFutures ? (tradeSide === 'Buy' ? 'Long' : 'Short') : tradeSide}</span>
                   </div>
                 </button>
               </div>
