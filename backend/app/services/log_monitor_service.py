@@ -148,6 +148,18 @@ IGNORE_PATTERNS = [
     re.compile(r'received fast shutdown request', re.IGNORECASE),
     re.compile(r'aborting any active transactions', re.IGNORECASE),
     re.compile(r'shutting down', re.IGNORECASE),
+    # ── PostgreSQL WAL crash-recovery (self-healing, no action needed) ────────
+    # These 5 lines appear together whenever Postgres recovers from an unclean
+    # shutdown (e.g. host reboot, OOM kill, docker kill).  PostgreSQL handles
+    # this automatically via WAL replay — "redo done" confirms success.
+    # The FATAL line is transient: another process tried to connect while the
+    # DB was mid-recovery.  All of these are safe to ignore completely.
+    re.compile(r'the database system is starting up', re.IGNORECASE),
+    re.compile(r'database system was not properly shut down', re.IGNORECASE),
+    re.compile(r'automatic recovery in progress', re.IGNORECASE),
+    re.compile(r'redo starts at', re.IGNORECASE),
+    re.compile(r'redo done at', re.IGNORECASE),
+    re.compile(r'invalid record length at.*expected at least.*got 0', re.IGNORECASE),
 ]
 
 # Patterns that look like errors but should be downgraded to WARNING
@@ -173,6 +185,9 @@ ALERT_COOLDOWN_SECONDS = 300  # 5 minutes
 
 # How many lines of logs to fetch per container per run
 LOG_TAIL_LINES = 100
+
+# Redis key that stores the last scan timestamp (to use with docker logs --since)
+LAST_SCAN_KEY = "log_monitor:last_scan_ts"
 
 
 # ============================================================
@@ -347,10 +362,19 @@ async def scan_docker_logs_and_notify():
                 logger.warning(f"[LogMonitor] Error getting container '{container_name}': {e}")
                 continue
 
-            # Fetch last N lines of logs (both stdout + stderr)
+            # Fetch logs only since the last scan (avoids re-processing old lines)
             try:
+                # Retrieve the timestamp of the previous scan from Redis.
+                # On first run (or after Redis flush) fall back to last 60 seconds.
+                last_ts_raw = redis.get(LAST_SCAN_KEY)
+                if last_ts_raw:
+                    since_dt = datetime.fromisoformat(last_ts_raw.decode())
+                else:
+                    from datetime import timedelta
+                    since_dt = now_utc - timedelta(seconds=70)  # slight overlap for safety
+
                 raw_logs = container.logs(
-                    tail=LOG_TAIL_LINES,
+                    since=since_dt,
                     stdout=True,
                     stderr=True,
                     timestamps=True,
@@ -432,6 +456,12 @@ async def scan_docker_logs_and_notify():
                                 logger.error(f"[LogMonitor] Failed to notify user {user_settings.user_id}: {e}")
 
                 i += 1
+
+        # Save current scan timestamp so next run only reads NEW logs
+        try:
+            redis.set(LAST_SCAN_KEY, now_utc.isoformat())
+        except Exception as ts_err:
+            logger.warning(f"[LogMonitor] Could not save scan timestamp: {ts_err}")
 
         if alerts_sent > 0:
             logger.info(f"[LogMonitor] Scan complete. {alerts_sent} alert(s) sent.")
