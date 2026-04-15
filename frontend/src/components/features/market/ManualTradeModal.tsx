@@ -87,6 +87,13 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
     fetchBalance();
   }, [selectedApi, symbol, isOpen]);
 
+  // Size mode: 'base' = in token (DOGE), 'quote' = in USD (USDC/USDT)
+  const [sizeMode, setSizeMode] = useState<'base' | 'quote'>('base');
+
+  // Derive base and quote currency from symbol (e.g. DOGE/USDC or DOGE/USDT:USDT)
+  const baseCurrency = symbol.split('/')[0] || 'BASE';
+  const quoteCurrency = (symbol.split('/')[1] || 'QUOTE').split(':')[0];
+
   // Determine if it is a futures pair (CCXT futures symbols usually contain a colon, e.g. BTC/USDT:USDT)
   const isFutures = symbol.includes(':');
 
@@ -101,9 +108,19 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
   }, [currentPrice, orderType, limitPrice]);
 
   const handleTrade = async (side: 'Buy' | 'Sell') => {
-    if (!size || isNaN(Number(size))) {
+    if (!size || isNaN(Number(size)) || Number(size) <= 0) {
       toast.error('Please enter a valid size');
       return;
+    }
+
+    // Convert quote amount → base amount if needed
+    let baseAmount = Number(size);
+    if (sizeMode === 'quote') {
+      if (!currentPrice || currentPrice <= 0) {
+        toast.error('Cannot convert: current price is unavailable.');
+        return;
+      }
+      baseAmount = Number(size) / currentPrice;
     }
     
     setIsSubmitting(true);
@@ -124,7 +141,7 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
         symbol,
         side,
         type: orderType,
-        amount: Number(size),
+        amount: baseAmount,
         price: orderType === 'Limit' ? (isAutoLimit ? 0 : Number(limitPrice)) : undefined,
         exchange_id: 'binance', // backend fallback
         api_key_id: selectedApi ? Number(selectedApi) : undefined,
@@ -311,63 +328,126 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
 
               {/* Size */}
               <div className="space-y-1">
-                <div className="flex justify-between items-end">
-                    <label className="text-xs text-gray-400 font-medium">Order Size ({balanceData ? (balanceData.base || symbol.split('/')[0]) : symbol.split('/')[0]})</label>
-                    <span className="text-[10px] text-gray-500 text-right">
-                       Balance: <span className="text-gray-300">
-                          {isLoadingBalance ? "..." : balanceData ? (
-                             isFutures ? `${(balanceData.quote_free || 0).toFixed(2)} ${balanceData.quote || 'USDT'}` :
-                             tradeSide === 'Buy' ? `${(balanceData.quote_free || 0).toFixed(2)} ${balanceData.quote || 'USDT'}` :
-                             `${(balanceData.base_free || 0).toFixed(4)} ${balanceData.base || symbol.split('/')[0]}`
-                          ) : "N/A"}
-                       </span>
-                       {isFutures && reduceOnly && (
-                          <div className="text-[10px] text-brand-primary">
-                             Pos: {isLoadingPosition ? "..." : (positionData && positionData.amount > 0 ? `${positionData.amount} (${positionData.side.toUpperCase()})` : "0")}
-                          </div>
-                       )}
+                {/* Label row: currency name + toggle switch + balance */}
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-400 font-medium">
+                      Order Size
+                    </label>
+                    {/* Base / Quote toggle */}
+                    <div className="flex items-center gap-1 bg-black/40 rounded-full p-0.5 border border-white/10">
+                      <button
+                        onClick={() => { setSizeMode('base'); setSize(''); }}
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all ${
+                          sizeMode === 'base'
+                            ? 'bg-brand-primary text-white shadow'
+                            : 'text-gray-500 hover:text-gray-300'
+                        }`}
+                      >
+                        {baseCurrency}
+                      </button>
+                      <button
+                        onClick={() => { setSizeMode('quote'); setSize(''); }}
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all ${
+                          sizeMode === 'quote'
+                            ? 'bg-yellow-500 text-black shadow'
+                            : 'text-gray-500 hover:text-gray-300'
+                        }`}
+                      >
+                        {quoteCurrency}
+                      </button>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-gray-500 text-right">
+                    Balance: <span className="text-gray-300">
+                      {isLoadingBalance ? "..." : balanceData ? (
+                        sizeMode === 'quote'
+                          ? `${(balanceData.quote_free || 0).toFixed(2)} ${quoteCurrency}`
+                          : isFutures
+                            ? `${(balanceData.quote_free || 0).toFixed(2)} ${quoteCurrency}`
+                            : tradeSide === 'Buy'
+                              ? `${(balanceData.quote_free || 0).toFixed(2)} ${quoteCurrency}`
+                              : `${(balanceData.base_free || 0).toFixed(4)} ${baseCurrency}`
+                      ) : "N/A"}
                     </span>
+                    {isFutures && reduceOnly && (
+                      <div className="text-[10px] text-brand-primary">
+                        Pos: {isLoadingPosition ? "..." : (positionData && positionData.amount > 0 ? `${positionData.amount} (${positionData.side.toUpperCase()})` : "0")}
+                      </div>
+                    )}
+                  </span>
                 </div>
+
+                {/* Input field */}
                 <div className="relative">
-                  <input 
+                  <input
                     type="number"
                     value={size}
                     onChange={(e) => setSize(e.target.value)}
                     placeholder="0.00"
                     className="w-full bg-black/30 border border-white/10 rounded-lg py-2 px-3 pl-8 text-white text-sm focus:outline-none focus:border-brand-primary/50 transition-colors"
                   />
-                  <DollarSign className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-500" />
+                  {/* Currency symbol badge */}
+                  <span className="absolute left-2.5 top-2 text-[11px] font-bold text-gray-500">
+                    {sizeMode === 'quote' ? '$' : baseCurrency.slice(0, 3)}
+                  </span>
                 </div>
-                {/* Size % buttons */}
+
+                {/* Live conversion estimate */}
+                {size && Number(size) > 0 && currentPrice > 0 && (
+                  <div className="flex items-center gap-1 px-1 pt-0.5">
+                    <span className="text-[10px] text-gray-600">≈</span>
+                    {sizeMode === 'quote' ? (
+                      <span className="text-[10px] text-yellow-400 font-semibold">
+                        {(Number(size) / currentPrice).toLocaleString(undefined, { maximumFractionDigits: 4 })} {baseCurrency}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-yellow-400 font-semibold">
+                        ${(Number(size) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })} {quoteCurrency}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* % quick-fill buttons */}
                 <div className="flex justify-between mt-2 gap-2">
                   {['25%', '50%', '75%', '100%'].map(pct => (
-                    <button 
-                        key={pct} 
-                        className="flex-1 py-1 text-[10px] font-bold rounded border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
-                        onClick={() => {
-                          if (balanceData && currentPrice > 0) {
-                            const percentage = Number(pct.replace('%','')) / 100;
-                            let maxTokens = 0;
-                            
-                            if (isFutures) {
-                               if (reduceOnly && positionData && positionData.amount > 0) {
-                                  // contextual sizing: calculation based on active open position size
-                                  maxTokens = positionData.amount;
-                               } else {
-                                  maxTokens = ((balanceData.quote_free || 0) * leverage) / currentPrice;
-                               }
-                            } else if (tradeSide === 'Buy') {
-                               maxTokens = (balanceData.quote_free || 0) / currentPrice;
-                            } else {
-                               maxTokens = balanceData.base_free || 0;
-                            }
-                            
-                            const val = maxTokens * percentage;
-                            // truncate to 4 decimals to avoid precision errors
-                            const formattedVal = Math.floor(val * 10000) / 10000;
-                            setSize(formattedVal.toString());
+                    <button
+                      key={pct}
+                      className="flex-1 py-1 text-[10px] font-bold rounded border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+                      onClick={() => {
+                        if (!balanceData || currentPrice <= 0) return;
+                        const percentage = Number(pct.replace('%', '')) / 100;
+
+                        let maxValue = 0;
+                        if (sizeMode === 'quote') {
+                          // Quote mode → set the $ amount
+                          if (isFutures) {
+                            maxValue = (balanceData.quote_free || 0) * leverage;
+                          } else if (tradeSide === 'Buy') {
+                            maxValue = balanceData.quote_free || 0;
+                          } else {
+                            maxValue = (balanceData.base_free || 0) * currentPrice;
                           }
-                        }}
+                        } else {
+                          // Base mode → set the token amount
+                          if (isFutures) {
+                            if (reduceOnly && positionData && positionData.amount > 0) {
+                              maxValue = positionData.amount;
+                            } else {
+                              maxValue = ((balanceData.quote_free || 0) * leverage) / currentPrice;
+                            }
+                          } else if (tradeSide === 'Buy') {
+                            maxValue = (balanceData.quote_free || 0) / currentPrice;
+                          } else {
+                            maxValue = balanceData.base_free || 0;
+                          }
+                        }
+
+                        const val = maxValue * percentage;
+                        const decimals = sizeMode === 'quote' ? 2 : 4;
+                        setSize((Math.floor(val * Math.pow(10, decimals)) / Math.pow(10, decimals)).toString());
+                      }}
                     >
                       {pct}
                     </button>
