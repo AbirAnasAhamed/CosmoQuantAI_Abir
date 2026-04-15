@@ -47,6 +47,8 @@ import { toast } from 'react-hot-toast';
 import { useMarketStore } from '@/store/marketStore';
 import { useBotStore } from '@/store/botStore';
 import { useUIStore } from '@/store/uiStore';
+import { useOpenOrders, OpenLimitOrder } from '../../hooks/useOpenOrders';
+
 
 // Helper to convert interval string to ms
 const parseIntervalToMs = (interval: string): number => {
@@ -63,7 +65,7 @@ const parseIntervalToMs = (interval: string): number => {
 };
 
 // Chart Component
-const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: string; walls: { price: number, type: 'buy' | 'sell', size?: number }[]; currentPrice: number; showFootprint: boolean; showCVD: boolean; indicatorSettings: IndicatorSettings; tradeEvent: any; botStatus: any }> = ({ exchange, symbol, interval, walls, currentPrice, showFootprint, showCVD, indicatorSettings, tradeEvent, botStatus }) => {
+const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: string; walls: { price: number, type: 'buy' | 'sell', size?: number }[]; currentPrice: number; showFootprint: boolean; showCVD: boolean; indicatorSettings: IndicatorSettings; tradeEvent: any; botStatus: any; openOrders: OpenLimitOrder[] }> = ({ exchange, symbol, interval, walls, currentPrice, showFootprint, showCVD, indicatorSettings, tradeEvent, botStatus, openOrders }) => {
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<any>(null);
     const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
@@ -1251,6 +1253,9 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
 
         // 3. Cleanup Stale Lines (Lines that exist in Map but aren't in currentLineKeys)
         for (const [key, line] of wallLinesRef.current.entries()) {
+            // Ignore order lines, they are managed by the next useEffect
+            if (key.startsWith('order-')) continue;
+            
             if (!currentLineKeys.has(key)) {
                 try {
                     candlestickSeriesRef.current?.removePriceLine(line);
@@ -1262,6 +1267,47 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
         }
 
     }, [walls, botStatus]);
+
+    // Open Limit Orders — color-coded horizontal price lines
+    useEffect(() => {
+        if (!candlestickSeriesRef.current) return;
+
+        const orderKeys = new Set<string>();
+
+        openOrders.forEach(order => {
+            if (!order.price || order.price <= 0) return;
+            const key = `order-${order.id}`;
+            orderKeys.add(key);
+
+            const isBuy = order.side === 'buy';
+            const color = isBuy ? 'rgba(34, 197, 94, 0.85)' : 'rgba(239, 68, 68, 0.85)';
+            const label = `${isBuy ? '▲ BUY' : '▼ SELL'} ${order.remaining > 0 ? order.remaining.toFixed(4) : order.amount.toFixed(4)}`;
+
+            if (!wallLinesRef.current.has(key)) {
+                const line = candlestickSeriesRef.current?.createPriceLine({
+                    price: order.price,
+                    color,
+                    lineWidth: 1,
+                    lineStyle: 2, // Dashed
+                    axisLabelVisible: true,
+                    title: label,
+                });
+                if (line) wallLinesRef.current.set(key, line);
+            } else {
+                wallLinesRef.current.get(key)?.applyOptions({ price: order.price, title: label, color });
+            }
+        });
+
+        // Cleanup stale order lines
+        for (const [key, line] of wallLinesRef.current.entries()) {
+            if (key.startsWith('order-') && !orderKeys.has(key)) {
+                try { candlestickSeriesRef.current?.removePriceLine(line); } catch { /* ignore */ }
+                wallLinesRef.current.delete(key);
+            }
+        }
+    }, [openOrders]);
+
+
 
     // Custom Current Price Line (Black Label)
     useEffect(() => {
@@ -2091,6 +2137,9 @@ const OrderFlowHeatmap: React.FC = () => {
     const { bids, asks, walls, currentPrice, tradeEvent } = useLevel2MarketData(symbol, exchange);
     const { volumeThreshold, setVolumeThreshold, volumeMode, setVolumeMode } = useVolumeFilter(5000000);
     const { statusData: botStatus, isConnected: botWsConnected } = useWallHunterStatus(activeWallHunterId);
+    const [selectedApiKeyId, setSelectedApiKeyId] = useState<string | null>(null);
+    const openOrders = useOpenOrders(selectedApiKeyId, symbol, 5000);
+
 
     const filteredWalls = useMemo(() => {
         if (volumeThreshold <= 0) return walls;
@@ -2218,7 +2267,7 @@ const OrderFlowHeatmap: React.FC = () => {
                             </button>
                         </div>
                         <div className="flex-1 relative">
-                            <OrderFlowChart exchange={exchange} symbol={symbol} interval={interval} walls={filteredWalls} currentPrice={currentPrice} showFootprint={showFootprint} showCVD={showCVD} indicatorSettings={indicatorSettings} tradeEvent={tradeEvent} botStatus={botStatus} />
+                            <OrderFlowChart exchange={exchange} symbol={symbol} interval={interval} walls={filteredWalls} currentPrice={currentPrice} showFootprint={showFootprint} showCVD={showCVD} indicatorSettings={indicatorSettings} tradeEvent={tradeEvent} botStatus={botStatus} openOrders={openOrders} />
                         </div>
                     </div>
                     {!isFullscreen && (
@@ -2391,7 +2440,7 @@ const OrderFlowHeatmap: React.FC = () => {
             }
 
             {/* MANUAL TRADE MODAL */}
-            <ManualTradeModal symbol={symbol} currentPrice={currentPrice} />
+            <ManualTradeModal symbol={symbol} currentPrice={currentPrice} onApiKeyChange={setSelectedApiKeyId} />
 
             <WallHunterModal
                 isOpen={isWallHunterOpen}

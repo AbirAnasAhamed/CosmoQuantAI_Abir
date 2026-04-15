@@ -167,6 +167,47 @@ class ManualTradeService:
             raise HTTPException(status_code=500, detail=f"Position Error: {str(e)}")
 
     @staticmethod
+    async def get_open_limit_orders(db: Session, user_id: int, api_key_id: int, symbol: str) -> dict:
+        """
+        ওই exchange এর চলমান Open Limit Orders ফেচ করে chart overlay এর জন্য।
+        শুধুমাত্র 'open' status এবং 'limit' type এর orders return করে।
+        """
+        api_key_record = db.query(models.ApiKey).filter(
+            models.ApiKey.id == api_key_id,
+            models.ApiKey.user_id == user_id,
+            models.ApiKey.is_enabled == True
+        ).first()
+
+        if not api_key_record:
+            raise HTTPException(status_code=404, detail="API Key not found or inactive")
+
+        is_futures = ':' in symbol
+
+        try:
+            exchange = await ManualTradeService._get_exchange(api_key_record, is_futures)
+            raw_orders = await exchange.fetch_open_orders(symbol)
+
+            orders = []
+            for o in raw_orders:
+                if o.get('type', '').lower() == 'limit' and o.get('status', '').lower() == 'open':
+                    orders.append({
+                        'id': o.get('id'),
+                        'side': o.get('side', '').lower(),  # 'buy' or 'sell'
+                        'price': float(o.get('price') or 0),
+                        'amount': float(o.get('amount') or 0),
+                        'filled': float(o.get('filled') or 0),
+                        'remaining': float(o.get('remaining') or 0),
+                    })
+
+            return {"orders": orders, "symbol": symbol, "exchange": api_key_record.exchange}
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Open limit orders fetch failed: {api_key_record.exchange} {e}")
+            raise HTTPException(status_code=500, detail=f"Open Orders Error: {str(e)}")
+
+    @staticmethod
     async def place_manual_trade(db: Session, user_id: int, order_req) -> dict:
         """
         Exchange Connection Pool ব্যবহার করে ultra-fast order execution।

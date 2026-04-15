@@ -134,6 +134,23 @@ async def get_api_key_position(
         logger.error(f"Position fetch failed: {e}")
         raise HTTPException(status_code=500, detail=f"Position Error: {str(e)}")
 
+@router.get("/open-limit-orders/{api_key_id}")
+async def get_open_limit_orders(
+    api_key_id: int,
+    symbol: str,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """Fetch all open limit orders for a specific API key and symbol — used for chart overlay."""
+    try:
+        from app.services.manual_trade_service import manual_trade_service
+        return await manual_trade_service.get_open_limit_orders(db, current_user.id, api_key_id, symbol)
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Open orders fetch failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Open Orders Error: {str(e)}")
+
 @router.post("/sor/preview")
 async def preview_sor_order(
     request: SORRequest,

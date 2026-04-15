@@ -10,9 +10,10 @@ const MotionDiv = motion.div as any;
 interface ManualTradeModalProps {
   symbol: string;
   currentPrice: number;
+  onApiKeyChange?: (apiKeyId: string) => void;
 }
 
-export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, currentPrice }) => {
+export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, currentPrice, onApiKeyChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [orderType, setOrderType] = useState<'Market' | 'Limit'>('Market');
   const [size, setSize] = useState<string>('');
@@ -43,7 +44,9 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
         const keys = await manualTradeService.getApiKeys();
         setApiKeys(keys);
         if (keys.length > 0) {
-          setSelectedApi(keys[0].id.toString());
+          const firstId = keys[0].id.toString();
+          setSelectedApi(firstId);
+          onApiKeyChange?.(firstId);
         }
       } catch (e) {
         console.error("Failed to load APIs", e);
@@ -232,7 +235,7 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
                 <div className="relative">
                   <select 
                     value={selectedApi}
-                    onChange={(e) => setSelectedApi(e.target.value)}
+                    onChange={(e) => { setSelectedApi(e.target.value); onApiKeyChange?.(e.target.value); }}
                     className="w-full bg-black/40 border border-white/10 rounded-lg py-2 pl-3 pr-8 text-white text-sm focus:outline-none focus:border-brand-primary/50 transition-colors appearance-none cursor-pointer hover:bg-black/60"
                   >
                     {apiKeys.map(k => (
