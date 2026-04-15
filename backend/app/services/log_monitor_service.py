@@ -23,7 +23,6 @@ Architecture:
 
 import re
 import logging
-import asyncio
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -89,11 +88,13 @@ WARNING_PATTERNS = [
 # successful or routine operations — they must NOT appear in the system monitor
 # or trigger Telegram alerts.
 NOISE_WARNING_PATTERNS = [
-    # Successful market data / news fetches reported at WARNING by some tasks
-    re.compile(r'Market News Fetch Completed', re.IGNORECASE),
-    re.compile(r'News fetch executed successfully', re.IGNORECASE),
-    re.compile(r'Fetch Completed', re.IGNORECASE),
-    re.compile(r'executed successfully', re.IGNORECASE),
+    # Successful market data / news fetches reported at WARNING by some tasks.
+    # ⚠ Bug #6 fix: patterns were too broad — "Fetch Completed" / "executed successfully"
+    # could silently suppress real error messages that happened to contain those words.
+    # Now anchored to specific known-benign prefixes only.
+    re.compile(r'Market(?:\s+News)?\s+Fetch\s+Completed', re.IGNORECASE),
+    re.compile(r'News\s+fetch\s+executed\s+successfully', re.IGNORECASE),
+    re.compile(r'\bFetch\s+Completed\.?\s*\d*\s*new\s+items', re.IGNORECASE),  # "Fetch Completed. N new items."
     re.compile(r'items fetched', re.IGNORECASE),
     # Celery task success noise
     re.compile(r'Task succeeded in', re.IGNORECASE),
@@ -147,7 +148,12 @@ IGNORE_PATTERNS = [
     re.compile(r'database system is shut down', re.IGNORECASE),
     re.compile(r'received fast shutdown request', re.IGNORECASE),
     re.compile(r'aborting any active transactions', re.IGNORECASE),
-    re.compile(r'shutting down', re.IGNORECASE),
+    # ⚠ Bug #4 fix: bare r'shutting down' was dangerously broad — it would silence
+    # real critical alerts like "Service shutting down due to OOM" or
+    # "Worker shutting down unexpectedly".  Replaced with PostgreSQL-specific
+    # patterns that only match known-safe controlled-shutdown log lines.
+    re.compile(r'database system is shutting down', re.IGNORECASE),
+    re.compile(r'PostgreSQL.*shutting down', re.IGNORECASE),
     # ── PostgreSQL WAL crash-recovery (self-healing, no action needed) ────────
     # These 5 lines appear together whenever Postgres recovers from an unclean
     # shutdown (e.g. host reboot, OOM kill, docker kill).  PostgreSQL handles
@@ -163,11 +169,20 @@ IGNORE_PATTERNS = [
 ]
 
 # Patterns that look like errors but should be downgraded to WARNING
+# These are transient network events that do NOT require human intervention.
 WARNING_OVERRIDE_PATTERNS = [
     re.compile(r'\[vite\].*proxy error', re.IGNORECASE),
     re.compile(r'TCPConnectWrap\.afterConnect', re.IGNORECASE),
     re.compile(r'\[proxy\] Backend connection issue', re.IGNORECASE),
     re.compile(r'ECONNREFUSED', re.IGNORECASE),
+    # ── Frontend / Node.js transient network resets ───────────────────────────
+    # ECONNRESET = client (browser/tab) closed the connection abruptly.
+    # This is normal behaviour — page refresh, tab close, network hiccup.
+    # The frontend server recovers automatically; no action needed.
+    re.compile(r'ECONNRESET', re.IGNORECASE),
+    re.compile(r'read ECONNRESET', re.IGNORECASE),
+    re.compile(r'TCP\.onStreamRead', re.IGNORECASE),
+    re.compile(r'node:internal/stream_base_commons', re.IGNORECASE),
 ]
 
 # Container names to monitor (must match docker-compose container_name)
@@ -386,34 +401,70 @@ async def scan_docker_logs_and_notify():
                 continue
 
             # --- Analyze lines ---
-            # Group consecutive related lines (e.g., Traceback + exception body)
+            # Process each line sequentially.  When an ERROR/CRITICAL trigger is
+            # found, up to 4 continuation lines are collected as context, then the
+            # outer loop advances past them so they are NOT re-evaluated as
+            # independent errors — eliminating spurious duplicate alerts (Bug #3).
             i = 0
             while i < len(log_lines):
-                line = log_lines[i]
+                line     = log_lines[i]
                 severity = classify_log_line(line)
 
                 # ── WARNING-only lines are silently skipped in the alert pipeline.
                 # They are still colour-coded in the live terminal (publish_all_container_logs)
                 # but must NOT appear in the system-monitor alert widget or Telegram.
                 if severity and severity != 'WARNING':
-                    # Collect context: this line + up to 4 following lines
-                    context_lines = [line]
+                    # ----------------------------------------------------------
+                    # Context collection: this line + up to 4 following related lines
+                    # ----------------------------------------------------------
+                    context_lines  = [line]
+                    lines_consumed = 0  # how many following lines we absorbed
+
                     for j in range(1, 5):
-                        if i + j < len(log_lines):
-                            next_line = log_lines[i + j]
-                            # Include continuation lines (indented, or part of traceback)
-                            if next_line.strip() and not classify_log_line(next_line) in ('ERROR', 'CRITICAL'):
-                                context_lines.append(next_line)
-                            elif next_line.strip().startswith(' ') or next_line.strip().startswith('\t'):
-                                context_lines.append(next_line)
+                        if i + j >= len(log_lines):
+                            break
 
-                    # Deduplication fingerprint
+                        next_line = log_lines[i + j]
+                        next_sev  = classify_log_line(next_line)
+
+                        # Case A — indented continuation: traceback body / stack frames.
+                        # ⚠ Bug #1 fix: check the ORIGINAL line, NOT strip()-ped version.
+                        #   next_line.strip().startswith(' ') is ALWAYS False because
+                        #   strip() removes all leading whitespace first — dead code.
+                        if next_line.startswith((' ', '\t')):
+                            context_lines.append(next_line)
+                            lines_consumed += 1
+
+                        # Case B — plain informational continuation (not a new error trigger)
+                        elif next_line.strip() and next_sev not in ('ERROR', 'CRITICAL'):
+                            context_lines.append(next_line)
+                            lines_consumed += 1
+
+                        else:
+                            # Independent new error encountered — stop collecting here;
+                            # the outer while-loop handles it in the next iteration.
+                            break
+
+                    # ----------------------------------------------------------
+                    # Atomic deduplication — Bug #2 fix
+                    # ─────────────────────────────────────────────────────────
+                    # ❌ Old (non-atomic, race-prone under concurrent workers):
+                    #     if not redis.exists(key):         ← Worker-A checks: False
+                    #         redis.setex(key, ttl, "1")   ← Worker-B also checked False
+                    #     → both workers send the alert
+                    #
+                    # ✅ New (single atomic SET-if-not-exists, Redis SETNX semantics):
+                    #     redis.set(key, nx=True, ex=ttl)  ← exactly ONE worker wins;
+                    #     the return value tells us if we won the "slot".
+                    # ----------------------------------------------------------
                     fingerprint = make_fingerprint(container_name, line)
+                    was_set = redis.set(
+                        fingerprint, "1",
+                        nx=True,                    # SET only if key does Not eXist
+                        ex=ALERT_COOLDOWN_SECONDS,  # auto-expire after cooldown window
+                    )
 
-                    if not redis.exists(fingerprint):
-                        # Set cooldown FIRST to prevent race conditions
-                        redis.setex(fingerprint, ALERT_COOLDOWN_SECONDS, "1")
-
+                    if was_set:
                         # Build message
                         message = format_alert_message(
                             container=container_name,
@@ -454,6 +505,10 @@ async def scan_docker_logs_and_notify():
                                 )
                             except Exception as e:
                                 logger.error(f"[LogMonitor] Failed to notify user {user_settings.user_id}: {e}")
+
+                    # Bug #3 fix: advance past the absorbed context lines so they are
+                    # NOT re-evaluated as independent errors in subsequent iterations.
+                    i += lines_consumed
 
                 i += 1
 
