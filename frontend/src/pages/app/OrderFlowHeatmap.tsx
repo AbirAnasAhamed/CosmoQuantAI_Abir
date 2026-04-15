@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { createChart, ISeriesApi, CandlestickData, CandlestickSeries, LineSeries, HistogramSeries, HistogramData, createSeriesMarkers, LineStyle } from 'lightweight-charts';
+import { WickSRRenderer } from '../../components/features/market/WickSRRenderer';
 import { useLevel2MarketData } from '@/hooks/useLevel2MarketData';
 import { useOrderFlowData } from '../../hooks/useOrderFlowData';
 import { useHeatmapData } from '../../hooks/useHeatmapData';
@@ -21,7 +22,7 @@ import { FibonacciCloudRenderer, FibonacciData } from '../../components/features
 import { IchimokuRenderer } from '../../components/features/market/IchimokuRenderer';
 import { calculateQuantumAi, QuantumAiResult } from '../../utils/quantumAi';
 import { IndicatorSelector, IndicatorSettings } from '../../components/features/market/IndicatorSelector';
-import { calculateEMA, calculateBollingerBands, calculateRSI, updateEMA, updateBollingerBands, updateRSI, calculateIchimoku, IchimokuDataPoint, calculateAdaptiveTrendFinder, TrendFinderResult, calculateUTBotAlerts, UTBotDataPoint, calculateSessions, SessionData, calculateSupertrend, SupertrendDataPoint, calculateMsbOb, MsbObResult } from '../../utils/indicators';
+import { calculateEMA, calculateBollingerBands, calculateRSI, updateEMA, updateBollingerBands, updateRSI, calculateIchimoku, IchimokuDataPoint, calculateAdaptiveTrendFinder, TrendFinderResult, calculateUTBotAlerts, UTBotDataPoint, calculateSessions, SessionData, calculateSupertrend, SupertrendDataPoint, calculateMsbOb, MsbObResult, calculateWickRejectionSR, WickSRResult } from '../../utils/indicators';
 import { TrendFinderRenderer } from '../../components/features/market/TrendFinderRenderer';
 import { SessionsRenderer } from '../../components/features/market/SessionsRenderer';
 import { SupertrendRenderer } from '../../components/features/market/SupertrendRenderer';
@@ -104,6 +105,7 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
     const [supertrendData, setSupertrendData] = useState<SupertrendDataPoint[]>([]);
     const [msbObData, setMsbObData] = useState<MsbObResult | null>(null);
     const [patternData, setPatternData] = useState<any[]>([]); // Added for patterns
+    const [wickSRData, setWickSRData] = useState<WickSRResult | null>(null);
     
     // Default to the right side (rough estimate, can be adjusted by screen size)
     const [quantumAiHudPos, setQuantumAiHudPos] = useState(() => {
@@ -689,6 +691,36 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
         setTimeout(runMsbObCalc, 0);
         const intervalId = setInterval(runMsbObCalc, 1000);
 
+        return () => clearInterval(intervalId);
+    }, [indicatorSettings]);
+
+    // ── Wick Rejection S/R Calculation Effect ──
+    useEffect(() => {
+        if (!indicatorSettings.showWickSR) {
+            setWickSRData(null);
+            return;
+        }
+
+        const runWickSRCalc = () => {
+            const candles = allCandlesRef.current;
+            if (candles.length < indicatorSettings.wickSRAtrPeriod + 2) return;
+            try {
+                const result = calculateWickRejectionSR(
+                    candles,
+                    indicatorSettings.wickSRLookback,
+                    indicatorSettings.wickSRMinTouches,
+                    indicatorSettings.wickSRAtrPeriod,
+                    indicatorSettings.wickSRAtrMultiplier,
+                );
+                setWickSRData(result);
+            } catch (err) {
+                console.warn('[WickSR] Calculation error:', err);
+            }
+        };
+
+        // Run immediately, then throttle updates to every 2 seconds
+        setTimeout(runWickSRCalc, 0);
+        const intervalId = setInterval(runWickSRCalc, 2000);
         return () => clearInterval(intervalId);
     }, [indicatorSettings]);
 
@@ -1480,6 +1512,15 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
                             showZigzag={indicatorSettings.msbObShowZigzag}
                         />
                     )}
+                    {/* Wick Rejection Support & Resistance */}
+                    <WickSRRenderer
+                        chart={chartRef.current}
+                        series={candlestickSeriesRef.current}
+                        data={wickSRData}
+                        showZones={indicatorSettings.wickSRShowZones}
+                        showLabels={indicatorSettings.wickSRShowLabels}
+                        visible={indicatorSettings.showWickSR}
+                    />
                 </div>
                 <SessionsDashboard settings={indicatorSettings} statuses={sessionStatuses} />
                 <VolumeProfileWidget chart={chartRef.current} series={candlestickSeriesRef.current} data={vpvrData} />

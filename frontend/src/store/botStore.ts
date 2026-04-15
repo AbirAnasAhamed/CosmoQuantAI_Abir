@@ -169,6 +169,14 @@ export const useBotStore = create<BotState>((set) => ({
         msbObShowZigzag: true,
         msbObDeleteBroken: true,
         showCandlestickPatterns: false,
+        // ── Wick Rejection S/R Defaults ──
+        showWickSR: false,
+        wickSRLookback: 300,
+        wickSRMinTouches: 10,
+        wickSRAtrPeriod: 14,
+        wickSRAtrMultiplier: 0.5,
+        wickSRShowZones: true,
+        wickSRShowLabels: true,
     },
     setIndicatorSettings: (settings) => set({ indicatorSettings: settings }),
 }));

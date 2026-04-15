@@ -1381,3 +1381,160 @@ export const calculateMsbOb = (
 
     return { points, zones };
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Wick Rejection Support / Resistance
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface SRLevel {
+    price: number;               // cluster average price (the line)
+    type: 'resistance' | 'support';
+    touchCount: number;          // how many wick tips landed in this zone
+    strength: 'weak' | 'moderate' | 'strong' | 'ultra';
+    startTime: any;              // time of first wick touch
+    endTime: any;                // time of last wick touch
+    zone: { top: number; bottom: number }; // ATR-based zone band
+    isBroken: boolean;           // price closed beyond this level after forming
+}
+
+export interface WickSRResult {
+    levels: SRLevel[];
+}
+
+/**
+ * Detects strong support/resistance levels by clustering candle wicks.
+ *
+ * RESISTANCE: upper wicks (highs) that cluster at the same price repeatedly → price was rejected there.
+ * SUPPORT:    lower wicks (lows)  that cluster at the same price repeatedly → price bounced from there.
+ *
+ * @param data          OHLCV candle array (must include high, low, close)
+ * @param lookback      How many recent candles to analyze
+ * @param minTouches    Minimum wick touches to qualify as a level (default 10)
+ * @param atrPeriod     ATR period for dynamic tolerance zone (default 14)
+ * @param atrMultiplier ATR multiplier for clustering tolerance (default 0.5)
+ */
+export const calculateWickRejectionSR = (
+    data: { time: any; open: number; high: number; low: number; close: number }[],
+    lookback: number = 300,
+    minTouches: number = 10,
+    atrPeriod: number = 14,
+    atrMultiplier: number = 0.5,
+): WickSRResult => {
+    const result: WickSRResult = { levels: [] };
+    if (data.length < atrPeriod + 2) return result;
+
+    // ── Step 1: Use the lookback slice ──────────────────────────────────────
+    const slice = data.slice(-Math.min(lookback, data.length));
+
+    // ── Step 2: Calculate ATR over the full slice for tolerance ─────────────
+    let atr = 0;
+    {
+        const trs: number[] = [];
+        for (let i = 1; i < slice.length; i++) {
+            const h = slice[i].high, l = slice[i].low, pc = slice[i - 1].close;
+            trs.push(Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc)));
+        }
+        // Use Wilder's RMA
+        let rma = trs.slice(0, atrPeriod).reduce((s, v) => s + v, 0) / atrPeriod;
+        const alpha = 1 / atrPeriod;
+        for (let i = atrPeriod; i < trs.length; i++) {
+            rma = alpha * trs[i] + (1 - alpha) * rma;
+        }
+        atr = rma;
+    }
+    if (atr <= 0) return result;
+
+    const tolerance = atr * atrMultiplier;
+
+    // ── Step 3: Collect wick tips ────────────────────────────────────────────
+    const highWicks: { price: number; time: any }[] = [];
+    const lowWicks: { price: number; time: any }[] = [];
+
+    for (const bar of slice) {
+        highWicks.push({ price: bar.high, time: bar.time });
+        lowWicks.push({ price: bar.low, time: bar.time });
+    }
+
+    // ── Step 4: Cluster function ─────────────────────────────────────────────
+    type WickPoint = { price: number; time: any };
+
+    const clusterWicks = (wicks: WickPoint[], type: 'resistance' | 'support'): SRLevel[] => {
+        // Sort by price to make clustering easier
+        const sorted = [...wicks].sort((a, b) => a.price - b.price);
+        const clusters: { prices: number[]; times: any[] }[] = [];
+
+        for (const wick of sorted) {
+            let placed = false;
+            for (const cluster of clusters) {
+                const clusterMid = cluster.prices.reduce((s, v) => s + v, 0) / cluster.prices.length;
+                if (Math.abs(wick.price - clusterMid) <= tolerance) {
+                    cluster.prices.push(wick.price);
+                    cluster.times.push(wick.time);
+                    placed = true;
+                    break;
+                }
+            }
+            if (!placed) {
+                clusters.push({ prices: [wick.price], times: [wick.time] });
+            }
+        }
+
+        // Filter clusters by minTouches
+        const levels: SRLevel[] = [];
+        for (const cluster of clusters) {
+            if (cluster.prices.length < minTouches) continue;
+
+            const avgPrice = cluster.prices.reduce((s, v) => s + v, 0) / cluster.prices.length;
+            const touchCount = cluster.prices.length;
+            const sortedTimes = [...cluster.times].sort((a, b) => Number(a) - Number(b));
+            const startTime = sortedTimes[0];
+            const endTime = sortedTimes[sortedTimes.length - 1];
+
+            // Strength classification
+            let strength: SRLevel['strength'] = 'weak';
+            if (touchCount >= minTouches * 3) strength = 'ultra';
+            else if (touchCount >= minTouches * 2) strength = 'strong';
+            else if (touchCount >= Math.ceil(minTouches * 1.5)) strength = 'moderate';
+
+            // Break detection: did price close beyond this level after formation?
+            const lastBar = slice[slice.length - 1];
+            let isBroken = false;
+            if (type === 'resistance' && lastBar.close > avgPrice + tolerance) isBroken = true;
+            if (type === 'support' && lastBar.close < avgPrice - tolerance) isBroken = true;
+
+            levels.push({
+                price: avgPrice,
+                type,
+                touchCount,
+                strength,
+                startTime,
+                endTime,
+                zone: { top: avgPrice + tolerance * 0.5, bottom: avgPrice - tolerance * 0.5 },
+                isBroken,
+            });
+        }
+
+        // Sort by touch count descending (strongest first) then limit to top 10
+        return levels.sort((a, b) => b.touchCount - a.touchCount).slice(0, 10);
+    };
+
+    // ── Step 5: Deduplicate overlapping resistance vs support ─────────────────
+    const resistanceLevels = clusterWicks(highWicks, 'resistance');
+    const supportLevels    = clusterWicks(lowWicks,  'support');
+
+    // Merge and remove levels that are within tolerance of each other (keep higher touch count)
+    const allLevels = [...resistanceLevels, ...supportLevels].sort((a, b) => b.touchCount - a.touchCount);
+    const deduplicated: SRLevel[] = [];
+
+    for (const level of allLevels) {
+        const hasDuplicate = deduplicated.some(
+            existing => Math.abs(existing.price - level.price) <= tolerance * 1.5
+        );
+        if (!hasDuplicate) {
+            deduplicated.push(level);
+        }
+    }
+
+    result.levels = deduplicated;
+    return result;
+};
