@@ -153,7 +153,7 @@ class NewsService:
                         new_items_to_process.append(item)
                 
                 if not new_items_to_process:
-                     print("✅ Market News Fetch Completed. No new items.")
+                     logger.info("✅ Market News Fetch Completed. No new items.")
                      return 0
 
                 # 2. Batch Sentiment Analysis
@@ -229,10 +229,10 @@ class NewsService:
 
                 if count > 0:
                     avg_score = total_sentiment_score / count
-                    print(f"📊 Average Batch Sentiment Score: {avg_score:.2f}")
+                    logger.info(f"📊 Average Batch Sentiment Score: {avg_score:.2f}")
 
                 if new_resources:
-                    print(f"✅ Market News Fetch Completed. {count} new items. Sending notifications...")
+                    logger.info(f"✅ Market News Fetch Completed. {count} new items. Sending notifications...")
                     from app.services.notification import NotificationService
                     from app.models.notification import NotificationSettings
                     
@@ -253,7 +253,7 @@ class NewsService:
                         for setting in active_notifications:
                             await NotificationService.send_message(db, setting.user_id, msg)
                 
-                print(f"✅ Market News Fetch Completed. {count} new items.")
+                logger.info(f"✅ Market News Fetch Completed. {count} new items.")
                 return count
             finally:
                 db.close()

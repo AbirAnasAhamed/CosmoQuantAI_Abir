@@ -428,7 +428,7 @@ class NewsScraper:
                 return []
 
             elif response.status_code in (502, 503, 504):
-                logger.warning(
+                logger.info(
                     f"CryptoPanic API temporarily unavailable "
                     f"(HTTP {response.status_code}). Falling back to RSS."
                 )
