@@ -1236,7 +1236,7 @@ class WallHunterFuturesStrategy:
                             filled = final_status.get('filled', 0.0)
                             
                             if filled <= 0:
-                                logger.error(f"❌ Entry order was completely unfilled before cancellation. Aborting snipe.")
+                                logger.info(f"❌ Entry order was completely unfilled before cancellation. Aborting snipe.")
                                 return
                                 
                             logger.info(f"🔄 Partial Fill Detected! Requested: {base_amount}, Filled: {filled}. Adjusting position size.")

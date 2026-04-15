@@ -1610,7 +1610,7 @@ class WallHunterBot:
                         filled = final_status.get('filled', 0.0)
                         
                         if filled <= 0:
-                            self.logger.error(f"❌ Entry order was completely unfilled before cancellation. Aborting snipe.")
+                            self.logger.info(f"❌ Entry order was completely unfilled before cancellation. Aborting snipe.")
                             self.active_pos = None
                             self._clear_state()
                             return
