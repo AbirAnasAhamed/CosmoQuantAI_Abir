@@ -1,0 +1,227 @@
+﻿Requirement already satisfied: hmmlearn in /usr/local/lib/python3.12/site-packages (0.3.3)
+Requirement already satisfied: statsmodels in /usr/local/lib/python3.12/site-packages (0.14.6)
+Requirement already satisfied: numpy>=1.10 in /usr/local/lib/python3.12/site-packages (from hmmlearn) (2.2.6)
+Requirement already satisfied: scikit-learn!=0.22.0,>=0.16 in /usr/local/lib/python3.12/site-packages (from hmmlearn) (1.8.0)
+Requirement already satisfied: scipy>=0.19 in /usr/local/lib/python3.12/site-packages (from hmmlearn) (1.17.1)
+Requirement already satisfied: pandas!=2.1.0,>=1.4 in /usr/local/lib/python3.12/site-packages (from statsmodels) (3.0.2)
+Requirement already satisfied: patsy>=0.5.6 in /usr/local/lib/python3.12/site-packages (from statsmodels) (1.0.2)
+Requirement already satisfied: packaging>=21.3 in /usr/local/lib/python3.12/site-packages (from statsmodels) (26.0)
+Requirement already satisfied: python-dateutil>=2.8.2 in /usr/local/lib/python3.12/site-packages (from pandas!=2.1.0,>=1.4->statsmodels) (2.9.0.post0)
+Requirement already satisfied: joblib>=1.3.0 in /usr/local/lib/python3.12/site-packages (from scikit-learn!=0.22.0,>=0.16->hmmlearn) (1.5.3)
+Requirement already satisfied: threadpoolctl>=3.2.0 in /usr/local/lib/python3.12/site-packages (from scikit-learn!=0.22.0,>=0.16->hmmlearn) (3.6.0)
+Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.12/site-packages (from python-dateutil>=2.8.2->pandas!=2.1.0,>=1.4->statsmodels) (1.17.0)
+docker : WARNING: Running 
+pip as the 'root' user can 
+result in broken 
+permissions and 
+conflicting behaviour with 
+the system package 
+manager, possibly 
+rendering your system 
+unusable. It is 
+recommended to use a 
+virtual environment 
+instead: https://pip.pypa.i
+o/warnings/venv. Use the 
+--root-user-action option 
+if you know what you are 
+doing and want to suppress 
+this warning.
+At line:1 char:1
++ docker logs 
+cosmoquant_backend 2>&1 | 
+Out-File 
+"e:\CosmoQuantAI\tmp\b ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: (WAR  
+  NING: Runnin...s this    
+ warning.:String) [], R    
+emoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+
+[notice] A new release of 
+pip is available: 25.0.1 
+-> 26.0.1
+[notice] To update, run: 
+pip install --upgrade pip
++ python
++ alembic upgrade head
+INFO  [alembic.runtime.migr
+ation] Context impl 
+PostgresqlImpl.
+INFO  [alembic.runtime.migr
+ation] Will assume 
+transactional DDL.
+INFO:     Started server 
+process [1]
+INFO:     Waiting for 
+application startup.
+INFO:app.core.redis:≡ƒöî 
+Connecting to Redis at 
+redis://redis:6379/0...
+INFO:app.core.redis:Γ£à 
+Redis Connection Pool 
+Established.
+Γ£à Backend System Logging attached to Redis.
+INFO:app.services.bot_manag
+er:Γ£à BotManager Service 
+Started
+≡ƒÜÇ Background Market Data Task Started
+≡ƒôí Listening to Redis Log Stream...
+INFO:app.services.liquidati
+on_service:LiquidationServi
+ce started via CCXT Pro
+INFO:app.services.orderbook
+_snapshot_service:≡ƒÜÇ 
+Starting Historcial 
+Orderbook Snapshot 
+recording loop...
+INFO:app.services.binance_l
+iq_stream:≡ƒƒó Starting 
+Binance Liquidation 
+Stream...
+INFO:     Application 
+startup complete.
+INFO:     Uvicorn running 
+on http://0.0.0.0:8000 
+(Press CTRL+C to quit)
+INFO:app.services.binance_l
+iq_stream:≡ƒöù Connected 
+to Binance Liquidation 
+WebSocket
+INFO:     172.18.0.7:50416 
+- "WebSocket /ws" 
+[accepted]
+INFO:     connection open
+INFO:     172.18.0.7:50426 
+- "WebSocket /ws" 
+[accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+≡ƒôí Listening to Redis Task Updates...
+≡ƒôí Listening to Block Trade Stream...
+≡ƒÆ░ Starting Active Bot PnL Broadcast...
+INFO:     172.18.0.7:50476 
+- "WebSocket /api/v1/dashbo
+ard/ws?token=eyJhbGciOiJIUz
+I1NiIsInR5cCI6IkpXVCJ9.eyJz
+dWIiOiJhYmlyLmFoYW1lZC4wMTk
+zMTY0NTk5M0BnbWFpbC5jb20iLC
+J1c2VyX2lkIjoxLCJleHAiOjE3N
+zUxNTA3NDN9.zqQsNRNMs08oWUk
+ofOQWJdWG3-36hnff5mCW_D8yPJ
+k" 403
+INFO:     connection 
+rejected (403 Forbidden)
+INFO:     connection closed
+INFO:     172.18.0.7:50438 - "GET /api/v1/users/api-keys HTTP/1.1" 200 OK
+INFO:     172.18.0.7:50454 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     172.18.0.7:50466 - "GET /api/v1/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.7:50508 
+- "WebSocket /api/v1/dashbo
+ard/ws?token=eyJhbGciOiJIUz
+I1NiIsInR5cCI6IkpXVCJ9.eyJz
+dWIiOiJhYmlyLmFoYW1lZC4wMTk
+zMTY0NTk5M0BnbWFpbC5jb20iLC
+J1c2VyX2lkIjoxLCJleHAiOjE3N
+zUxNTA3NDN9.zqQsNRNMs08oWUk
+ofOQWJdWG3-36hnff5mCW_D8yPJ
+k" 403
+INFO:     172.18.0.7:50484 - "GET /api/v1/users/api-keys HTTP/1.1" 200 OK
+INFO:     172.18.0.7:50498 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     172.18.0.7:50514 - "GET /api/v1/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.7:33964 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     172.18.0.7:33962 - "GET /api/v1/users/api-keys HTTP/1.1" 200 OK
+INFO:     172.18.0.7:33972 - "GET /api/v1/dashboard/summary HTTP/1.1" 200 OK
+INFO:     connection 
+rejected (403 Forbidden)
+INFO:     connection closed
+INFO:     172.18.0.7:33960 
+- "WebSocket /ws" 
+[accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     172.18.0.7:33984 
+- "WebSocket /api/v1/dashbo
+ard/ws?token=eyJhbGciOiJIUz
+I1NiIsInR5cCI6IkpXVCJ9.eyJz
+dWIiOiJhYmlyLmFoYW1lZC4wMTk
+zMTY0NTk5M0BnbWFpbC5jb20iLC
+J1c2VyX2lkIjoxLCJleHAiOjE3N
+zUxNTA3NDN9.zqQsNRNMs08oWUk
+ofOQWJdWG3-36hnff5mCW_D8yPJ
+k" 403
+INFO:     connection 
+rejected (403 Forbidden)
+INFO:     connection closed
+INFO:     172.18.0.7:34030 
+- "WebSocket /api/v1/dashbo
+ard/ws?token=eyJhbGciOiJIUz
+I1NiIsInR5cCI6IkpXVCJ9.eyJz
+dWIiOiJhYmlyLmFoYW1lZC4wMTk
+zMTY0NTk5M0BnbWFpbC5jb20iLC
+J1c2VyX2lkIjoxLCJleHAiOjE3N
+zUxNTA3NDN9.zqQsNRNMs08oWUk
+ofOQWJdWG3-36hnff5mCW_D8yPJ
+k" 403
+INFO:     connection 
+rejected (403 Forbidden)
+INFO:     connection closed
+INFO:     172.18.0.7:34084 
+- "WebSocket /ws" 
+[accepted]
+INFO:     172.18.0.7:34100 
+- "WebSocket /ws" 
+[accepted]
+INFO:     connection open
+INFO:     connection open
+INFO:     172.18.0.7:33988 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     172.18.0.7:33994 - "GET /api/v1/users/api-keys HTTP/1.1" 200 OK
+INFO:     172.18.0.7:34008 - "GET /api/v1/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.7:34018 - "GET /api/v1/analytics/performance HTTP/1.1" 200 OK
+INFO:     172.18.0.7:34040 - "GET /api/v1/analytics/performance HTTP/1.1" 200 OK
+INFO:     172.18.0.7:34042 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:34058 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:34074 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:34062 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:42622 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:36320 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:36330 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:38482 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:46142 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:46146 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:35404 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:40446 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:40462 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:37470 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:57912 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:57914 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:48160 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:49196 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:49198 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:49616 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:35786 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:35780 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:53012 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:47526 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:47536 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:48100 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:44240 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:44256 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:43402 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:43410 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:47550 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:47562 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:36894 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:36904 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:48816 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:48800 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:48060 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:48064 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
+INFO:     172.18.0.7:47100 - "GET /api/v1/system/health HTTP/1.1" 200 OK
+INFO:     172.18.0.7:47112 - "GET /api/v1/whale-alerts/recent?limit=5 HTTP/1.1" 200 OK
