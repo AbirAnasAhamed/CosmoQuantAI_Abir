@@ -56,7 +56,7 @@ export const useMarketData = () => {
             // Port fallback if strict CSP or different port
             const port = '8000';
             const safeSymbol = symbol ? symbol.replace('/', '') : 'BTCUSDT';
-            const wsUrl = `${protocol}/${host}:${port}/ws/market-data/${safeSymbol}`;
+            const wsUrl = `${protocol}//${host}:${port}/ws/market-data/${safeSymbol}`;
 
             console.log("Connecting to Sync WS:", wsUrl);
             ws = new WebSocket(wsUrl);
