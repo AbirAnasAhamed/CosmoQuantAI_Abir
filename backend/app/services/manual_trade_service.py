@@ -73,7 +73,7 @@ class ManualTradeService:
             # Pass symbol constraints if the exchange supports lightweight fetching
             try:
                 balance = await exchange.fetch_balance({'coin': quote_part})
-            except:
+            except Exception:  # BUG-06 fix: was bare except, now catches only Exception subclasses
                 balance = await exchange.fetch_balance()
 
             # Symbol থেকে base এবং quote বের করা
@@ -312,7 +312,7 @@ class ManualTradeService:
             except Exception as notify_err:
                 logger.warning(f"Failed to trigger telegram notification: {notify_err}")
 
-            # [Bracket Order Link]
+            # [Bracket Order Link] — spawned as a background asyncio task, non-blocking
             if getattr(order_req, 'attached_tp', None) and order_req.attached_tp.enabled:
                 initial_price = response.get('price') or response.get('average') or getattr(order_req, 'price', 0.0)
                 asyncio.create_task(
@@ -324,7 +324,8 @@ class ManualTradeService:
                         amount=order_req.amount,
                         is_futures=is_futures,
                         tp_config=order_req.attached_tp.dict(),
-                        initial_entry_price=float(initial_price) if initial_price else 0.0
+                        initial_entry_price=float(initial_price) if initial_price else 0.0,
+                        user_id=user_id  # BUG-07 fix: pass user_id for TP notification
                     )
                 )
 

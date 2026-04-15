@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Body, Depends
 from typing import Optional
+from datetime import datetime  # BUG-01 fix: was missing, caused NameError in /sor/execute
 import ccxt.async_support as ccxt
 import logging
 from pydantic import BaseModel
