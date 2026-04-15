@@ -53,7 +53,13 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
       }
     };
     if (isOpen) fetchKeys();
-  }, [isOpen]);
+  }, [isOpen, onApiKeyChange]); // BUG-04 fixed: onApiKeyChange added to deps
+
+  // BUG-12 fix: Reset size and mode when symbol changes to avoid stale amounts on wrong pair
+  React.useEffect(() => {
+    setSize('');
+    setSizeMode('base');
+  }, [symbol]);
 
   // Fetch balance when selected API or symbol changes
   React.useEffect(() => {
@@ -124,18 +130,19 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
     }
     
     setIsSubmitting(true);
-    // Simulate API call for now since backend route is not ready
     try {
       if (orderType === 'Limit' && !isAutoLimit && (!limitPrice || Number(limitPrice) <= 0)) {
-        toast.error("Please enter a valid limit price or enable Auto Limit.");
-        setIsSubmitting(false);
-        return;
+        toast.error('Please enter a valid limit price or enable Auto Limit.');
+        return; // finally block handles setIsSubmitting(false)
       }
 
       const paramsPayload: any = isFutures ? { leverage, marginMode, reduceOnly } : {};
       if (orderType === 'Limit' && isAutoLimit) {
-         paramsPayload.autoBestLimit = true;
+        paramsPayload.autoBestLimit = true;
       }
+
+      // BUG-09 fix: Use the actual selected API key's exchange instead of hardcoded 'binance'
+      const resolvedExchange = apiKeys.find(k => k.id.toString() === selectedApi)?.exchange || 'binance';
 
       const payload: any = {
         symbol,
@@ -143,28 +150,31 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
         type: orderType,
         amount: baseAmount,
         price: orderType === 'Limit' ? (isAutoLimit ? 0 : Number(limitPrice)) : undefined,
-        exchange_id: 'binance', // backend fallback
+        exchange_id: resolvedExchange,
         api_key_id: selectedApi ? Number(selectedApi) : undefined,
         params: Object.keys(paramsPayload).length > 0 ? paramsPayload : undefined,
         client_timestamp: Date.now()
       };
 
       if (tpConfig.enabled && tpConfig.value && Number(tpConfig.value) > 0) {
-         payload.attached_tp = {
-             enabled: true,
-             mode: tpConfig.mode,
-             value: Number(tpConfig.value),
-             order_type: tpConfig.orderType,
-             timeout_mins: tpConfig.timeoutMins
-         };
+        payload.attached_tp = {
+          enabled: true,
+          mode: tpConfig.mode,
+          value: Number(tpConfig.value),
+          order_type: tpConfig.orderType,
+          timeout_mins: tpConfig.timeoutMins
+        };
       }
 
       await manualTradeService.placeOrder(payload);
-      toast.success(`Successfully placed ${side} ${orderType} order for ${symbol}`);
-      setIsSubmitting(false);
+      toast.success(`✅ ${side} ${orderType} order placed for ${symbol}`);
       setIsOpen(false);
     } catch (error: any) {
-      toast.error(`Failed to place order: ${error.message}`);
+      // BUG-02 fix: Read FastAPI detail message if available
+      const errMsg = error?.response?.data?.detail || error?.message || 'Unknown error occurred';
+      toast.error(`❌ Order failed: ${errMsg}`);
+    } finally {
+      // BUG-02 fix: Always reset submitting state regardless of outcome
       setIsSubmitting(false);
     }
   };
@@ -257,7 +267,8 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
                   >
                     {apiKeys.map(k => (
                        <option key={k.id} value={k.id} className="bg-[#0B1120]">
-                           {k.name || k.label || k.key_name || `${k.exchange} - Key`}
+                       {/* BUG-08 fix: Robust label fallback with exchange uppercase */}
+                       {k.name || k.label || k.key_name || `${k.exchange?.toUpperCase()} — Key #${k.id}`}
                        </option>
                     ))}
                     {apiKeys.length === 0 && <option value="" disabled>No API Keys found</option>}
