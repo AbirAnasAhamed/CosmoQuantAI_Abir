@@ -255,7 +255,10 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({ singleResult, result
                 {/* Equity Curve Chart */}
                 <div className="mt-4">
                     {singleResult.equity_curve && singleResult.equity_curve.length > 0 ? (
-                        <EquityChart data={singleResult.equity_curve} />
+                        <EquityChart data={singleResult.equity_curve.map(d => ({
+                            time: typeof d.name === 'number' ? d.name : (new Date(d.name).getTime() / 1000),
+                            value: d.value
+                        }))} />
                     ) : (
                         <p className="text-center text-gray-500 py-4">No equity data available</p>
                     )}

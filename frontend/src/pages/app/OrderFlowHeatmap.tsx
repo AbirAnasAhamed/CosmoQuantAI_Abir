@@ -22,7 +22,8 @@ import { FibonacciCloudRenderer, FibonacciData } from '../../components/features
 import { IchimokuRenderer } from '../../components/features/market/IchimokuRenderer';
 import { calculateQuantumAi, QuantumAiResult } from '../../utils/quantumAi';
 import { IndicatorSelector, IndicatorSettings } from '../../components/features/market/IndicatorSelector';
-import { calculateEMA, calculateBollingerBands, BollingerBandsDataPoint, calculateRSI, updateEMA, updateBollingerBands, updateRSI, calculateIchimoku, IchimokuDataPoint, calculateAdaptiveTrendFinder, TrendFinderResult, calculateUTBotAlerts, UTBotDataPoint, calculateSessions, SessionData, calculateSupertrend, SupertrendDataPoint, calculateMsbOb, MsbObResult, calculateWickRejectionSR, WickSRResult } from '../../utils/indicators';
+import { MACDRenderer } from '../../components/features/market/MACDRenderer';
+import { calculateEMA, calculateBollingerBands, BollingerBandsDataPoint, calculateMACD, calculateRSI, updateEMA, updateBollingerBands, updateRSI, calculateIchimoku, IchimokuDataPoint, calculateAdaptiveTrendFinder, TrendFinderResult, calculateUTBotAlerts, UTBotDataPoint, calculateSessions, SessionData, calculateSupertrend, SupertrendDataPoint, calculateMsbOb, MsbObResult, calculateWickRejectionSR, WickSRResult } from '../../utils/indicators';
 import { TrendFinderRenderer } from '../../components/features/market/TrendFinderRenderer';
 import { SessionsRenderer } from '../../components/features/market/SessionsRenderer';
 import { SupertrendRenderer } from '../../components/features/market/SupertrendRenderer';
@@ -235,6 +236,7 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
         const bbLowerSeries = chart.addSeries(LineSeries, { color: 'rgba(56, 189, 248, 0.5)', lineWidth: 1, crosshairMarkerVisible: false, lastValueVisible: false, priceScaleId: 'right' });
         const utBotSeries = chart.addSeries(LineSeries, { color: '#00ffff', lineWidth: 1, lineStyle: LineStyle.Solid, crosshairMarkerVisible: false, lastValueVisible: false, priceScaleId: 'right' });
         const rsiSeries = chart.addSeries(LineSeries, { color: '#db2777', lineWidth: 2, priceScaleId: 'left', crosshairMarkerVisible: false, lastValueVisible: false });
+        
         const volumeSeries = chart.addSeries(HistogramSeries, {
             color: '#26a69a',
             priceFormat: {
@@ -401,7 +403,7 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
         if (utBotSeriesRef.current) utBotSeriesRef.current.applyOptions({ visible: indicatorSettings.showUTBot });
         
         if (chartRef.current) {
-            chartRef.current.priceScale('left').applyOptions({ visible: indicatorSettings.showRSI });
+            chartRef.current.priceScale('left').applyOptions({ visible: indicatorSettings.showRSI || indicatorSettings.showMACD });
         }
         
         if (volumeSeriesRef.current) {
@@ -1440,6 +1442,14 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
                     <LiquidityHeatmapRenderer chart={chartRef.current} series={candlestickSeriesRef.current} data={realHeatmapData} />
                     <FibonacciCloudRenderer chart={chartRef.current} series={candlestickSeriesRef.current} data={fiboData} />
                     <BollingerBandsRenderer chart={chartRef.current} series={candlestickSeriesRef.current} data={bbData} visible={indicatorSettings.showBB} />
+                <MACDRenderer 
+                    chart={chartRef.current} 
+                    data={allCandlesRef.current} 
+                    visible={indicatorSettings.showMACD}
+                    fast={indicatorSettings.macdFast}
+                    slow={indicatorSettings.macdSlow}
+                    signal={indicatorSettings.macdSignal}
+                />
                     <IchimokuRenderer chart={chartRef.current} series={candlestickSeriesRef.current} data={ichimokuData} displacement={indicatorSettings.displacement} />
                     <TrendFinderRenderer 
                         chart={chartRef.current} 
