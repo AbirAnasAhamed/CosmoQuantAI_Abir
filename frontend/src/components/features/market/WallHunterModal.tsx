@@ -64,6 +64,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         enableMicroScalp: false,        
         microScalpProfitTicks: 2,       
         microScalpMinWall: 100000,      
+        
+        tradingSession: 'None',
 
         enableLiqCascade: false,        
         liqCascadeWindow: 5,            
@@ -264,6 +266,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             enableMicroScalp: c.enable_micro_scalp !== undefined ? c.enable_micro_scalp : false,
                             microScalpProfitTicks: c.micro_scalp_profit_ticks || 2,
                             microScalpMinWall: c.micro_scalp_min_wall || 100000,
+                            tradingSession: c.trading_session || 'None',
 
                             enableLiqCascade: c.enable_liq_cascade !== undefined ? c.enable_liq_cascade : false,
                             liqCascadeWindow: c.liq_cascade_window || 5,
@@ -578,6 +581,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     enable_micro_scalp: form.enableMicroScalp,
                     micro_scalp_profit_ticks: form.microScalpProfitTicks,
                     micro_scalp_min_wall: form.microScalpMinWall,
+                    trading_session: form.tradingSession,
 
                     enable_liq_cascade: form.enableLiqCascade,
                     liq_cascade_window: form.liqCascadeWindow,
@@ -1078,6 +1082,29 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
 
                     {activeTab === 'triggers' && (
                         <div className="animate-fadeIn space-y-4">
+                            {/* --- NEW: TRADING SESSION FILTER --- */}
+                            <div className="bg-black/20 p-4 rounded-xl border border-white/10 space-y-2 relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 rounded-l-xl"></div>
+                                <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-2">
+                                    <span>Trading Session (UTC)</span>
+                                </div>
+                                <div className="pl-2">
+                                    <select
+                                        className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white outline-none focus:border-brand-primary text-xs font-semibold appearance-none cursor-pointer"
+                                        value={form.tradingSession}
+                                        onChange={(e) => handleFormChange('tradingSession', e.target.value)}
+                                    >
+                                        <option value="None">None (Run 24/7)</option>
+                                        <option value="Sydney">🇦🇺 Sydney (22:00 - 07:00 UTC)</option>
+                                        <option value="Tokyo">🇯🇵 Tokyo (00:00 - 09:00 UTC)</option>
+                                        <option value="London">🇬🇧 London (08:00 - 17:00 UTC)</option>
+                                        <option value="New York">🇺🇸 New York (13:00 - 22:00 UTC)</option>
+                                        <option value="Overlap">🔥 London & NY Overlap (13:00 - 17:00 UTC)</option>
+                                    </select>
+                                </div>
+                                <p className="text-[8px] text-gray-500 italic mt-1 leading-tight pl-2">If a session is selected, the bot will only take entries during this window. If the session ends while running, the bot will automatically turn off and send a Telegram alert.</p>
+                            </div>
+
                             {/* Triggers remain untouched */}
                             <p className="text-[10px] text-gray-400 mb-2 uppercase tracking-wider">Select the conditions that will trigger an entry order.</p>
 

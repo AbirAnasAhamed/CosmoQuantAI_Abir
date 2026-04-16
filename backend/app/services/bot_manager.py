@@ -164,6 +164,10 @@ class BotManager:
                 dynamic_logs = []
                 dynamic_logs.append(f"🛠️ Trading Mode: {mode_display}")
                 
+                trading_session = config.get('trading_session', 'None')
+                if trading_session and trading_session != 'None':
+                    dynamic_logs.append(f"🕒 Trading Session: {trading_session}")
+                
                 # Determine precise Strategy Name
                 has_ut = config.get('enable_ut_trend_filter') or config.get('enable_ut_entry_trigger') or config.get('enable_ut_trailing_sl')
                 has_st = config.get('enable_supertrend_trend_filter') or config.get('enable_supertrend_entry_trigger') or config.get('enable_supertrend_trailing_sl')

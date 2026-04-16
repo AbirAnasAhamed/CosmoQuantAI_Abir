@@ -160,7 +160,7 @@ export const useBotStore = create<BotState>((set) => ({
         liquidationHeatmapIntensity: 1.0,
         liquidationShowBubbles: true,
         // Supertrend Defaults
-        showSupertrend: false,
+        showSupertrend: true,
         supertrendAtrPeriod: 10,
         supertrendMultiplier: 3.0,
         supertrendChangeATR: true,
@@ -174,7 +174,7 @@ export const useBotStore = create<BotState>((set) => ({
         msbObDeleteBroken: true,
         showCandlestickPatterns: false,
         // ── Wick Rejection S/R Defaults ──
-        showWickSR: false,
+        showWickSR: true,
         wickSRLookback: 300,
         wickSRMinTouches: 10,
         wickSRAtrPeriod: 14,

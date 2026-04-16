@@ -18,6 +18,7 @@ from app.strategies.helpers.supertrend_tracker import SupertrendTracker
 from app.strategies.helpers.supertrend_standalone_listener import SupertrendStandaloneListener
 from app.strategies.helpers.dual_engine_standalone_listener import DualEngineStandaloneListener
 from app.strategies.helpers.dual_engine_analyzer import DualEngineTracker
+from app.strategies.helpers.trading_session_filter import TradingSessionTracker
 
 try:
     from app.core.security import decrypt_key
@@ -234,6 +235,14 @@ class WallHunterBot:
 
         self.dual_engine_tracker = DualEngineTracker(self.exchange_id, self.symbol, config)
         self.dual_engine_standalone = DualEngineStandaloneListener(self)
+        
+        # --- NEW: Trading Session Tracker ---
+        self.trading_session = config.get("trading_session", "None")
+        self.session_tracker = TradingSessionTracker(
+            bot_instance=self,
+            session_name=self.trading_session,
+            on_session_end=self._on_trading_session_end
+        )
         # ----------------------------------------
         
         self.engine = OrderBlockExecutionEngine(config, logger=self.logger, bot_id=self.bot_id)
@@ -249,6 +258,18 @@ class WallHunterBot:
         self.total_wins = 0
         self.total_losses = 0
 
+    async def _on_trading_session_end(self, session_name: str):
+        """Callback triggered when the active trading session ends."""
+        msg = f"⚠️ *Trading Session Ended*\nBot has been stopped because the {session_name} session is over.\n_Open trades (if any) are left untouched._"
+        asyncio.create_task(self._send_telegram(msg))
+        self.logger.warning(f"Session {session_name} ended. Stopping bot {self.bot_id} (leaving position open).")
+        try:
+            from app.services.bot_manager import bot_manager
+            asyncio.create_task(bot_manager.stop_bot(str(self.bot_id), str(self.owner_id)))
+        except Exception as e:
+            self.logger.error(f"Failed to auto-stop via bot_manager: {e}")
+            self.running = False
+            
     def _normalize_symbol(self, symbol: str) -> str:
         """Normalizes symbol for robust comparison (e.g. BTC/USDT -> BTCUSDT)"""
         if not symbol: return ""
@@ -935,6 +956,8 @@ class WallHunterBot:
         else:
             self._dual_engine_task = None
             self._dual_engine_standalone_task = None
+            
+        await self.session_tracker.start_monitor()
         
         mode = "Live Trading" if not self.is_paper_trading else "Paper Trading"
         
@@ -970,10 +993,12 @@ class WallHunterBot:
             
         trigger_console_str = "\n".join(trigger_logs_console)
 
+        session_str = f"🕒 Trading Session: {self.trading_session}\n" if self.trading_session and self.trading_session != "None" else ""
         startup_msg = (
             f"🟢 WallHunter Bot [ID: {self.bot_id}] Started!\n"
             f"Pair: {self.symbol}\n"
             f"Mode: {mode}\n"
+            f"{session_str}"
             f"Buy Order: {self.buy_order_type.upper()}\n"
             f"Limit Buffer: {self.limit_buffer}%\n"
             f"{trigger_str}\n"
@@ -987,6 +1012,23 @@ class WallHunterBot:
                     f"{trigger_console_str}")
         
         await self._send_telegram(startup_msg)
+
+    async def stop(self):
+        """বট স্টপ করার জন্য রিসোর্স ক্লিনআপ"""
+        self.running = False
+        self.logger.info(f"🛑 [WallHunter {self.bot_id}] Stopping...")
+        if getattr(self, 'session_tracker', None):
+            await self.session_tracker.stop_monitor()
+            
+        try:
+            if getattr(self, 'public_exchange', None):
+                await self.public_exchange.close()
+            if getattr(self, 'exchange', None):
+                await self.exchange.close()
+            if getattr(self, 'proxy_public_exchange', None) and getattr(self, 'proxy_public_exchange', None) != getattr(self, 'public_exchange', None):
+                await self.proxy_public_exchange.close()
+        except Exception as e:
+            self.logger.error(f"Error closing exchanges in WallHunterSpot: {e}")
 
     async def _heartbeat_loop(self):
         """Prints a friendly heartbeat to the terminal every 5 seconds"""
@@ -1019,7 +1061,16 @@ class WallHunterBot:
                 
                 extra_str = f" | {' | '.join(extras)}" if extras else ""
                 
-                self.logger.info(f"💓 [WallHunter {self.bot_id}] active and monitoring Level 2 data on {self.symbol}{extra_str}{de_status}...")
+                # Session status for heartbeat
+                session_name = getattr(self, 'trading_session', 'None')
+                if session_name and session_name != 'None':
+                    from app.strategies.helpers.trading_session_filter import TradingSessionTracker
+                    session_active = TradingSessionTracker.is_session_active(session_name)
+                    session_tag = f" | Session: {session_name} [ACTIVE]" if session_active else f" | Session: {session_name} [WAITING]"
+                else:
+                    session_tag = ""
+                
+                self.logger.info(f"💓 [WallHunter {self.bot_id}] active and monitoring Level 2 data on {self.symbol}{extra_str}{de_status}{session_tag}...")
                 await asyncio.sleep(5)
             except Exception as e:
                 self.logger.error(f"Heartbeat loop error: {e}")
@@ -1061,11 +1112,15 @@ class WallHunterBot:
                 mid_price = (best_bid + best_ask) / 2
                 current_time = time.time()
 
-                if self.enable_iceberg_trigger:
+                if getattr(self, 'enable_iceberg_trigger', False):
                     self.iceberg_tracker.update_orderbook(orderbook['bids'], orderbook['asks'])
 
 
                 if not self.active_pos:
+                    if not TradingSessionTracker.is_session_active(self.trading_session):
+                        await asyncio.sleep(1)
+                        continue
+                        
                     if getattr(self, 'supertrend_trend_unlock_mode', False) and getattr(self, 'supertrend_tracker', None):
                         closed_only = getattr(self, 'supertrend_candle_close', False)
                         if self.supertrend_tracker.is_entry_signal("buy", closed_only):
