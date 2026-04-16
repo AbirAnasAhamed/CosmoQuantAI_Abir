@@ -966,9 +966,10 @@ class WallHunterFuturesStrategy:
                         for wall in potential_triggers:
                             # If AUTO mode, check imbalance
                             if self.direction == 'auto' and self.enable_ob_imbalance:
-                                if wall['type'] == 'buy' and imbalance_ratio < self.ob_imbalance_ratio:
+                                safe_ratio = self.ob_imbalance_ratio if getattr(self, 'ob_imbalance_ratio', 1.5) > 0 else 1.5
+                                if wall['type'] == 'buy' and imbalance_ratio < safe_ratio:
                                     continue # Not enough buy pressure
-                                if wall['type'] == 'sell' and imbalance_ratio > (1 / self.ob_imbalance_ratio):
+                                if wall['type'] == 'sell' and imbalance_ratio > (1 / safe_ratio):
                                     continue # Not enough sell pressure
                             
                             best_wall = wall
@@ -1554,7 +1555,7 @@ class WallHunterFuturesStrategy:
                         
                     # Update Exchange Native SL if moved by at least 0.2%
                     if self.active_pos['sl'] > old_sl and self.active_pos.get('sl_order_id'):
-                        pct_change = (self.active_pos['sl'] - old_sl) / old_sl * 100
+                        pct_change = ((self.active_pos['sl'] - old_sl) / old_sl * 100) if old_sl > 0 else 100.0
                         if pct_change >= 0.2:
                             state_changed = True
                             try:
@@ -1601,7 +1602,7 @@ class WallHunterFuturesStrategy:
                         
                     # Update Exchange Native SL if moved by at least 0.2%
                     if self.active_pos['sl'] < old_sl and self.active_pos.get('sl_order_id'):
-                        pct_change = (old_sl - self.active_pos['sl']) / old_sl * 100
+                        pct_change = ((old_sl - self.active_pos['sl']) / old_sl * 100) if old_sl > 0 else 100.0
                         if pct_change >= 0.2:
                             state_changed = True
                             try:

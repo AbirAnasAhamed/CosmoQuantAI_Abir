@@ -2168,9 +2168,13 @@ const DualInput = ({
 }: any) => {
     // Internal state for the price input to avoid jitter
     const [priceStr, setPriceStr] = useState('');
+    const [inputType, setInputType] = useState<'price' | 'gap'>('price');
+    const [lastInputType, setLastInputType] = useState(inputType);
 
     useEffect(() => {
         let newPrice = currentPrice;
+        const newDistance = (valuePct / 100) * currentPrice;
+
         if (mode === 'stop_loss') {
             newPrice = direction === 'long' 
                 ? currentPrice * (1 - valuePct / 100)
@@ -2181,11 +2185,20 @@ const DualInput = ({
                 : currentPrice * (1 - valuePct / 100);
         }
         
-        // Initialize or sync if drastically different (e.g. symbol changed)
-        if (!priceStr || Math.abs(parseFloat(priceStr) - newPrice) > (currentPrice * 0.001)) {
-            setPriceStr(newPrice.toFixed(precision));
+        const forceUpdate = inputType !== lastInputType;
+        if (forceUpdate) setLastInputType(inputType);
+
+        if (inputType === 'price') {
+            // Initialize or sync if drastically different (e.g. symbol changed)
+            if (forceUpdate || !priceStr || Math.abs(parseFloat(priceStr) - newPrice) > (currentPrice * 0.001)) {
+                setPriceStr(newPrice.toFixed(precision));
+            }
+        } else {
+            if (forceUpdate || !priceStr || Math.abs(parseFloat(priceStr) - newDistance) > (currentPrice * 0.001)) {
+                setPriceStr(newDistance.toFixed(precision));
+            }
         }
-    }, [valuePct, currentPrice, direction, mode, precision, priceStr]);
+    }, [valuePct, currentPrice, direction, mode, precision, priceStr, inputType, lastInputType]);
 
     const handlePriceChange = (e: any) => {
         const pStr = e.target.value;
@@ -2194,18 +2207,28 @@ const DualInput = ({
         if (isNaN(p) || p <= 0 || currentPrice <= 0) return;
 
         let newPct = 0;
-        if (mode === 'stop_loss') {
-            if (direction === 'long') newPct = (1 - (p / currentPrice)) * 100;
-            else newPct = ((p / currentPrice) - 1) * 100;
+        if (inputType === 'price') {
+            if (mode === 'stop_loss') {
+                if (direction === 'long') newPct = (1 - (p / currentPrice)) * 100;
+                else newPct = ((p / currentPrice) - 1) * 100;
+            } else {
+                if (direction === 'long') newPct = ((p / currentPrice) - 1) * 100;
+                else newPct = (1 - (p / currentPrice)) * 100;
+            }
         } else {
-            if (direction === 'long') newPct = ((p / currentPrice) - 1) * 100;
-            else newPct = (1 - (p / currentPrice)) * 100;
+            // It's gap/distance
+            newPct = (p / currentPrice) * 100;
         }
         
         if (newPct < 0.01) newPct = 0.01;
         if (newPct > 100 && mode === 'stop_loss') newPct = 100;
         
         onChangePct(parseFloat(newPct.toFixed(2)));
+    };
+
+    const toggleInputType = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setInputType(prev => prev === 'price' ? 'gap' : 'price');
     };
 
     return (
@@ -2220,14 +2243,20 @@ const DualInput = ({
             </div>
             <div className="flex gap-2 items-center">
                 <div className="relative flex-1 group">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 font-mono text-sm group-focus-within:text-brand-primary transition-colors">$</span>
+                    <span 
+                        className="absolute z-10 left-1 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-[9px] cursor-pointer hover:text-white bg-black/50 hover:bg-black/80 px-1.5 py-1 rounded transition-all select-none border border-white/10 shadow-sm"
+                        onClick={toggleInputType}
+                        title={`Toggle input: currently entering ${inputType === 'price' ? 'Asset Price' : 'Spread Gap'}`}
+                    >
+                        {inputType === 'price' ? '$' : 'GAP'}
+                    </span>
                     <input 
                         type="number" 
                         step={1 / Math.pow(10, precision)}
-                        className="w-full bg-black/40 border border-white/5 rounded-lg py-2 pl-6 pr-2 text-white outline-none font-mono text-xs focus:border-brand-primary focus:bg-black transition-all" 
+                        className={`w-full bg-black/40 border border-white/5 rounded-lg py-2 ${inputType === 'price' ? 'pl-8' : 'pl-10'} pr-2 text-white outline-none font-mono text-xs focus:border-brand-primary focus:bg-black transition-all`} 
                         value={priceStr} 
                         onChange={handlePriceChange} 
-                        placeholder="Price"
+                        placeholder={inputType === 'price' ? 'Price' : 'Gap/Distance'}
                     />
                 </div>
                 <div className="text-gray-600 font-black">≈</div>
@@ -2243,13 +2272,18 @@ const DualInput = ({
                             
                             // Re-sync Price String immediately
                             const valNum = isNaN(val) ? 0 : val;
-                            let newPrice = currentPrice;
-                            if (mode === 'stop_loss') {
-                                newPrice = direction === 'long' ? currentPrice * (1 - valNum / 100) : currentPrice * (1 + valNum / 100);
+                            if (inputType === 'price') {
+                                let newPrice = currentPrice;
+                                if (mode === 'stop_loss') {
+                                    newPrice = direction === 'long' ? currentPrice * (1 - valNum / 100) : currentPrice * (1 + valNum / 100);
+                                } else {
+                                    newPrice = direction === 'long' ? currentPrice * (1 + valNum / 100) : currentPrice * (1 - valNum / 100);
+                                }
+                                setPriceStr(newPrice.toFixed(precision));
                             } else {
-                                newPrice = direction === 'long' ? currentPrice * (1 + valNum / 100) : currentPrice * (1 - valNum / 100);
+                                const newDistance = (valNum / 100) * currentPrice;
+                                setPriceStr(newDistance.toFixed(precision));
                             }
-                            setPriceStr(newPrice.toFixed(precision));
                         }} 
                     />
                     <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-brand-primary font-mono text-xs group-focus-within:text-white transition-colors">%</span>
