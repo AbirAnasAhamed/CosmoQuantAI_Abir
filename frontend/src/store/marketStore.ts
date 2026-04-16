@@ -14,6 +14,6 @@ export const useMarketStore = create<MarketState>((set) => ({
     setGlobalExchange: (exchange) => set({ globalExchange: exchange }),
     globalSymbol: 'DOGE/USDT',
     setGlobalSymbol: (symbol) => set({ globalSymbol: symbol }),
-    globalInterval: '1m',
+    globalInterval: '5m',
     setGlobalInterval: (interval) => set({ globalInterval: interval }),
 }));

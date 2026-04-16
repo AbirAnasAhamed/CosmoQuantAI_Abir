@@ -17,7 +17,7 @@ export const BotSettingsTab: React.FC = () => {
     const [isRealTrading, setIsRealTrading] = useState(false);
     const [tradeSize, setTradeSize] = useState('0.1');
     const [strategy, setStrategy] = useState('imbalance_breakout');
-    const [botTimeframe, setBotTimeframe] = useState('1m'); // Added timeframe state
+    const [botTimeframe, setBotTimeframe] = useState('5m'); // Added timeframe state
     const [selectedApiKey, setSelectedApiKey] = useState('');
     const [selectedTradeUnit, setSelectedTradeUnit] = useState<'BASE' | 'QUOTE'>('BASE');
 
