@@ -22,7 +22,7 @@ import { FibonacciCloudRenderer, FibonacciData } from '../../components/features
 import { IchimokuRenderer } from '../../components/features/market/IchimokuRenderer';
 import { calculateQuantumAi, QuantumAiResult } from '../../utils/quantumAi';
 import { IndicatorSelector, IndicatorSettings } from '../../components/features/market/IndicatorSelector';
-import { calculateEMA, calculateBollingerBands, calculateRSI, updateEMA, updateBollingerBands, updateRSI, calculateIchimoku, IchimokuDataPoint, calculateAdaptiveTrendFinder, TrendFinderResult, calculateUTBotAlerts, UTBotDataPoint, calculateSessions, SessionData, calculateSupertrend, SupertrendDataPoint, calculateMsbOb, MsbObResult, calculateWickRejectionSR, WickSRResult } from '../../utils/indicators';
+import { calculateEMA, calculateBollingerBands, BollingerBandsDataPoint, calculateRSI, updateEMA, updateBollingerBands, updateRSI, calculateIchimoku, IchimokuDataPoint, calculateAdaptiveTrendFinder, TrendFinderResult, calculateUTBotAlerts, UTBotDataPoint, calculateSessions, SessionData, calculateSupertrend, SupertrendDataPoint, calculateMsbOb, MsbObResult, calculateWickRejectionSR, WickSRResult } from '../../utils/indicators';
 import { TrendFinderRenderer } from '../../components/features/market/TrendFinderRenderer';
 import { SessionsRenderer } from '../../components/features/market/SessionsRenderer';
 import { SupertrendRenderer } from '../../components/features/market/SupertrendRenderer';
@@ -33,6 +33,7 @@ import { calculateICTSuite, ICTResult } from '../../utils/ictKillzones';
 import { ICTKillzonesRenderer } from '../../components/features/market/ICTKillzonesRenderer';
 import { calculateLuxIctConcepts, LuxIctResult } from '../../utils/luxIctConcepts';
 import { LuxIctRenderer } from '../../components/features/market/LuxIctRenderer';
+import { BollingerBandsRenderer } from '../../components/features/market/BollingerBandsRenderer';
 import { SessionsDashboard, SessionStatus } from '../../components/features/market/SessionsDashboard';
 import { HeatmapSubNav } from '../../components/features/market/HeatmapSubNav';
 import { BotSettingsTab } from '../../components/features/market/BotSettingsTab';
@@ -108,6 +109,7 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
     const [msbObData, setMsbObData] = useState<MsbObResult | null>(null);
     const [patternData, setPatternData] = useState<any[]>([]); // Added for patterns
     const [wickSRData, setWickSRData] = useState<WickSRResult | null>(null);
+    const [bbData, setBbData] = useState<BollingerBandsDataPoint[]>([]);
     
     // Default to the right side (rough estimate, can be adjusted by screen size)
     const [quantumAiHudPos, setQuantumAiHudPos] = useState(() => {
@@ -308,10 +310,11 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
                             emaSeriesRef.current.setData(calculateEMA(candles, indicatorSettings.emaPeriod) as any);
                         }
                         if (indicatorSettings.showBB && bbUpperSeriesRef.current && bbMiddleSeriesRef.current && bbLowerSeriesRef.current) {
-                            const bbData = calculateBollingerBands(candles, indicatorSettings.bbPeriod, indicatorSettings.bbStdDev);
-                            bbUpperSeriesRef.current.setData(bbData.map((d: any) => ({ time: d.time, value: d.upper })) as any);
-                            bbMiddleSeriesRef.current.setData(bbData.map((d: any) => ({ time: d.time, value: d.middle })) as any);
-                            bbLowerSeriesRef.current.setData(bbData.map((d: any) => ({ time: d.time, value: d.lower })) as any);
+                            const bbResult = calculateBollingerBands(candles, indicatorSettings.bbPeriod, indicatorSettings.bbStdDev);
+                            bbUpperSeriesRef.current.setData(bbResult.map((d: any) => ({ time: d.time, value: d.upper })) as any);
+                            bbMiddleSeriesRef.current.setData(bbResult.map((d: any) => ({ time: d.time, value: d.middle })) as any);
+                            bbLowerSeriesRef.current.setData(bbResult.map((d: any) => ({ time: d.time, value: d.lower })) as any);
+                            setBbData(bbResult);
                         }
                         if (indicatorSettings.showRSI && rsiSeriesRef.current) {
                             rsiSeriesRef.current.setData(calculateRSI(candles, indicatorSettings.rsiPeriod) as any);
@@ -411,10 +414,11 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
             emaSeriesRef.current.setData(calculateEMA(data, indicatorSettings.emaPeriod) as any);
         }
         if (showBB) {
-            const bbData = calculateBollingerBands(data, indicatorSettings.bbPeriod, indicatorSettings.bbStdDev);
-            bbUpperSeriesRef.current.setData(bbData.map(d => ({ time: d.time, value: d.upper })) as any);
-            bbMiddleSeriesRef.current.setData(bbData.map(d => ({ time: d.time, value: d.middle })) as any);
-            bbLowerSeriesRef.current.setData(bbData.map(d => ({ time: d.time, value: d.lower })) as any);
+            const bbResult = calculateBollingerBands(data, indicatorSettings.bbPeriod, indicatorSettings.bbStdDev);
+            bbUpperSeriesRef.current.setData(bbResult.map(d => ({ time: d.time, value: d.upper })) as any);
+            bbMiddleSeriesRef.current.setData(bbResult.map(d => ({ time: d.time, value: d.middle })) as any);
+            bbLowerSeriesRef.current.setData(bbResult.map(d => ({ time: d.time, value: d.lower })) as any);
+            setBbData(bbResult);
         }
         if (indicatorSettings.showRSI) {
             rsiSeriesRef.current.setData(calculateRSI(data, indicatorSettings.rsiPeriod) as any);
@@ -1435,6 +1439,7 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
                     <WatchlistScanner settings={indicatorSettings} exchange={exchange} interval={interval} />
                     <LiquidityHeatmapRenderer chart={chartRef.current} series={candlestickSeriesRef.current} data={realHeatmapData} />
                     <FibonacciCloudRenderer chart={chartRef.current} series={candlestickSeriesRef.current} data={fiboData} />
+                    <BollingerBandsRenderer chart={chartRef.current} series={candlestickSeriesRef.current} data={bbData} visible={indicatorSettings.showBB} />
                     <IchimokuRenderer chart={chartRef.current} series={candlestickSeriesRef.current} data={ichimokuData} displacement={indicatorSettings.displacement} />
                     <TrendFinderRenderer 
                         chart={chartRef.current} 
