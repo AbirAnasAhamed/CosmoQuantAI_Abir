@@ -844,10 +844,20 @@ class WallHunterFuturesStrategy:
                     sw      = sum(1 for l in levels if l.get('status') == 'BROKEN_SWEEP_WATCH')
                     rt      = sum(1 for l in levels if l.get('status') == 'BROKEN_RETEST')
                     modes_str = "/".join([m.title() for m in getattr(self, 'wick_sr_modes', ['bounce'])])
-                    wick_sr_status = (
-                        f" | \U0001f525 WickSR [{modes_str}]"
-                        f" Lvls:{len(levels)} (A:{active} SW:{sw} RT:{rt})"
-                    )
+                    cp = getattr(self.wick_sr_tracker, 'last_close', 0.0)
+                    near_levels = sum(1 for l in levels if l.get('status') == 'ACTIVE' and cp > 0 and abs(l['price'] - cp) / cp <= 0.015)
+                    
+                    if len(levels) > 0 and near_levels == 0:
+                        direction = getattr(self, 'direction', 'long')
+                        if direction == 'long': status_str = "👀 Finding support (waiting for signal)..."
+                        elif direction == 'short': status_str = "👀 Finding resistance (waiting for signal)..."
+                        else: status_str = "👀 Finding zones (waiting for signal)..."
+                        wick_sr_status = f" | \U0001f525 WickSR [{modes_str}] Lvls:{len(levels)} (No near levels) | {status_str}"
+                    else:
+                        wick_sr_status = (
+                            f" | \U0001f525 WickSR [{modes_str}]"
+                            f" Lvls:{len(levels)} (A:{active} SW:{sw} RT:{rt})"
+                        )
 
                 extra_str = f" | {' | '.join(extras)}" if extras else ""
 

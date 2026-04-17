@@ -88,6 +88,7 @@ class WickSRTracker:
         valid = [c for c in all_clusters if c['touches'] >= self.min_touches]
         
         latest_close = float(klines[-1]['close'])
+        self.last_close = latest_close
         
         new_levels = []
         for v in valid:
