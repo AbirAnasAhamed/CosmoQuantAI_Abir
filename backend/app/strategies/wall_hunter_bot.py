@@ -1241,16 +1241,20 @@ class WallHunterBot:
                         for w_sig in wick_signals:
                             # Check if the triggered mode is enabled
                             if w_sig['mode'] in self.wick_sr_modes:
-                                target_side = w_sig['side']
+                                raw_side = w_sig['side']
+                                target_side = 'buy' if raw_side == 'long' else 'sell'
+                                
                                 # Option: Spot limit to long only unless futures or margin
                                 if target_side == "sell" and self.trading_mode != "futures" and getattr(self, 'strategy_mode', 'long') != "short":
                                     continue # Spot bot cannot short unless strategy_mode is short
                                 
                                 # Evaluate Wick SR OIB Confluence
                                 is_confluence_valid = True
-                                oib_ratio = 50.0
+                                oib_ratio = 0.5
+                                oib_log_str = "(OIB Filter: OFF)"
                                 if getattr(self, 'enable_wick_sr_oib', False):
                                     oib_ratio = self.calculate_oib(orderbook, depth=10)
+                                    oib_log_str = f"({oib_ratio*100:.1f}% OIB)"
                                     min_oib = getattr(self, 'min_oib_threshold', 0.4)
                                     if target_side == 'buy' and oib_ratio < min_oib:
                                         self.logger.info(f"🚫 Wick SR Snipe ({w_sig['mode'].upper()}) rejected! Weak Bid OIB ({oib_ratio*100:.1f}%).")
@@ -1260,7 +1264,7 @@ class WallHunterBot:
                                         is_confluence_valid = False
                                         
                                 if is_confluence_valid:
-                                    self.logger.info(f"🔥 WICK S/R TRIGGER! Executing {w_sig['mode'].upper()} {target_side.upper()} Snipe at {w_sig['price']} ({oib_ratio*100:.1f}% OIB)!")
+                                    self.logger.info(f"🔥 WICK S/R TRIGGER! Executing {w_sig['mode'].upper()} {target_side.upper()} Snipe at {w_sig['price']} {oib_log_str}!")
                                     if self.enable_proxy_wall:
                                         try:
                                             native_book = await self.public_exchange.fetch_order_book(self.symbol, limit=5)
