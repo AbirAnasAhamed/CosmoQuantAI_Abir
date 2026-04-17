@@ -66,7 +66,7 @@ class GodModeService:
         if ex_id not in self.exchanges:
             options = {}
             if ex_id == 'binance':
-                options['defaultType'] = 'future'
+                options['defaultType'] = 'swap'
             elif ex_id == 'bybit':
                 options['defaultType'] = 'linear'
                 
