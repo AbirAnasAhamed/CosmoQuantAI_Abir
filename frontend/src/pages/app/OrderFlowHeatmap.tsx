@@ -110,6 +110,7 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
     const [msbObData, setMsbObData] = useState<MsbObResult | null>(null);
     const [patternData, setPatternData] = useState<any[]>([]); // Added for patterns
     const [wickSRData, setWickSRData] = useState<WickSRResult | null>(null);
+    const [wickSRCandles, setWickSRCandles] = useState<any[]>([]);
     const [bbData, setBbData] = useState<BollingerBandsDataPoint[]>([]);
     
     // Default to the right side (rough estimate, can be adjusted by screen size)
@@ -704,17 +705,28 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
 
     // ── Wick Rejection S/R Calculation Effect ──
     useEffect(() => {
+        let isMounted = true;
         if (!indicatorSettings.showWickSR) {
             setWickSRData(null);
+            setWickSRCandles([]);
             return;
         }
 
-        const runWickSRCalc = () => {
-            const candles = allCandlesRef.current;
-            if (candles.length < indicatorSettings.wickSRAtrPeriod + 2) return;
+        const runWickSRCalc = async () => {
             try {
+                const tf = indicatorSettings.wickSRTimeframe || '1m';
+                // If it's 1m, and chart is 1m, we could reuse allCandlesRef, but for true generic support, we fetch independent data series for Wick SR
+                const data = await marketDepthService.getOHLCV(symbol.toUpperCase(), exchange, tf, 500);
+                if (!isMounted) return;
+
+                const formatted = data.map((k: any) => ({
+                    time: k.time, open: parseFloat(k.open), high: parseFloat(k.high), 
+                    low: parseFloat(k.low), close: parseFloat(k.close), volume: parseFloat(k.volume || 100)
+                }));
+                setWickSRCandles(formatted);
+
                 const result = calculateWickRejectionSR(
-                    candles,
+                    formatted,
                     indicatorSettings.wickSRLookback,
                     indicatorSettings.wickSRMinTouches,
                     indicatorSettings.wickSRAtrPeriod,
@@ -726,11 +738,15 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
             }
         };
 
-        // Run immediately, then throttle updates to every 2 seconds
+        // Run immediately, then throttle updates
         setTimeout(runWickSRCalc, 0);
-        const intervalId = setInterval(runWickSRCalc, 2000);
-        return () => clearInterval(intervalId);
-    }, [indicatorSettings]);
+        // Throttle updates purely based on timeframe (e.g., polling every 10s is sufficient, as HTF wicks don't change natively per ms)
+        const intervalId = setInterval(runWickSRCalc, 10000);
+        return () => {
+            isMounted = false;
+            clearInterval(intervalId);
+        };
+    }, [indicatorSettings.showWickSR, indicatorSettings.wickSRTimeframe, indicatorSettings.wickSRLookback, indicatorSettings.wickSRMinTouches, indicatorSettings.wickSRAtrPeriod, indicatorSettings.wickSRAtrMultiplier, symbol, exchange]);
 
     // ── Quantum AI v8 Calculation Effect ──
     useEffect(() => {
