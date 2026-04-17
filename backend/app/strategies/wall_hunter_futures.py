@@ -17,6 +17,8 @@ from app.strategies.helpers.dual_engine_standalone_listener import DualEngineSta
 from app.strategies.helpers.dual_engine_analyzer import DualEngineTracker
 from app.services.market_depth_service import market_depth_service
 from app.strategies.helpers.trading_session_filter import TradingSessionTracker
+from app.strategies.helpers.wick_sr_tracker import WickSRTracker
+from app.strategies.helpers.wick_sr_standalone_listener import WickSRStandaloneListener
 
 logger = logging.getLogger(__name__)
 
@@ -237,6 +239,22 @@ class WallHunterFuturesStrategy:
             session_name=self.trading_session,
             on_session_end=self._on_trading_session_end
         )
+        
+        # --- NEW: Smart Wick S/R ---
+        self.enable_wick_sr = self.config.get("enable_wick_sr", False)
+        self.wick_sr_modes = self.config.get("wick_sr_modes", ["bounce"])
+        self.wick_sr_timeframe = self.config.get("wick_sr_timeframe", "1m")
+        self.wick_sr_sweep_threshold = self.config.get("wick_sr_sweep_threshold", 3)
+        self.wick_sr_min_touches = self.config.get("wick_sr_min_touches", 10)
+        self.enable_wick_sr_oib = self.config.get("enable_wick_sr_oib", False)
+        
+        self.wick_sr_tracker = WickSRTracker(
+            timeframe=self.wick_sr_timeframe,
+            sweep_threshold_candles=self.wick_sr_sweep_threshold,
+            min_touches=self.wick_sr_min_touches
+        ) if self.enable_wick_sr else None
+        
+        self.wick_sr_listener = WickSRStandaloneListener(self)
         # ----------------------------------------
         
         # State
@@ -606,6 +624,11 @@ class WallHunterFuturesStrategy:
                 self._dual_engine_task = None
                 self._dual_engine_standalone_task = None
                 
+            if self.enable_wick_sr:
+                self._wick_sr_task = asyncio.create_task(self.wick_sr_listener.start())
+            else:
+                self._wick_sr_task = None
+                
             # --- Start Session Monitor ---
             await self.session_tracker.start_monitor()
             
@@ -635,14 +658,15 @@ class WallHunterFuturesStrategy:
             if any_supertrend:
                 st_mode = "Standalone" if (not getattr(self, 'enable_wall_trigger', False) and not getattr(self, 'enable_liq_trigger', False)) else "Confluence"
                 ut_summary_str += f"Supertrend Alerts: ACTIVE ({st_mode})\n"
-                if getattr(self, 'enable_supertrend_entry_trigger', False): ut_summary_str += "  └─ Entry Trigger: ON\n"
-                if getattr(self, 'enable_supertrend_trend_filter', False): ut_summary_str += "  └─ Trend Filter: ON\n"
-                if getattr(self, 'enable_supertrend_trailing_sl', False): ut_summary_str += "  └─ Trailing SL: ON\n"
-                if getattr(self, 'enable_supertrend_exit', False): ut_summary_str += f"  └─ Reversal Dual-Exit: ON ({getattr(self, 'supertrend_exit_timeout', 5)}s)\n"
+                if getattr(self, 'enable_supertrend_entry_trigger', False): ut_summary_str += "  \u2514\u2500 Entry Trigger: ON\n"
+                if getattr(self, 'enable_supertrend_trend_filter', False): ut_summary_str += "  \u2514\u2500 Trend Filter: ON\n"
+                if getattr(self, 'enable_supertrend_trailing_sl', False): ut_summary_str += "  \u2514\u2500 Trailing SL: ON\n"
+                if getattr(self, 'enable_supertrend_exit', False): ut_summary_str += f"  \u2514\u2500 Reversal Dual-Exit: ON ({getattr(self, 'supertrend_exit_timeout', 5)}s)\n"
 
-            session_str = f"🕒 Trading Session: {self.trading_session}\n" if hasattr(self, 'trading_session') and self.trading_session and self.trading_session != "None" else ""
+            # Wick SR is shown in the BOT ACTIVATED numbered list (bot_manager.py), not here.
+            session_str = f"\U0001f552 Trading Session: {self.trading_session}\n" if hasattr(self, 'trading_session') and self.trading_session and self.trading_session != "None" else ""
             startup_msg = (
-                f"🟢 WallHunter Bot [ID {self.bot_id}] Started!\n"
+                f"\U0001f7e2 WallHunter Bot [ID {self.bot_id}] Started!\n"
                 f"Pair: {self.symbol}\n"
                 f"Mode: {mode_str}\n"
                 f"{session_str}"
@@ -651,9 +675,11 @@ class WallHunterFuturesStrategy:
                 f"{trigger_str}\n"
                 f"{ut_summary_str}"
             )
-            
+
             await self._send_telegram(startup_msg)
-            logger.info(f"✅ [FuturesHunter {self.bot_id}] Initialization Complete")
+            logger.info(f"\u2705 [FuturesHunter {self.bot_id}] Initialization Complete")
+
+
             
         except Exception as e:
             logger.error(f"❌ Failed to start Futures Bot {self.bot_id}: {str(e)}")
@@ -670,7 +696,7 @@ class WallHunterFuturesStrategy:
 
         
         # --- FIX: Task Memory Leak / CPU Spike Prevention ---
-        for task_attr in ['_main_task', '_heartbeat_task', '_vpvr_task', '_atr_task', '_liq_task', '_trades_task', '_btc_task', '_utbot_task', '_ut_standalone_task', '_supertrend_task', '_supertrend_standalone_task', '_dual_engine_task', '_dual_engine_standalone_task', '_native_price_task']:
+        for task_attr in ['_main_task', '_heartbeat_task', '_vpvr_task', '_atr_task', '_liq_task', '_trades_task', '_btc_task', '_utbot_task', '_ut_standalone_task', '_supertrend_task', '_supertrend_standalone_task', '_dual_engine_task', '_dual_engine_standalone_task', '_native_price_task', '_wick_sr_task']:
             task = getattr(self, task_attr, None)
             if task and not task.done():
                 try:
@@ -806,9 +832,22 @@ class WallHunterFuturesStrategy:
                     sig = self.dual_engine_tracker.current_state.get('signal', 'NEUTRAL')
                     if de_mode in ['HYBRID', 'LEGACY']:
                         score = self.dual_engine_tracker.current_state.get('insight_score', 0)
-                        de_status = f" | 🧠 Dual Engine [{de_mode}]: {sig} (Score: {score})"
+                        de_status = f" | \U0001f9e0 Dual Engine [{de_mode}]: {sig} (Score: {score})"
                     else:
-                        de_status = f" | 🧠 Dual Engine [CLASSIC]: {sig}"
+                        de_status = f" | \U0001f9e0 Dual Engine [CLASSIC]: {sig}"
+
+                # Wick SR live status
+                wick_sr_status = ""
+                if getattr(self, 'enable_wick_sr', False) and getattr(self, 'wick_sr_tracker', None):
+                    levels = self.wick_sr_tracker.levels
+                    active  = sum(1 for l in levels if l.get('status') == 'ACTIVE')
+                    sw      = sum(1 for l in levels if l.get('status') == 'BROKEN_SWEEP_WATCH')
+                    rt      = sum(1 for l in levels if l.get('status') == 'BROKEN_RETEST')
+                    modes_str = "/".join([m.title() for m in getattr(self, 'wick_sr_modes', ['bounce'])])
+                    wick_sr_status = (
+                        f" | \U0001f525 WickSR [{modes_str}]"
+                        f" Lvls:{len(levels)} (A:{active} SW:{sw} RT:{rt})"
+                    )
 
                 extra_str = f" | {' | '.join(extras)}" if extras else ""
 
@@ -820,7 +859,10 @@ class WallHunterFuturesStrategy:
                 else:
                     session_tag = ""
 
-                logger.info(f"💓 [FuturesHunter {self.bot_id}] monitoring {self.symbol} (Futures Mode){extra_str}{de_status}{session_tag}...")
+                logger.info(
+                    f"\U0001f493 [FuturesHunter {self.bot_id}] monitoring {self.symbol} (Futures Mode)"
+                    f"{extra_str}{de_status}{wick_sr_status}{session_tag}..."
+                )
                 await asyncio.sleep(10)
             except Exception as e:
                 self.logger.error(f"Heartbeat loop error: {e}")
@@ -923,6 +965,45 @@ class WallHunterFuturesStrategy:
                                 
                             self.tracked_walls.clear()
                             continue
+
+                    if getattr(self, 'enable_wick_sr', False) and getattr(self, 'wick_sr_tracker', None):
+                        wick_signals = self.wick_sr_tracker.get_signals(mid_price)
+                        for w_sig in wick_signals:
+                            # Check if the triggered mode is enabled
+                            if w_sig['mode'] in self.wick_sr_modes:
+                                target_side = w_sig['side']
+                                # Option: Futures check direction restrictions
+                                if target_side == "sell" and self.direction == "long":
+                                    continue # Bot restricted to long only
+                                elif target_side == "buy" and self.direction == "short":
+                                    continue # Bot restricted to short only
+                                
+                                # Evaluate Wick SR OIB Confluence
+                                is_confluence_valid = True
+                                oib_ratio = 50.0
+                                if getattr(self, 'enable_wick_sr_oib', False):
+                                    oib_ratio = self.calculate_oib(orderbook, depth=10)
+                                    min_oib = getattr(self, 'min_oib_threshold', 0.4)
+                                    if target_side == 'buy' and oib_ratio < min_oib:
+                                        self.logger.info(f"🚫 Wick SR Snipe ({w_sig['mode'].upper()}) rejected! Weak Bid OIB ({oib_ratio*100:.1f}%).")
+                                        is_confluence_valid = False
+                                    elif target_side == 'sell' and (1 - oib_ratio) < min_oib:
+                                        self.logger.info(f"🚫 Wick SR Snipe ({w_sig['mode'].upper()}) rejected! Weak Ask OIB ({(1-oib_ratio)*100:.1f}%).")
+                                        is_confluence_valid = False
+                                        
+                                if is_confluence_valid:
+                                    self.logger.info(f"🔥 WICK S/R TRIGGER! Executing {w_sig['mode'].upper()} {target_side.upper()} Snipe at {w_sig['price']} ({oib_ratio*100:.1f}% OIB)!")
+                                    if self.enable_proxy_wall:
+                                        try:
+                                            native_book = await self.public_exchange.fetch_order_book(self.symbol, limit=5)
+                                            native_mid = (native_book['bids'][0][0] + native_book['asks'][0][0]) / 2
+                                            await self.execute_snipe(w_sig['price'], target_side, native_mid, native_book['bids'][0][0], native_book['asks'][0][0])
+                                        except Exception as e:
+                                            await self.execute_snipe(w_sig['price'], target_side, mid_price, best_bid, best_ask)
+                                    else:
+                                        await self.execute_snipe(w_sig['price'], target_side, mid_price, best_bid, best_ask)
+                                    self.tracked_walls.clear()
+                                    continue # Wait for next tick to avoid double entries
 
                     if not self.enable_wall_trigger:
                         self._publish_status(mid_price)
@@ -2194,7 +2275,7 @@ class WallHunterFuturesStrategy:
         logger.info(f"🛑 [FuturesHunter {self.bot_id}] Stopping...")
         
         # --- FIX: Task Memory Leak / CPU Spike Prevention ---
-        for task_attr in ['_main_task', '_heartbeat_task', '_vpvr_task', '_atr_task', '_liq_task', '_trades_task', '_btc_task']:
+        for task_attr in ['_main_task', '_heartbeat_task', '_vpvr_task', '_atr_task', '_liq_task', '_trades_task', '_btc_task', '_wick_sr_task']:
             task = getattr(self, task_attr, None)
             if task and not task.done():
                 try:
@@ -2361,6 +2442,49 @@ class WallHunterFuturesStrategy:
                 asyncio.create_task(self.btc_correlation_tracker.start())
             elif not self.enable_btc_correlation and self.btc_correlation_tracker:
                 asyncio.create_task(self.btc_correlation_tracker.stop())
+
+        # --- Smart Wick SR Live Updates ---
+        if "enable_wick_sr" in new_config and new_config["enable_wick_sr"] != self.enable_wick_sr:
+            status = "ON" if new_config["enable_wick_sr"] else "OFF"
+            updates.append(f"Wick SR Trigger: {status}")
+            self.enable_wick_sr = new_config.get("enable_wick_sr")
+            if self.enable_wick_sr:
+                if not getattr(self, "wick_sr_tracker", None):
+                    self.wick_sr_tracker = WickSRTracker(
+                        timeframe=self.wick_sr_timeframe,
+                        sweep_threshold_candles=self.wick_sr_sweep_threshold,
+                        min_touches=self.wick_sr_min_touches
+                    )
+                if hasattr(self, '_wick_sr_task') and not self._wick_sr_task:
+                    self.wick_sr_listener.tracker = self.wick_sr_tracker
+                    self._wick_sr_task = asyncio.create_task(self.wick_sr_listener.start())
+            else:
+                if hasattr(self, 'wick_sr_listener') and self.wick_sr_listener.running:
+                    asyncio.create_task(self.wick_sr_listener.stop())
+
+        if "wick_sr_timeframe" in new_config and new_config["wick_sr_timeframe"] != getattr(self, "wick_sr_timeframe", "1m"):
+            updates.append(f"Wick SR Timeframe: {getattr(self, 'wick_sr_timeframe', '1m')} -> {new_config['wick_sr_timeframe']}")
+            self.wick_sr_timeframe = new_config.get("wick_sr_timeframe")
+            if getattr(self, "wick_sr_tracker", None):
+                self.wick_sr_tracker.timeframe = self.wick_sr_timeframe
+
+        if "wick_sr_modes" in new_config and new_config["wick_sr_modes"] != getattr(self, "wick_sr_modes", []):
+            updates.append(f"Wick SR Modes Updated: {new_config['wick_sr_modes']}")
+            self.wick_sr_modes = new_config.get("wick_sr_modes")
+
+        if "wick_sr_sweep_threshold" in new_config and new_config["wick_sr_sweep_threshold"] != getattr(self, "wick_sr_sweep_threshold", 3):
+            self.wick_sr_sweep_threshold = new_config.get("wick_sr_sweep_threshold")
+            if getattr(self, "wick_sr_tracker", None):
+                self.wick_sr_tracker.sweep_threshold_candles = self.wick_sr_sweep_threshold
+
+        if "wick_sr_min_touches" in new_config and new_config["wick_sr_min_touches"] != getattr(self, "wick_sr_min_touches", 10):
+            self.wick_sr_min_touches = new_config.get("wick_sr_min_touches")
+            if getattr(self, "wick_sr_tracker", None):
+                self.wick_sr_tracker.min_touches = self.wick_sr_min_touches
+
+        if "enable_wick_sr_oib" in new_config and new_config["enable_wick_sr_oib"] != getattr(self, "enable_wick_sr_oib", False):
+            self.enable_wick_sr_oib = new_config.get("enable_wick_sr_oib", False)
+            updates.append(f"Wick SR OIB Confluence: {'ON' if self.enable_wick_sr_oib else 'OFF'}")
 
         if updates:
             self.config.update(new_config)

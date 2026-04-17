@@ -161,7 +161,15 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         // --- NEW: Proxy Orderbook Routing ---
         enableProxyWall: false,
         proxyExchange: 'binance',
-        proxySymbol: ''
+        proxySymbol: '',
+        
+        // --- NEW: Smart Wick S/R ---
+        enableWickSr: false,
+        wickSrModes: ['bounce'],
+        wickSrTimeframe: '1m',
+        wickSrSweepThreshold: 3,
+        wickSrMinTouches: 10,
+        enableWickSrOib: false
     });
 
     const [existingBot, setExistingBot] = useState<any>(null);
@@ -342,7 +350,15 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             // Proxy Wall Support
                             enableProxyWall: c.enable_proxy_wall !== undefined ? c.enable_proxy_wall : false,
                             proxyExchange: c.proxy_exchange || 'binance',
-                            proxySymbol: c.proxy_symbol || ''
+                            proxySymbol: c.proxy_symbol || '',
+
+                            // Smart Wick SR
+                            enableWickSr: c.enable_wick_sr !== undefined ? c.enable_wick_sr : false,
+                            wickSrModes: c.wick_sr_modes || ['bounce'],
+                            wickSrTimeframe: c.wick_sr_timeframe || '1m',
+                            wickSrSweepThreshold: c.wick_sr_sweep_threshold || 3,
+                            wickSrMinTouches: c.wick_sr_min_touches || 10,
+                            enableWickSrOib: c.enable_wick_sr_oib !== undefined ? c.enable_wick_sr_oib : false
                         }));
                     } else {
                         setExistingBot(null);
@@ -515,8 +531,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         }
 
         if (!form.enableWallTrigger && !form.enableLiqTrigger) {
-            if (!form.enableUtBot && !form.enableDualEngine && !form.enableSupertrendBot) {
-                setErrorMsg("Please enable at least one Entry Trigger (Orderbook Wall, Liquidation, Dual Engine, UT Bot Alerts, or Supertrend).");
+            if (!form.enableUtBot && !form.enableDualEngine && !form.enableSupertrendBot && !form.enableWickSr) {
+                setErrorMsg("Please enable at least one Entry Trigger (Orderbook Wall, Liquidation, Dual Engine, UT Bot, Supertrend, or Wick S/R).");
                 return;
             }
             if (form.enableUtBot && !form.enableUtEntryTrigger && !form.enableDualEngine && !form.enableSupertrendBot) {
@@ -674,7 +690,15 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
 
                     // New Buy Order Logic
                     buy_order_type: form.buyOrderType,
-                    limit_buffer: form.limitBuffer
+                    limit_buffer: form.limitBuffer,
+
+                    // Smart Wick SR
+                    enable_wick_sr: form.enableWickSr,
+                    wick_sr_modes: form.wickSrModes,
+                    wick_sr_timeframe: form.wickSrTimeframe,
+                    wick_sr_sweep_threshold: form.wickSrSweepThreshold,
+                    wick_sr_min_touches: form.wickSrMinTouches,
+                    enable_wick_sr_oib: form.enableWickSrOib
                 }
             };
 
@@ -1670,6 +1694,112 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 </div>
                                             </div>
                                         )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* --- SMART WICK S/R MODULE --- */}
+                            <div className={`border rounded-xl p-4 transition-colors cursor-pointer ${form.enableWickSr ? 'bg-emerald-500/5 border-emerald-500/50' : 'bg-transparent border-white/10 hover:border-white/30'}`} onClick={() => handleFormChange('enableWickSr', !form.enableWickSr)}>
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-5 rounded-full p-1 transition-colors duration-200 flex items-center ${form.enableWickSr ? 'bg-emerald-500' : 'bg-gray-700'}`}>
+                                            <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform duration-200 ${form.enableWickSr ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                        </div>
+                                        <div className="flex items-center gap-3 ml-2">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${form.enableWickSr ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-gray-500'}`}>
+                                                <span className="text-xl">🔥</span>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-black text-white uppercase tracking-wider">Smart Support/Resistance</h4>
+                                                <p className="text-[10px] text-gray-400">Institutional Wick Rejection Confluence</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {form.enableWickSr && (
+                                    <div className="mt-4 animate-fadeIn" onClick={e => e.stopPropagation()}>
+                                        {/* Modes Selection */}
+                                        <div className="grid grid-cols-4 gap-2 mb-4">
+                                            {[
+                                                { id: 'bounce', label: 'Bounce', color: 'text-emerald-400', border: 'border-emerald-500/50', bg: 'bg-emerald-500/20' },
+                                                { id: 'breakout', label: 'Breakout', color: 'text-blue-400', border: 'border-blue-500/50', bg: 'bg-blue-500/20' },
+                                                { id: 'sweep', label: 'Liq Sweep', color: 'text-orange-400', border: 'border-orange-500/50', bg: 'bg-orange-500/20' },
+                                                { id: 'retest', label: 'Retest', color: 'text-cyan-400', border: 'border-cyan-500/50', bg: 'bg-cyan-500/20' }
+                                            ].map(mode => {
+                                                const isSelected = form.wickSrModes.includes(mode.id);
+                                                return (
+                                                    <div key={mode.id}
+                                                        className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${isSelected ? `${mode.bg} ${mode.border}` : 'bg-black/20 border-white/10'}`}
+                                                        onClick={() => {
+                                                            const newModes = isSelected
+                                                                ? form.wickSrModes.filter(m => m !== mode.id)
+                                                                : [...form.wickSrModes, mode.id];
+                                                            handleFormChange('wickSrModes', newModes.length ? newModes : ['bounce']);
+                                                        }}
+                                                    >
+                                                        <p className="text-[10px] font-bold text-white uppercase">{mode.label}</p>
+                                                        <div className={`w-3 h-3 rounded-full ${isSelected ? mode.color.replace('text-', 'bg-') + ' shadow-[0_0_10px_currentColor]' : 'bg-gray-600'}`}></div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4 animate-fadeIn bg-black/40 p-3 rounded-xl border border-emerald-500/20">
+                                            <div className="col-span-2">
+                                                <label className="text-[10px] font-bold text-emerald-400 uppercase mb-1 block">Calculation Timeframe</label>
+                                                <select 
+                                                    className="w-full bg-[#0B1120] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-emerald-500 text-sm font-bold text-center" 
+                                                    value={form.wickSrTimeframe} 
+                                                    onChange={(e) => handleFormChange('wickSrTimeframe', e.target.value)}
+                                                >
+                                                    <option value="1m">1 Minute</option>
+                                                    <option value="5m">5 Minutes</option>
+                                                    <option value="15m">15 Minutes (Strong)</option>
+                                                    <option value="1h">1 Hour (Ultra)</option>
+                                                    <option value="4h">4 Hours</option>
+                                                </select>
+                                            </div>
+                                            
+                                            {form.wickSrModes.includes('sweep') && (
+                                                <div className="col-span-2 bg-orange-500/5 p-2 rounded-lg border border-orange-500/20 mt-1">
+                                                    <div className="flex justify-between items-end mb-1">
+                                                        <label className="text-[10px] font-bold text-orange-400 uppercase">Sweep Fakeout Tolerance</label>
+                                                        <span className="text-xs font-mono font-bold text-white">{form.wickSrSweepThreshold} Candles</span>
+                                                    </div>
+                                                    <input 
+                                                        type="range" 
+                                                        min="1" max="10" step="1" 
+                                                        className="w-full h-1.5 accent-orange-500 bg-white/10 rounded-lg cursor-pointer appearance-none" 
+                                                        value={form.wickSrSweepThreshold} 
+                                                        onChange={(e) => handleFormChange('wickSrSweepThreshold', parseInt(e.target.value))} 
+                                                    />
+                                                </div>
+                                            )}
+
+                                            <div className="col-span-2 flex items-center justify-between mt-2 pt-2 border-t border-white/10">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase">Min Touches (Strength)</label>
+                                                <input 
+                                                    type="number"
+                                                    className="w-20 bg-[#0B1120] border border-white/10 rounded-lg p-1.5 text-white outline-none focus:border-emerald-500 text-sm font-bold text-center font-mono" 
+                                                    value={form.wickSrMinTouches} 
+                                                    onChange={(e) => handleFormChange('wickSrMinTouches', parseInt(e.target.value))}
+                                                    min={3} step={1}
+                                                />
+                                            </div>
+
+                                            {/* OIB Confluence integration */}
+                                            <div className={`col-span-2 flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors mt-2 ${form.enableWickSrOib ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-white/5 border border-white/10'}`} onClick={() => handleFormChange('enableWickSrOib', !form.enableWickSrOib)}>
+                                                <div>
+                                                    <span className="text-[10px] font-black text-white uppercase tracking-wider block text-amber-400">Orderbook Flow Confluence</span>
+                                                    <span className="text-[9px] text-gray-500 mt-0.5 block">Require OIB filter verification on entry</span>
+                                                </div>
+                                                <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors duration-200 ${form.enableWickSrOib ? 'bg-amber-500' : 'bg-gray-700'}`}>
+                                                    <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform duration-200 ${form.enableWickSrOib ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                                </div>
+                                            </div>
+                                            
+                                        </div>
                                     </div>
                                 )}
                             </div>

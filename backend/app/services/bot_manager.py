@@ -334,7 +334,22 @@ class BotManager:
 
                 if adv:
                     adv_str = " | ".join(adv)
-                    dynamic_logs.append(f"⚡ Advanced: {adv_str}")
+                    dynamic_logs.append(f"\u26a1 Advanced: {adv_str}")
+
+                # Smart Wick S/R (Wick SR)
+                if config.get('enable_wick_sr', False):
+                    active_modes = config.get('wick_sr_modes', ['bounce'])
+                    mode_labels = {
+                        'bounce': 'Bounce', 'breakout': 'Breakout',
+                        'sweep': 'Liq Sweep', 'retest': 'Retest'
+                    }
+                    modes_display = ", ".join([mode_labels.get(m, m.title()) for m in active_modes])
+                    oib_str = "ON" if config.get('enable_wick_sr_oib', False) else "OFF"
+                    tf = config.get('wick_sr_timeframe', '1m')
+                    touches = config.get('wick_sr_min_touches', 10)
+                    dynamic_logs.append(
+                        f"\U0001f525 Smart S/R: {modes_display} | TF:{tf} | Touch:{touches} | OIB:{oib_str}"
+                    )
                 
                 # Risk Pct | TSL
                 risk_tsl = f"{config.get('risk_pct', 0)}% | TSL: {config.get('trailing_stop', 0)}%"
