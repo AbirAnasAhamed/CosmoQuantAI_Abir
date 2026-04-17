@@ -1,4 +1,5 @@
 import httpx
+import html
 import requests
 import asyncio
 import feedparser
@@ -243,15 +244,68 @@ class NewsService:
                     ).all()
                     
                     for r in new_resources:
-                        # Default Message
-                        msg = f"📰 *{r.title}*\n\n🔗 {r.link}\nSources: {r.source}"
+                        # Translate title to Bengali
+                        try:
+                            translator = GoogleTranslator(source='auto', target='bn')
+                            bn_title = await asyncio.to_thread(translator.translate, r.title)
+                            safe_title = html.escape(bn_title)
+                        except Exception as e:
+                            logger.error(f"Translation error: {e}")
+                            safe_title = html.escape(r.title)
+                            
+                        voice_path = None
+                        hashtags = f"#HighImpact #{r.category.replace(' ', '')}"
+                        insights = ""
+                        trading_verdict = ""
                         
-                        # High Impact Overlay
                         if r.impact_level == 'HIGH':
-                            msg = f"🚨 *BREAKING NEWS* 🚨\n\n**{r.title}**\n\n🔥 Impact Score: {r.impact_score}/100\n🔗 {r.link}\n\n#HighImpact #{r.category}"
+                            from app.services.telegram_ai_agent import telegram_ai_agent
+                            import os
+                            
+                            ai_data = await telegram_ai_agent.get_ai_insights(r.title, r.link)
+                            
+                            raw_summary = ai_data.get("bengali_summary", "")
+                            if isinstance(raw_summary, list):
+                                raw_summary = "\n".join([str(x) for x in raw_summary])
+                            summary = html.escape(str(raw_summary))
+                            # The <br> or \n might be escaped depending on how Gemini formatted it. 
+                            # We will assume summary text formatting is clean.
+                            if summary:
+                                # unescape quotes/newlines if needed or keep text simple
+                                insights = f"\n\n📝 <b>সারসংক্ষেপ:</b>\n{summary}"
+                            
+                            verdict = html.escape(ai_data.get("trading_verdict", ""))
+                            if verdict:
+                                trading_verdict = f"\n\n💡 <b>এআই ট্রেডিং বিশ্লেষণ:</b> {verdict}"
+                                
+                            raw_hashtags = ai_data.get("hashtags", "")
+                            if isinstance(raw_hashtags, list):
+                                raw_hashtags = " ".join([str(x) for x in raw_hashtags])
+                            ai_hashtags = html.escape(str(raw_hashtags))
+                            
+                            if ai_hashtags and ai_hashtags != "#CryptoNews":
+                                hashtags = ai_hashtags
+                                
+                            if summary:
+                                voice_path = await telegram_ai_agent.generate_voice_note(ai_data.get("bengali_summary", ""))
+
+                            msg = f"🚨 <b>ব্রেকিং নিউজ</b> 🚨\n\n<a href='{r.link}'><b>{safe_title}</b></a>{insights}{trading_verdict}\n\n🔥 ইমপ্যাক্ট স্কোর: {r.impact_score}/100\n\n{hashtags}"
+                        else:
+                            msg = f"📰 <a href='{r.link}'><b>{safe_title}</b></a>\n\nউৎস: {r.source}"
                         
                         for setting in active_notifications:
-                            await NotificationService.send_message(db, setting.user_id, msg)
+                            if voice_path:
+                                await NotificationService.send_voice(db, setting.user_id, voice_path, caption=msg, parse_mode="HTML")
+                            else:
+                                await NotificationService.send_message(db, setting.user_id, msg, parse_mode="HTML")
+                                
+                        # Cleanup temp audio
+                        if voice_path:
+                            try:
+                                import os
+                                if os.path.exists(voice_path): os.remove(voice_path)
+                            except:
+                                pass
                 
                 logger.info(f"✅ Market News Fetch Completed. {count} new items.")
                 return count

@@ -853,11 +853,23 @@ class WallHunterFuturesStrategy:
                         elif direction == 'short': status_str = "👀 Finding resistance (waiting for signal)..."
                         else: status_str = "👀 Finding zones (waiting for signal)..."
                         wick_sr_status = f" | \U0001f525 WickSR [{modes_str}] Lvls:{len(levels)} (No near levels) | {status_str}"
-                    else:
+                    elif near_levels > 0:
+                        active_modes = getattr(self, 'wick_sr_modes', [])
+                        if len(active_modes) == 1:
+                            if active_modes[0] == 'bounce': action_str = "Bounce rejection"
+                            elif active_modes[0] == 'breakout': action_str = "Breakout momentum"
+                            elif active_modes[0] == 'sweep': action_str = "Liquidity Sweep (Trap)"
+                            elif active_modes[0] == 'retest': action_str = "SR Retest"
+                            else: action_str = modes_str
+                        else:
+                            action_str = f"{modes_str} signals"
+                            
                         wick_sr_status = (
-                            f" | \U0001f525 WickSR [{modes_str}]"
-                            f" Lvls:{len(levels)} (A:{active} SW:{sw} RT:{rt})"
+                            f" | \U0001f525 WickSR [{modes_str}] "
+                            f"🎯 Near {near_levels} Zones! Watching for {action_str}..."
                         )
+                    else:
+                        wick_sr_status = " | \U0001f525 WickSR [Initializing...]"
 
                 extra_str = f" | {' | '.join(extras)}" if extras else ""
 
