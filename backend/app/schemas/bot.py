@@ -140,6 +140,14 @@ class StrategyConfig(BaseModel):
     supertrend_timeframe: Optional[str] = "5m"
     supertrend_candle_close: Optional[bool] = False
 
+    # --- Smart Support & Resistance (Wick SR) ---
+    enable_wick_sr: Optional[bool] = False
+    wick_sr_modes: Optional[List[str]] = ["bounce"]
+    wick_sr_timeframe: Optional[str] = "1m"
+    wick_sr_sweep_threshold: Optional[int] = 3
+    wick_sr_min_touches: Optional[int] = 10
+    enable_wick_sr_oib: Optional[bool] = False
+
     @validator('stop_loss')
     def validate_stop_loss(cls, v):
         if v is not None and (v < 0 or v > 100):
