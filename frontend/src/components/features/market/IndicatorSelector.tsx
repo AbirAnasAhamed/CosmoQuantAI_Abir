@@ -180,6 +180,7 @@ export interface IndicatorSettings {
     showCandlestickPatterns: boolean;
     // ── Wick Rejection Support & Resistance ──
     showWickSR: boolean;
+    wickSRTimeframe: string;
     wickSRLookback: number;
     wickSRMinTouches: number;
     wickSRAtrPeriod: number;
@@ -616,6 +617,22 @@ export const IndicatorSelector: React.FC<IndicatorSelectorProps> = ({ settings, 
                             {settings.showWickSR && (
                                 <div className="flex flex-col gap-2 pl-7 animate-in slide-in-from-top-1 duration-200">
                                     <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                        <div className="flex items-center gap-1 bg-gray-100 dark:bg-white/10 px-1.5 py-1 rounded col-span-2">
+                                            <span className="text-gray-500 font-bold">Timeframe:</span>
+                                            <select 
+                                                value={settings.wickSRTimeframe || '1m'}
+                                                onChange={(e) => onSettingsChange({ ...settings, wickSRTimeframe: e.target.value })}
+                                                className="w-full bg-transparent text-gray-700 dark:text-gray-300 focus:outline-none focus:text-cyan-400 text-center text-[10px]"
+                                                title="Calculate Support/Resistance on a higher timeframe"
+                                            >
+                                                <option className="bg-white dark:bg-[#0B1120]" value="1m">1 Minute (Default)</option>
+                                                <option className="bg-white dark:bg-[#0B1120]" value="5m">5 Minutes</option>
+                                                <option className="bg-white dark:bg-[#0B1120]" value="15m">15 Minutes (Strong)</option>
+                                                <option className="bg-white dark:bg-[#0B1120]" value="1h">1 Hour (Ultra)</option>
+                                                <option className="bg-white dark:bg-[#0B1120]" value="4h">4 Hours</option>
+                                                <option className="bg-white dark:bg-[#0B1120]" value="1d">1 Day</option>
+                                            </select>
+                                        </div>
                                         <div className="flex items-center gap-1 bg-gray-100 dark:bg-white/10 px-1.5 py-1 rounded">
                                             <span className="text-gray-500 font-bold">LB:</span>
                                             <input type="number" value={settings.wickSRLookback}
