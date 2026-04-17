@@ -70,13 +70,10 @@ htmlcov/
 *.sln
 *.sw?
 
-# Environment Variables (Sensitive Data)
-.env
-.env.*
-!.env.example
-# Allowing .env files for personal use (User Request)
-!.env
-!.env.*
+# Environment Variables (Sensitive Data) - .env files are tracked intentionally
+# Only block service account credentials
+service_account.json
+*service_account*.json
 
 # Data Feeds (CSV & Trade Data)
 backend/app/data_feeds/
