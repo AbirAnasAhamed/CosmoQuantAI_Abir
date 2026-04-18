@@ -30,13 +30,13 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose, onBa
         }
     };
 
-    const inputClasses = "w-full bg-[#0D1117] border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-white placeholder-slate-500 focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/50 outline-none transition-all duration-300 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]";
+    const inputClasses = "w-full bg-[#0D1117] border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/50 outline-none transition-all duration-300 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]";
 
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-[#020610]/80 backdrop-blur-xl" onClick={onClose}></div>
             
-            <div className="relative w-full max-w-md bg-[#070F20]/90 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(6,182,212,0.15)] overflow-hidden p-8 md:p-10 animate-modal-fade-in group">
+            <div className="relative w-full max-w-sm bg-[#070F20]/90 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(6,182,212,0.15)] overflow-hidden p-6 md:p-8 animate-modal-fade-in group">
                 
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-violet-500 to-pink-500" />
                 
@@ -55,7 +55,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose, onBa
                     </div>
 
                     <h2 className="text-2xl font-extrabold text-white text-center tracking-tight mb-2">Access Recovery</h2>
-                    <p className="text-sm text-slate-400 text-center mb-8">
+                    <p className="text-sm text-slate-400 text-center mb-6">
                         Enter your commlink address to receive protocol reset instructions.
                     </p>
 
@@ -77,9 +77,9 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose, onBa
                             </div>
                         </div>
                     ) : (
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                        <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="relative group">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-cyan-400 transition-colors">
+                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 group-focus-within:text-cyan-400 transition-colors">
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 00-2-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                                 </div>
                                 <input
@@ -103,7 +103,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose, onBa
                                 <button 
                                     type="submit" 
                                     disabled={isLoading} 
-                                    className="relative overflow-hidden w-full py-3.5 rounded-xl font-bold bg-gradient-to-r from-cyan-500 to-violet-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all disabled:opacity-70 disabled:cursor-not-allowed hover:scale-[1.02]"
+                                    className="relative overflow-hidden w-full py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-500 to-violet-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all disabled:opacity-70 disabled:cursor-not-allowed hover:scale-[1.02]"
                                 >
                                     <span className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                                     {isLoading ? 'Transmitting...' : 'Transmit Recovery Link'}
