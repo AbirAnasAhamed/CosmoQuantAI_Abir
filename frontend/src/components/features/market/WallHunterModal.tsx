@@ -171,7 +171,12 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         wickSrMinTouches: 10,
         enableWickSrOib: false,
         enableDynamicWickTp: false,
-        dynamicTpFrontrunPct: 0.0
+        dynamicTpFrontrunPct: 0.0,
+        
+        // --- NEW: Auto Fibo TP ---
+        enableAutoFiboTp: false,
+        autoFiboTargetLevel: 1.618,
+        autoFiboTimeframe: '5m'
     });
 
     const [existingBot, setExistingBot] = useState<any>(null);
@@ -362,7 +367,12 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             wickSrMinTouches: c.wick_sr_min_touches || 10,
                             enableWickSrOib: c.enable_wick_sr_oib !== undefined ? c.enable_wick_sr_oib : false,
                             enableDynamicWickTp: c.enable_dynamic_wick_tp !== undefined ? c.enable_dynamic_wick_tp : false,
-                            dynamicTpFrontrunPct: c.dynamic_tp_frontrun_pct !== undefined ? c.dynamic_tp_frontrun_pct : 0.0
+                            dynamicTpFrontrunPct: c.dynamic_tp_frontrun_pct !== undefined ? c.dynamic_tp_frontrun_pct : 0.0,
+                            
+                            // Auto Fibo TP
+                            enableAutoFiboTp: c.enable_auto_fibo_tp !== undefined ? c.enable_auto_fibo_tp : false,
+                            autoFiboTargetLevel: c.auto_fibo_target_level || 1.618,
+                            autoFiboTimeframe: c.auto_fibo_timeframe || '5m'
                         }));
                     } else {
                         setExistingBot(null);
@@ -704,7 +714,11 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     wick_sr_min_touches: form.wickSrMinTouches,
                     enable_wick_sr_oib: form.enableWickSrOib,
                     enable_dynamic_wick_tp: form.enableDynamicWickTp,
-                    dynamic_tp_frontrun_pct: form.dynamicTpFrontrunPct
+                    dynamic_tp_frontrun_pct: form.dynamicTpFrontrunPct,
+                    
+                    enable_auto_fibo_tp: form.enableAutoFiboTp,
+                    auto_fibo_target_level: form.autoFiboTargetLevel,
+                    auto_fibo_timeframe: form.autoFiboTimeframe
                 }
             };
 
@@ -2122,6 +2136,57 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                         <div className="text-[10px] text-gray-500 text-center py-4 font-mono">Disabled</div>
                                     )}
                                 </div>
+                            </div>
+
+                            {/* --- NEW: AUTO-FIBO TARGET TP --- */}
+                            <div className={`border rounded-xl p-4 transition-colors cursor-pointer mb-4 ${form.enableAutoFiboTp ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-white/5 border-white/10 hover:border-white/30'}`} onClick={() => handleFormChange('enableAutoFiboTp', !form.enableAutoFiboTp)}>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-12 h-6 rounded-full p-1 flex items-center transition-colors duration-200 ${form.enableAutoFiboTp ? 'bg-indigo-500' : 'bg-gray-700'}`}>
+                                            <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ${form.enableAutoFiboTp ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${form.enableAutoFiboTp ? 'bg-indigo-500/20 text-indigo-400' : 'bg-white/5 text-gray-500'}`}>
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" /></svg>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-black text-white uppercase tracking-wider">Auto-Fibo Max TP</h4>
+                                                <p className="text-[10px] text-gray-400">Dynamically scale Stop-Loss & calculate Final Target based on Fibonacci Extensions.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {form.enableAutoFiboTp && (
+                                    <div onClick={(e) => e.stopPropagation()} className="mt-4 pt-4 border-t border-indigo-500/20 grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Timeframe (Swing High/Low)</label>
+                                            <select 
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-indigo-500 font-mono text-sm"
+                                                value={form.autoFiboTimeframe} 
+                                                onChange={(e) => handleFormChange('autoFiboTimeframe', e.target.value)}
+                                            >
+                                                <option value="1m">1m</option>
+                                                <option value="3m">3m</option>
+                                                <option value="5m">5m</option>
+                                                <option value="15m">15m</option>
+                                                <option value="1h">1h</option>
+                                                <option value="4h">4h</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Extension Level</label>
+                                            <select 
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-indigo-500 font-mono text-sm"
+                                                value={form.autoFiboTargetLevel} 
+                                                onChange={(e) => handleFormChange('autoFiboTargetLevel', parseFloat(e.target.value))}
+                                            >
+                                                <option value={1.272}>1.272x (Conservative)</option>
+                                                <option value={1.618}>1.618x (Golden Ratio)</option>
+                                                <option value={2.618}>2.618x (Aggressive Blow-off)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-brand-primary/30 transition-colors">

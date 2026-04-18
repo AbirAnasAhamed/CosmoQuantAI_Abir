@@ -150,6 +150,11 @@ class StrategyConfig(BaseModel):
     enable_wick_sr_oib: Optional[bool] = False
     enable_dynamic_wick_tp: Optional[bool] = False
     dynamic_tp_frontrun_pct: Optional[float] = 0.0
+    
+    # --- Auto-Fibo Extensions TP ---
+    enable_auto_fibo_tp: Optional[bool] = False
+    auto_fibo_target_level: Optional[float] = 1.618
+    auto_fibo_timeframe: Optional[str] = "5m"
 
     @validator('stop_loss')
     def validate_stop_loss(cls, v):
