@@ -164,9 +164,10 @@ class BotManager:
                 dynamic_logs = []
                 dynamic_logs.append(f"🛠️ Trading Mode: {mode_display}")
                 
-                trading_session = config.get('trading_session', 'None')
-                if trading_session and trading_session != 'None':
-                    dynamic_logs.append(f"🕒 Trading Session: {trading_session}")
+                trading_sessions = config.get('trading_sessions', [config.get('trading_session', 'None')])
+                valid_sessions = [s for s in trading_sessions if s and s != 'None']
+                if valid_sessions:
+                    dynamic_logs.append(f"🕒 Trading Sessions: {', '.join(valid_sessions)}")
                 
                 # Determine precise Strategy Name
                 has_ut = config.get('enable_ut_trend_filter') or config.get('enable_ut_entry_trigger') or config.get('enable_ut_trailing_sl')

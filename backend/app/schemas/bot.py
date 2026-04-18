@@ -58,6 +58,7 @@ class StrategyConfig(BaseModel):
     enable_dynamic_atr_scalp: Optional[bool] = False
     micro_scalp_atr_multiplier: Optional[float] = 0.5
     trading_session: Optional[str] = "None"
+    trading_sessions: Optional[list[str]] = ["None"]
 
     # --- Advanced Liquidation (Smart HFT) ---
     enable_liq_cascade: Optional[bool] = False

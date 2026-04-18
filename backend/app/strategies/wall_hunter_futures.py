@@ -233,10 +233,10 @@ class WallHunterFuturesStrategy:
         self.dual_engine_standalone = DualEngineStandaloneListener(self)
         
         # --- NEW: Trading Session Tracker ---
-        self.trading_session = self.config.get("trading_session", "None")
+        self.trading_sessions = self.config.get("trading_sessions", [self.config.get("trading_session", "None")])
         self.session_tracker = TradingSessionTracker(
             bot_instance=self,
-            session_name=self.trading_session,
+            session_names=self.trading_sessions,
             on_session_end=self._on_trading_session_end
         )
         
@@ -664,7 +664,8 @@ class WallHunterFuturesStrategy:
                 if getattr(self, 'enable_supertrend_exit', False): ut_summary_str += f"  \u2514\u2500 Reversal Dual-Exit: ON ({getattr(self, 'supertrend_exit_timeout', 5)}s)\n"
 
             # Wick SR is shown in the BOT ACTIVATED numbered list (bot_manager.py), not here.
-            session_str = f"\U0001f552 Trading Session: {self.trading_session}\n" if hasattr(self, 'trading_session') and self.trading_session and self.trading_session != "None" else ""
+            valid_sessions = [s for s in getattr(self, 'trading_sessions', []) if s and s != "None"]
+            session_str = f"\U0001f552 Trading Sessions: {', '.join(valid_sessions)}\n" if valid_sessions else ""
             startup_msg = (
                 f"\U0001f7e2 WallHunter Bot [ID {self.bot_id}] Started!\n"
                 f"Pair: {self.symbol}\n"
@@ -874,10 +875,11 @@ class WallHunterFuturesStrategy:
                 extra_str = f" | {' | '.join(extras)}" if extras else ""
 
                 # Session status for heartbeat
-                session_name = getattr(self, 'trading_session', 'None')
-                if session_name and session_name != 'None':
-                    session_active = TradingSessionTracker.is_session_active(session_name)
-                    session_tag = f" | Session: {session_name} [ACTIVE]" if session_active else f" | Session: {session_name} [WAITING]"
+                valid_sessions = [s for s in getattr(self, 'trading_sessions', []) if s and s != "None"]
+                if valid_sessions:
+                    session_active = TradingSessionTracker.is_session_active(self.trading_sessions)
+                    display_name = ", ".join(valid_sessions)
+                    session_tag = f" | Session: {display_name} [ACTIVE]" if session_active else f" | Session: {display_name} [WAITING]"
                 else:
                     session_tag = ""
 
@@ -924,7 +926,7 @@ class WallHunterFuturesStrategy:
 
                 if not self.active_pos:
                     # --- Session Checks ---
-                    if not TradingSessionTracker.is_session_active(self.trading_session):
+                    if not TradingSessionTracker.is_session_active(self.trading_sessions):
                         await asyncio.sleep(1)
                         continue # Skip entry searches outside of session
                     if getattr(self, 'supertrend_trend_unlock_mode', False) and getattr(self, 'supertrend_tracker', None):

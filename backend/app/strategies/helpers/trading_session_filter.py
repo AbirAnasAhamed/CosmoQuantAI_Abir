@@ -25,11 +25,11 @@ class TradingSessionTracker:
     def __init__(
         self,
         bot_instance,
-        session_name: str,
+        session_names: list[str],
         on_session_end: Callable
     ):
         self.bot = bot_instance
-        self.session_name = session_name
+        self.session_names = session_names if isinstance(session_names, list) else [session_names]
         self.on_session_end = on_session_end
         self.is_active = True
         self._monitor_task = None
@@ -50,62 +50,91 @@ class TradingSessionTracker:
             return True # If start == end, assume 24h
 
     @staticmethod
-    def is_session_active(session_name: str) -> bool:
-        """Helper to quickly check if a given session is active right now."""
-        if not session_name or session_name == "None" or session_name not in SESSIONS:
-            return True # If no valid session is strictly selected, return True (24/7)
+    def is_session_active(session_names: list[str]) -> bool:
+        """Helper to quickly check if any of the given sessions are active right now."""
+        if not session_names or "None" in session_names or len(session_names) == 0:
+            return True # If no valid session is strictly selected or None is allowed, return True (24/7)
             
         now = datetime.utcnow()
-        active_session = SESSIONS[session_name]
-        
-        return TradingSessionTracker._is_time_in_window(
-            now.hour, now.minute,
-            active_session["start"][0], active_session["start"][1],
-            active_session["end"][0], active_session["end"][1]
-        )
+        now_h, now_m = now.hour, now.minute
+
+        for s_name in session_names:
+            if s_name in SESSIONS:
+                active_session = SESSIONS[s_name]
+                if TradingSessionTracker._is_time_in_window(
+                    now_h, now_m,
+                    active_session["start"][0], active_session["start"][1],
+                    active_session["end"][0], active_session["end"][1]
+                ):
+                    return True
+            else:
+                # Custom format handling e.g., "14:30-16:00"
+                try:
+                    if "-" in s_name and ":" in s_name:
+                        time_part = s_name.split("|")[-1] if "|" in s_name else s_name
+                        start_str, end_str = time_part.split("-")
+                        sh, sm = map(int, start_str.strip().split(":"))
+                        eh, em = map(int, end_str.strip().split(":"))
+                        if TradingSessionTracker._is_time_in_window(now_h, now_m, sh, sm, eh, em):
+                            return True
+                except Exception as e:
+                    logger.debug(f"Could not parse custom session time: {s_name} - {e}")
+
+        return False
 
     @staticmethod
-    def get_session_window_str(session_name: str) -> str:
-        """Returns a human-readable UTC window for a session."""
-        if session_name not in SESSIONS:
-            return ""
-        s = SESSIONS[session_name]
-        sh, sm = s["start"]
-        eh, em = s["end"]
-        return f"{sh:02d}:{sm:02d} - {eh:02d}:{em:02d} UTC"
+    def get_session_window_str(session_names: list[str]) -> str:
+        """Returns a human-readable UTC window for multiple sessions."""
+        if not session_names or "None" in session_names:
+            return "24/7"
+        
+        windows = []
+        for s_name in session_names:
+            if s_name in SESSIONS:
+                s = SESSIONS[s_name]
+                sh, sm = s["start"]
+                eh, em = s["end"]
+                windows.append(f"{s_name} ({sh:02d}:{sm:02d}-{eh:02d}:{em:02d} UTC)")
+            else:
+                windows.append(f"Custom ({s_name} UTC)")
+        
+        return ", ".join(windows)
 
     async def start_monitor(self):
         """Start background loop to monitor session status.
         If the session is currently INACTIVE at startup, sends a Telegram notification.
         """
-        if not self.session_name or self.session_name == "None":
+        if not self.session_names or "None" in self.session_names:
             return
         
         self.is_active = True
         
         # ---- STARTUP CHECK ----
-        if not self.is_session_active(self.session_name):
-            window_str = self.get_session_window_str(self.session_name)
+        if not self.is_session_active(self.session_names):
+            window_str = self.get_session_window_str(self.session_names)
             now_utc = datetime.utcnow().strftime("%H:%M UTC")
+            
+            display_name = ", ".join(self.session_names)
             msg = (
                 f"⏳ *Session Waiting...*\n"
-                f"Bot #{getattr(self.bot, 'bot_id', '?')} is running but the *{self.session_name}* "
+                f"Bot #{getattr(self.bot, 'bot_id', '?')} is running but the *{display_name}* "
                 f"session is not active yet.\n\n"
-                f"📅 Session Window: `{window_str}`\n"
+                f"📅 Target Windows: `{window_str}`\n"
                 f"🕐 Current Time: `{now_utc}`\n\n"
                 f"_The bot will automatically start taking entries when the session begins._"
             )
-            logger.info(f"[Session Tracker] '{self.session_name}' is NOT active at startup. Waiting for session window: {window_str}.")
+            logger.info(f"[Session Tracker] '{display_name}' is NOT active at startup. Waiting for session window: {window_str}.")
             # Send telegram notification if bot has the method
             if hasattr(self.bot, '_send_telegram'):
                 asyncio.create_task(self.bot._send_telegram(msg))
             self._waiting_logged = True
         else:
-            logger.info(f"[Session Tracker] '{self.session_name}' is ACTIVE. Bot is ready to take entries.")
+            display_name = ", ".join(self.session_names)
+            logger.info(f"[Session Tracker] '{display_name}' is ACTIVE. Bot is ready to take entries.")
         # -----------------------
         
         self._monitor_task = asyncio.create_task(self._monitor_loop())
-        logger.info(f"[Session Tracker] Background monitor started for session: {self.session_name}")
+        logger.info(f"[Session Tracker] Background monitor started for session: {display_name}")
 
     async def stop_monitor(self):
         """Stop background loop."""
@@ -119,39 +148,40 @@ class TradingSessionTracker:
         - EVERY 3 seconds logs a warning in the terminal when session is not active
         - Fires on_session_end callback when an active session expires
         """
-        was_active = self.is_session_active(self.session_name)
+        was_active = self.is_session_active(self.session_names)
         log_counter = 0
 
         while self.is_active and self.bot.running:
             try:
-                currently_active = self.is_session_active(self.session_name)
+                currently_active = self.is_session_active(self.session_names)
                 now_utc = datetime.utcnow().strftime("%H:%M:%S UTC")
-                window_str = self.get_session_window_str(self.session_name)
+                window_str = self.get_session_window_str(self.session_names)
+                display_name = ", ".join(self.session_names)
 
                 if not currently_active:
                     # Log to terminal every 3 seconds (every loop tick)
                     logger.info(
-                        f"⏳🚫 [Session Filter] '{self.session_name}' NOT active ({now_utc}). "
-                        f"Window: {window_str}. No entries will be taken."
+                        f"⏳🚫 [Session Filter] '{display_name}' NOT active ({now_utc}). "
+                        f"Windows: {window_str}. No entries will be taken."
                     )
 
                     # If we just transitioned from active -> inactive, fire the end callback
                     if was_active:
-                        logger.warning(f"[Session Tracker] '{self.session_name}' session just ended! Triggering auto-shutdown.")
+                        logger.warning(f"[Session Tracker] '{display_name}' session just ended! Triggering auto-shutdown.")
                         if asyncio.iscoroutinefunction(self.on_session_end):
-                            await self.on_session_end(self.session_name)
+                            await self.on_session_end(display_name)
                         else:
-                            self.on_session_end(self.session_name)
+                            self.on_session_end(display_name)
                         break  # Stop monitoring since the bot is shutting down
                 else:
                     # Session is active
                     if not was_active:
                         # Just transitioned from waiting -> active!
-                        logger.info(f"[Session Tracker] '{self.session_name}' session is now ACTIVE! Bot will start taking entries.")
+                        logger.info(f"[Session Tracker] '{display_name}' session is now ACTIVE! Bot will start taking entries.")
                         if hasattr(self.bot, '_send_telegram'):
                             asyncio.create_task(self.bot._send_telegram(
                                 f"🟢 *Session Started!*\n"
-                                f"The *{self.session_name}* session is now active.\n"
+                                f"The *{display_name}* session is now active.\n"
                                 f"Bot #{getattr(self.bot, 'bot_id', '?')} will now start monitoring for entries."
                             ))
                     self._waiting_logged = False
