@@ -39,27 +39,17 @@ async def run():
                 hashtags = str(raw_hashtags)
                 
                 score = 88
-                if score >= 80:
-                    score_badge = f"🔴 <b>{score}/100</b> — অতি উচ্চ প্রভাব"
-                elif score >= 60:
-                    score_badge = f"🟠 <b>{score}/100</b> — উচ্চ প্রভাব"
-                else:
-                    score_badge = f"🟡 <b>{score}/100</b> — মাঝারি প্রভাব"
+                score_icon = "🔴" if score >= 80 else "🟠" if score >= 60 else "🟡"
 
                 msg = (
-                    f"╔══════════════════════╗\n"
-                    f"  🚨 <b>ব্রেকিং ক্রিপ্টো নিউজ</b>\n"
-                    f"╚══════════════════════╝\n\n"
+                    f"╔━━━━━━━━━━━━━━━━━━━━━━╗\n"
+                    f"🚨 <b>ব্রেকিং ক্রিপ্টো নিউজ</b>\n"
+                    f"╚━━━━━━━━━━━━━━━━━━━━━━╝\n"
                     f"📌 <a href='{url}'><b>{safe_title}</b></a>\n\n"
-                    f"▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-                    f"📝 <b>বিশ্লেষণ</b>\n"
-                    f"{summary}\n\n"
-                    f"▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-                    f"💡 <b>ট্রেডিং সিগন্যাল</b>\n"
-                    f"{verdict}\n\n"
-                    f"▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-                    f"⚡ ইমপ্যাক্ট স্কোর: {score_badge}\n\n"
-                    f"🏷 {hashtags}"
+                    f"📝 <b>বিশ্লেষণ:</b>\n{summary}\n\n"
+                    f"💡 <b>সিগন্যাল:</b> {verdict}\n\n"
+                    f"{score_icon} স্কোর: <b>{score}/100</b>  •  🏷 {hashtags}\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━━━"
                 )
                 
                 print(f"Generating Voice Note...")
