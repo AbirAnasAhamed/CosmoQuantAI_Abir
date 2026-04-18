@@ -166,6 +166,12 @@ IGNORE_PATTERNS = [
     re.compile(r'redo starts at', re.IGNORECASE),
     re.compile(r'redo done at', re.IGNORECASE),
     re.compile(r'invalid record length at.*expected at least.*got 0', re.IGNORECASE),
+    # ── Frontend / Node.js Dev Server Noise (EPIPE / Broken Pipe) ────────────
+    # These happen when a browser tab is closed or refreshed mid-transfer.
+    re.compile(r'Error: write EPIPE', re.IGNORECASE),
+    re.compile(r'Error: read ECONNRESET', re.IGNORECASE),
+    re.compile(r'Broken pipe', re.IGNORECASE),
+    re.compile(r'node:internal/stream_base_commons', re.IGNORECASE),
 ]
 
 # Patterns that look like errors but should be downgraded to WARNING
@@ -182,7 +188,6 @@ WARNING_OVERRIDE_PATTERNS = [
     re.compile(r'ECONNRESET', re.IGNORECASE),
     re.compile(r'read ECONNRESET', re.IGNORECASE),
     re.compile(r'TCP\.onStreamRead', re.IGNORECASE),
-    re.compile(r'node:internal/stream_base_commons', re.IGNORECASE),
 ]
 
 # Container names to monitor (must match docker-compose container_name)
