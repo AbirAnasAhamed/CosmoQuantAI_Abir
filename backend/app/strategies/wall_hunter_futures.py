@@ -19,6 +19,7 @@ from app.services.market_depth_service import market_depth_service
 from app.strategies.helpers.trading_session_filter import TradingSessionTracker
 from app.strategies.helpers.wick_sr_tracker import WickSRTracker
 from app.strategies.helpers.wick_sr_standalone_listener import WickSRStandaloneListener
+from app.strategies.helpers.fibo_tp_calculator import calculate_fibo_extension_tp
 
 logger = logging.getLogger(__name__)
 
@@ -249,6 +250,11 @@ class WallHunterFuturesStrategy:
         self.enable_wick_sr_oib = self.config.get("enable_wick_sr_oib", False)
         self.enable_dynamic_wick_tp = self.config.get("enable_dynamic_wick_tp", False)
         self.dynamic_tp_frontrun_pct = self.config.get("dynamic_tp_frontrun_pct", 0.0)
+        
+        # --- Auto Fibo Take Profit ---
+        self.enable_auto_fibo_tp = self.config.get("enable_auto_fibo_tp", False)
+        self.auto_fibo_target_level = self.config.get("auto_fibo_target_level", 1.618)
+        self.auto_fibo_timeframe = self.config.get("auto_fibo_timeframe", "5m")
         
         self.wick_sr_tracker = WickSRTracker(
             timeframe=self.wick_sr_timeframe,
@@ -1412,15 +1418,30 @@ class WallHunterFuturesStrategy:
                         frontrun_pct=getattr(self, 'dynamic_tp_frontrun_pct', 0.0)
                     )
                 
+                # --- NEW: AUTO FIBO MAX TP EXTENSION ---
+                if not dynamic_tp_price and getattr(self, 'enable_auto_fibo_tp', False):
+                    try:
+                        fibo_tf = getattr(self, 'auto_fibo_timeframe', '5m')
+                        fibo_level = getattr(self, 'auto_fibo_target_level', 1.618)
+                        
+                        ohlcv = await self.public_exchange.fetch_ohlcv(self.symbol, timeframe=fibo_tf, limit=30)
+                        if ohlcv:
+                            calculated_tp = calculate_fibo_extension_tp(ohlcv, actual_entry, side, float(fibo_level))
+                            if calculated_tp:
+                                dynamic_tp_price = calculated_tp
+                                logger.info(f"🎯 [AUTO-FIBO] Computed Maximum Dynamic TP: {dynamic_tp_price:.6f} at {fibo_level}x Extension!")
+                    except Exception as e:
+                        logger.error(f"Failed to compute Auto-Fibo TP! Falling back to spread. Err: {e}")
+                
                 if side == "buy": # LONG
                     sl_price = actual_entry * (1 - (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else 0.0
                     if dynamic_tp_price and dynamic_tp_price > actual_entry:
                         tp_price = dynamic_tp_price
-                        logger.info(f"🎯 [Dynamic TP] Set to {tp_price:.6f} via Wick SR Resistance Level-to-Level!")
+                        logger.info(f"🎯 [Dynamic TP] Set to {tp_price:.6f} dynamically!")
                     else:
                         tp_price = actual_entry + self.target_spread
-                        if getattr(self, 'enable_dynamic_wick_tp', False):
-                            logger.info(f"⚠️ [Dynamic TP] No valid Resistance found above {actual_entry:.6f}. Using Fallback Spread TP: {tp_price:.6f}")
+                        if getattr(self, 'enable_dynamic_wick_tp', False) or getattr(self, 'enable_auto_fibo_tp', False):
+                            logger.info(f"⚠️ [Dynamic TP] Fallback Spread TP activated: {tp_price:.6f}")
                             
                     self.active_pos = {
                         "entry": float(actual_entry),
@@ -1436,11 +1457,11 @@ class WallHunterFuturesStrategy:
                     sl_price = actual_entry * (1 + (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else float('inf')
                     if dynamic_tp_price and dynamic_tp_price < actual_entry:
                         tp_price = dynamic_tp_price
-                        logger.info(f"🎯 [Dynamic TP] Set to {tp_price:.6f} via Wick SR Support Level-to-Level!")
+                        logger.info(f"🎯 [Dynamic TP] Set to {tp_price:.6f} dynamically!")
                     else:
                         tp_price = actual_entry - self.target_spread
-                        if getattr(self, 'enable_dynamic_wick_tp', False):
-                            logger.info(f"⚠️ [Dynamic TP] No valid Support found below {actual_entry:.6f}. Using Fallback Spread TP: {tp_price:.6f}")
+                        if getattr(self, 'enable_dynamic_wick_tp', False) or getattr(self, 'enable_auto_fibo_tp', False):
+                            logger.info(f"⚠️ [Dynamic TP] Fallback Spread TP activated: {tp_price:.6f}")
                             
                     self.active_pos = {
                         "entry": float(actual_entry),
@@ -2550,6 +2571,18 @@ class WallHunterFuturesStrategy:
         if "dynamic_tp_frontrun_pct" in new_config and new_config["dynamic_tp_frontrun_pct"] != getattr(self, "dynamic_tp_frontrun_pct", 0.0):
             self.dynamic_tp_frontrun_pct = new_config.get("dynamic_tp_frontrun_pct", 0.0)
             updates.append(f"Dynamic TP Front-Run: {self.dynamic_tp_frontrun_pct}%")
+            
+        if "enable_auto_fibo_tp" in new_config and new_config["enable_auto_fibo_tp"] != getattr(self, "enable_auto_fibo_tp", False):
+            self.enable_auto_fibo_tp = new_config.get("enable_auto_fibo_tp", False)
+            updates.append(f"Auto-Fibo Max TP: {'ON' if self.enable_auto_fibo_tp else 'OFF'}")
+            
+        if "auto_fibo_target_level" in new_config and new_config["auto_fibo_target_level"] != getattr(self, "auto_fibo_target_level", 1.618):
+            self.auto_fibo_target_level = new_config.get("auto_fibo_target_level", 1.618)
+            updates.append(f"Auto-Fibo Target Level: {self.auto_fibo_target_level}")
+
+        if "auto_fibo_timeframe" in new_config and new_config["auto_fibo_timeframe"] != getattr(self, "auto_fibo_timeframe", "5m"):
+            self.auto_fibo_timeframe = new_config.get("auto_fibo_timeframe", "5m")
+            updates.append(f"Auto-Fibo Timeframe: {self.auto_fibo_timeframe}")
 
         if updates:
             self.config.update(new_config)
