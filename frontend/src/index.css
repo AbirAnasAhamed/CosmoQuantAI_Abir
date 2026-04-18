@@ -1297,3 +1297,176 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
+
+/* =============================================
+   FUTURISTIC LANDING PAGE ANIMATIONS
+   ============================================= */
+
+/* Floating orb animations */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) translateX(0px) scale(1); }
+  33% { transform: translateY(-30px) translateX(20px) scale(1.05); }
+  66% { transform: translateY(20px) translateX(-15px) scale(0.95); }
+}
+
+@keyframes float-medium {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50% { transform: translateY(-40px) translateX(30px); }
+}
+
+@keyframes float-fast {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  25% { transform: translateY(-15px) translateX(-20px); }
+  75% { transform: translateY(25px) translateX(15px); }
+}
+
+.animate-float-slow {
+  animation: float-slow 12s ease-in-out infinite;
+}
+
+.animate-float-medium {
+  animation: float-medium 8s ease-in-out infinite;
+}
+
+.animate-float-fast {
+  animation: float-fast 6s ease-in-out infinite;
+}
+
+/* Radial glow background for hero */
+.bg-radial-glow {
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 0%,
+    rgba(6, 182, 212, 0.08) 0%,
+    rgba(139, 92, 246, 0.05) 40%,
+    transparent 70%
+  );
+}
+
+/* Glowing text effect */
+@keyframes glow-pulse {
+  0%, 100% {
+    text-shadow: 0 0 20px rgba(6, 182, 212, 0.4), 0 0 40px rgba(6, 182, 212, 0.2);
+  }
+  50% {
+    text-shadow: 0 0 30px rgba(6, 182, 212, 0.7), 0 0 60px rgba(6, 182, 212, 0.4), 0 0 80px rgba(139, 92, 246, 0.3);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* Cyber scan line effect */
+@keyframes scan-line {
+  0% { top: -10%; }
+  100% { top: 110%; }
+}
+
+.cyber-scan::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.6), transparent);
+  animation: scan-line 4s linear infinite;
+}
+
+/* Neon border glow */
+.neon-border-cyan {
+  box-shadow: 0 0 5px rgba(6, 182, 212, 0.3),
+              0 0 10px rgba(6, 182, 212, 0.2),
+              0 0 20px rgba(6, 182, 212, 0.1),
+              inset 0 0 5px rgba(6, 182, 212, 0.05);
+}
+
+.neon-border-violet {
+  box-shadow: 0 0 5px rgba(139, 92, 246, 0.3),
+              0 0 10px rgba(139, 92, 246, 0.2),
+              0 0 20px rgba(139, 92, 246, 0.1),
+              inset 0 0 5px rgba(139, 92, 246, 0.05);
+}
+
+/* Grid pattern for futuristic backgrounds */
+.cyber-grid {
+  background-image:
+    linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Holographic shimmer */
+@keyframes holographic {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.holographic-text {
+  background: linear-gradient(
+    270deg,
+    #06b6d4, #8b5cf6, #ec4899, #06b6d4
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: holographic 4s ease infinite;
+}
+
+/* Typewriter cursor blink */
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: cursor-blink 1s step-end infinite;
+}
+
+/* Stagger children animations */
+.stagger > *:nth-child(1) { animation-delay: 0s; }
+.stagger > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger > *:nth-child(3) { animation-delay: 0.2s; }
+.stagger > *:nth-child(4) { animation-delay: 0.3s; }
+.stagger > *:nth-child(5) { animation-delay: 0.4s; }
+
+/* Background glow blob */
+.glow-blob {
+  filter: blur(80px);
+  will-change: transform;
+}
+
+/* Cyber button hover effect */
+.cyber-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.cyber-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.cyber-btn:hover::before {
+  left: 100%;
+}
+
+/* Data grid borders */
+.data-grid-border {
+  border-image: linear-gradient(
+    135deg,
+    rgba(6, 182, 212, 0.5),
+    rgba(139, 92, 246, 0.3),
+    rgba(6, 182, 212, 0.1)
+  ) 1;
+}
