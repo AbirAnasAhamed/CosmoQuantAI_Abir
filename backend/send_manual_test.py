@@ -38,10 +38,29 @@ async def run():
                     raw_hashtags = " ".join([str(x) for x in raw_hashtags])
                 hashtags = str(raw_hashtags)
                 
-                insights = f"\n\n📝 <b>সারসংক্ষেপ:</b>\n{summary}"
-                trading_verdict = f"\n\n💡 <b>এআই ট্রেডিং বিশ্লেষণ:</b> {verdict}"
-                
-                msg = f"🚨 <b>ব্রেকিং নিউজ</b> 🚨\n\n<a href='{url}'><b>{safe_title}</b></a>{insights}{trading_verdict}\n\n🔥 ইমপ্যাক্ট স্কোর: 88/100\n\n{hashtags}"
+                score = 88
+                if score >= 80:
+                    score_badge = f"🔴 <b>{score}/100</b> — অতি উচ্চ প্রভাব"
+                elif score >= 60:
+                    score_badge = f"🟠 <b>{score}/100</b> — উচ্চ প্রভাব"
+                else:
+                    score_badge = f"🟡 <b>{score}/100</b> — মাঝারি প্রভাব"
+
+                msg = (
+                    f"╔══════════════════════╗\n"
+                    f"  🚨 <b>ব্রেকিং ক্রিপ্টো নিউজ</b>\n"
+                    f"╚══════════════════════╝\n\n"
+                    f"📌 <a href='{url}'><b>{safe_title}</b></a>\n\n"
+                    f"▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+                    f"📝 <b>বিশ্লেষণ</b>\n"
+                    f"{summary}\n\n"
+                    f"▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+                    f"💡 <b>ট্রেডিং সিগন্যাল</b>\n"
+                    f"{verdict}\n\n"
+                    f"▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+                    f"⚡ ইমপ্যাক্ট স্কোর: {score_badge}\n\n"
+                    f"🏷 {hashtags}"
+                )
                 
                 print(f"Generating Voice Note...")
                 voice_path = await telegram_ai_agent.generate_voice_note(summary)

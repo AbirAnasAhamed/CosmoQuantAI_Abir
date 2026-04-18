@@ -271,27 +271,51 @@ class NewsService:
                             # The <br> or \n might be escaped depending on how Gemini formatted it. 
                             # We will assume summary text formatting is clean.
                             if summary:
-                                # unescape quotes/newlines if needed or keep text simple
-                                insights = f"\n\n📝 <b>সারসংক্ষেপ:</b>\n{summary}"
-                            
+                                insights = f"\n{summary}"
+
                             verdict = html.escape(ai_data.get("trading_verdict", ""))
-                            if verdict:
-                                trading_verdict = f"\n\n💡 <b>এআই ট্রেডিং বিশ্লেষণ:</b> {verdict}"
-                                
+
                             raw_hashtags = ai_data.get("hashtags", "")
                             if isinstance(raw_hashtags, list):
                                 raw_hashtags = " ".join([str(x) for x in raw_hashtags])
                             ai_hashtags = html.escape(str(raw_hashtags))
-                            
+
                             if ai_hashtags and ai_hashtags != "#CryptoNews":
                                 hashtags = ai_hashtags
-                                
+
                             if summary:
                                 voice_path = await telegram_ai_agent.generate_voice_note(ai_data.get("bengali_summary", ""))
 
-                            msg = f"🚨 <b>ব্রেকিং নিউজ</b> 🚨\n\n<a href='{r.link}'><b>{safe_title}</b></a>{insights}{trading_verdict}\n\n🔥 ইমপ্যাক্ট স্কোর: {r.impact_score}/100\n\n{hashtags}"
+                            # ── Score badge ──
+                            score = r.impact_score
+                            if score >= 80:
+                                score_badge = f"🔴 <b>{score}/100</b> — অতি উচ্চ প্রভাব"
+                            elif score >= 60:
+                                score_badge = f"🟠 <b>{score}/100</b> — উচ্চ প্রভাব"
+                            else:
+                                score_badge = f"🟡 <b>{score}/100</b> — মাঝারি প্রভাব"
+
+                            msg = (
+                                f"╔══════════════════════╗\n"
+                                f"  🚨 <b>ব্রেকিং ক্রিপ্টো নিউজ</b>\n"
+                                f"╚══════════════════════╝\n\n"
+                                f"📌 <a href='{r.link}'><b>{safe_title}</b></a>\n\n"
+                                f"▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+                                f"📝 <b>বিশ্লেষণ</b>\n"
+                                f"{insights}\n\n"
+                                f"▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+                                f"💡 <b>ট্রেডিং সিগন্যাল</b>\n"
+                                f"{verdict}\n\n"
+                                f"▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+                                f"⚡ ইমপ্যাক্ট স্কোর: {score_badge}\n\n"
+                                f"🏷 {hashtags}"
+                            )
                         else:
-                            msg = f"📰 <a href='{r.link}'><b>{safe_title}</b></a>\n\nউৎস: {r.source}"
+                            msg = (
+                                f"📰 <b>ক্রিপ্টো আপডেট</b>\n\n"
+                                f"<a href='{r.link}'><b>{safe_title}</b></a>\n\n"
+                                f"🏦 উৎস: <i>{r.source}</i>"
+                            )
                         
                         for setting in active_notifications:
                             if voice_path:
