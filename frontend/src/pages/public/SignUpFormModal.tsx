@@ -20,7 +20,7 @@ interface InputFieldProps {
 
 const InputField: React.FC<InputFieldProps> = ({ id, type, placeholder, value, onChange, icon }) => (
     <div className="relative group">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-brand-primary transition-colors">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-cyan-400 transition-colors">
             {icon}
         </div>
         <input
@@ -29,7 +29,7 @@ const InputField: React.FC<InputFieldProps> = ({ id, type, placeholder, value, o
             value={value}
             onChange={onChange}
             required
-            className="w-full bg-slate-50 dark:bg-slate-900/50 border border-gray-200 dark:border-gray-700 rounded-xl py-3 pl-10 pr-4 text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary outline-none transition-all duration-300"
+            className="w-full bg-[#0D1117] border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-white placeholder-slate-500 focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/50 outline-none transition-all duration-300 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]"
             placeholder={placeholder}
         />
     </div>
@@ -82,69 +82,85 @@ const SignUpFormModal: React.FC<SignUpFormModalProps> = ({ onClose, onRegister }
             role="dialog"
             aria-modal="true"
         >
-            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={handleClose}></div>
+            <div className="absolute inset-0 bg-[#020610]/80 backdrop-blur-xl" onClick={handleClose}></div>
 
             <div
-                className={`relative w-full max-w-4xl bg-white dark:bg-brand-darkest rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row transform transition-all duration-300 ${isClosing ? 'scale-95 translate-y-4' : 'scale-100 translate-y-0 animate-modal-content-slide-down'}`}
+                className={`relative w-full max-w-5xl bg-[#070F20]/90 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(6,182,212,0.15)] overflow-hidden flex flex-col md:flex-row transform transition-all duration-300 ${isClosing ? 'scale-95 translate-y-4' : 'scale-100 translate-y-0 animate-modal-content-slide-down'}`}
                 onClick={e => e.stopPropagation()}
             >
+                {/* Glow outlines */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-violet-500 to-pink-500" />
 
                 {/* Left Side - Creative Panel */}
-                <div className="hidden md:flex md:w-5/12 relative bg-slate-900 overflow-hidden flex-col justify-between p-8 text-white">
-                    <div className="absolute inset-0">
-                        <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/40 to-purple-900/40 z-0"></div>
-                        <div className="absolute top-0 left-0 w-full h-full opacity-30"
-                            style={{ backgroundImage: 'radial-gradient(#6366F1 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
-                        </div>
-                        <div className="absolute -top-24 -left-24 w-64 h-64 bg-brand-primary rounded-full blur-[80px] opacity-40"></div>
-                        <div className="absolute bottom-0 right-0 w-80 h-80 bg-purple-600 rounded-full blur-[100px] opacity-30"></div>
+                <div className="hidden md:flex md:w-5/12 relative overflow-hidden flex-col justify-between p-10 text-white bg-gradient-to-b from-[#0D1117] to-[#020610] border-r border-white/5">
+                    {/* Cyber grids & orbs */}
+                    <div className="absolute inset-0 z-0">
+                        <div className="absolute inset-0 opacity-10" style={{
+                            backgroundImage: 'linear-gradient(rgba(6,182,212,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(6,182,212,0.2) 1px, transparent 1px)',
+                            backgroundSize: '30px 30px'
+                        }} />
+                        <div className="absolute -top-32 -left-32 w-80 h-80 bg-cyan-500/20 rounded-full blur-[100px] animate-float-medium" />
+                        <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-violet-600/20 rounded-full blur-[100px] animate-float-slow" />
                     </div>
 
                     <div className="relative z-10">
-                        <Logo className="!text-white" />
-                    </div>
-
-                    <div className="relative z-10 space-y-6">
-                        <div className="space-y-2">
-                            <h3 className="text-2xl font-bold leading-tight">Welcome to the Future of <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-purple-400">Algo Trading</span></h3>
-                            <p className="text-gray-300 text-sm leading-relaxed">
-                                Join thousands of quants building, testing, and deploying strategies on the most advanced AI-powered infrastructure.
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
-                            <div>
-                                <p className="text-2xl font-bold text-white">99.9%</p>
-                                <p className="text-[10px] text-gray-400 uppercase tracking-wider">Uptime</p>
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.5)]">
+                                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
                             </div>
-                            <div>
-                                <p className="text-2xl font-bold text-white">&lt;10ms</p>
-                                <p className="text-[10px] text-gray-400 uppercase tracking-wider">Latency</p>
-                            </div>
+                            <Logo className="!text-xl !text-white" />
                         </div>
                     </div>
 
-                    <div className="relative z-10 text-xs text-gray-500">
-                        © 2024 CosmoQuantAI Inc.
+                    <div className="relative z-10 space-y-6 my-auto">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                            Next-Gen Trading
+                        </div>
+                        <h3 className="text-3xl md:text-4xl font-extrabold leading-tight text-white shadow-black drop-shadow-md">
+                            Welcome to the <br /> 
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-violet-400 to-pink-400">Future of Alpha</span>
+                        </h3>
+                        <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
+                            Join elite quants building, testing, and deploying strategies on the most advanced AI-powered infrastructure.
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-4 mt-8 pt-6 border-t border-white/10">
+                            <div>
+                                <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">99.9%</p>
+                                <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Uptime</p>
+                            </div>
+                            <div>
+                                <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-pink-400">&lt;10ms</p>
+                                <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Latency</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="relative z-10 text-xs text-slate-600 font-mono">
+                        SYS.AUTH.REGISTRATION_MODULE
                     </div>
                 </div>
 
                 {/* Right Side - Form */}
-                <div className="w-full md:w-7/12 p-8 md:p-12 bg-white dark:bg-brand-darkest relative">
+                <div className="w-full md:w-7/12 p-8 md:p-12 relative flex flex-col justify-center">
                     <button
                         onClick={handleClose}
-                        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-white/5"
+                        className="absolute top-6 right-6 p-2 text-slate-500 hover:text-white transition-colors rounded-full hover:bg-white/10 z-20"
                     >
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
 
-                    <div className="mb-8">
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Create Account</h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Get started with your free Hobbyist plan today.</p>
+                    <div className="mb-10 text-center md:text-left">
+                        <h2 className="text-3xl font-extrabold text-white tracking-tight">Initialize Protocol</h2>
+                        <p className="text-sm text-slate-400 mt-2">Establish your access credentials for the network.</p>
                     </div>
 
                     {error && (
-                        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm text-center">
+                        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-3 animate-fade-in-down shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                            <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             {error}
                         </div>
                     )}
@@ -153,7 +169,7 @@ const SignUpFormModal: React.FC<SignUpFormModalProps> = ({ onClose, onRegister }
                         <InputField
                             id="fullName"
                             type="text"
-                            placeholder="Full Name"
+                            placeholder="Designation (Full Name)"
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
                             icon={<UserCircleIcon />}
@@ -161,7 +177,7 @@ const SignUpFormModal: React.FC<SignUpFormModalProps> = ({ onClose, onRegister }
                         <InputField
                             id="email"
                             type="email"
-                            placeholder="Email Address"
+                            placeholder="Commlink (Email Address)"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             icon={<MailIcon />}
@@ -169,44 +185,59 @@ const SignUpFormModal: React.FC<SignUpFormModalProps> = ({ onClose, onRegister }
                         <InputField
                             id="password"
                             type="password"
-                            placeholder="Password"
+                            placeholder="Passcode Security"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             icon={<KeyIcon />}
                         />
 
-                        <Button type="submit" variant="primary" disabled={isLoading} className="w-full py-3.5 rounded-xl text-base font-bold shadow-lg shadow-brand-primary/25 hover:shadow-brand-primary/40 transform hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
-                            {isLoading ? 'Creating Account...' : 'Start Quantifying'}
-                        </Button>
+                        <div className="pt-2">
+                            <button 
+                                type="submit" 
+                                disabled={isLoading} 
+                                className="relative overflow-hidden w-full py-4 rounded-xl font-bold bg-gradient-to-r from-cyan-500 to-violet-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all disabled:opacity-70 disabled:cursor-not-allowed hover:scale-[1.02] group"
+                            >
+                                <span className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                {isLoading ? (
+                                    <span className="flex items-center justify-center gap-2">
+                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Establishing Uplink...
+                                    </span>
+                                ) : 'Initialize Access Sequence'}
+                            </button>
+                        </div>
                     </form>
 
                     <div className="relative my-8">
                         <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+                            <div className="w-full border-t border-white/10"></div>
                         </div>
-                        <div className="relative flex justify-center text-xs uppercase tracking-wider">
-                            <span className="bg-white dark:bg-brand-darkest px-4 text-gray-400">
-                                Or join with
+                        <div className="relative flex justify-center text-[10px] uppercase tracking-widest font-mono text-slate-500">
+                            <span className="bg-[#070F20] px-4">
+                                External Identity Providers
                             </span>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-4">
-                        <button className="flex items-center justify-center py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
-                            <GoogleLogo className="grayscale group-hover:grayscale-0 transition-all" />
-                        </button>
-                        <button className="flex items-center justify-center py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
-                            <GithubLogo className="text-slate-800 dark:text-white opacity-70 group-hover:opacity-100 transition-opacity" />
-                        </button>
-                        <button className="flex items-center justify-center py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
-                            <AppleLogo className="text-slate-800 dark:text-white opacity-70 group-hover:opacity-100 transition-opacity" />
-                        </button>
+                        {[
+                            { Icon: GoogleLogo, id: 'google' },
+                            { Icon: GithubLogo, id: 'github' },
+                            { Icon: AppleLogo, id: 'apple' }
+                        ].map((provider) => (
+                            <button key={provider.id} className="flex items-center justify-center py-3 border border-white/10 bg-white/5 rounded-xl hover:bg-white/10 hover:border-cyan-500/30 transition-all group">
+                                <provider.Icon className={`w-5 h-5 ${provider.id === 'google' ? 'grayscale group-hover:grayscale-0' : 'text-slate-400 group-hover:text-white'} transition-all`} />
+                            </button>
+                        ))}
                     </div>
 
-                    <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                        Already a member?{' '}
-                        <button onClick={handleClose} className="font-semibold text-brand-primary hover:text-brand-primary-hover hover:underline">
-                            Log in
+                    <div className="mt-10 text-center text-sm text-slate-500">
+                        Already authenticated?{' '}
+                        <button onClick={handleClose} className="font-bold text-cyan-400 hover:text-cyan-300 hover:underline decoration-cyan-400/30 underline-offset-4 transition-all">
+                            Initialize Login Sequence
                         </button>
                     </div>
                 </div>
@@ -216,4 +247,3 @@ const SignUpFormModal: React.FC<SignUpFormModalProps> = ({ onClose, onRegister }
 };
 
 export default SignUpFormModal;
-
