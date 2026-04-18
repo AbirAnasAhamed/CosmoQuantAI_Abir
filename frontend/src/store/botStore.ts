@@ -175,6 +175,7 @@ export const useBotStore = create<BotState>((set) => ({
         showCandlestickPatterns: false,
         // ── Wick Rejection S/R Defaults ──
         showWickSR: true,
+        wickSRTimeframe: '5m',
         wickSRLookback: 300,
         wickSRMinTouches: 10,
         wickSRAtrPeriod: 14,

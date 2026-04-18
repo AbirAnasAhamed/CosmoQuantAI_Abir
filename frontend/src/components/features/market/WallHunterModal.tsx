@@ -65,7 +65,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         microScalpProfitTicks: 2,       
         microScalpMinWall: 100000,      
         
-        tradingSession: 'None',
+        tradingSessions: ['None'],
 
         enableLiqCascade: false,        
         liqCascadeWindow: 5,            
@@ -274,7 +274,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             enableMicroScalp: c.enable_micro_scalp !== undefined ? c.enable_micro_scalp : false,
                             microScalpProfitTicks: c.micro_scalp_profit_ticks || 2,
                             microScalpMinWall: c.micro_scalp_min_wall || 100000,
-                            tradingSession: c.trading_session || 'None',
+                            tradingSessions: c.trading_sessions || [c.trading_session || 'None'],
 
                             enableLiqCascade: c.enable_liq_cascade !== undefined ? c.enable_liq_cascade : false,
                             liqCascadeWindow: c.liq_cascade_window || 5,
@@ -597,7 +597,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     enable_micro_scalp: form.enableMicroScalp,
                     micro_scalp_profit_ticks: form.microScalpProfitTicks,
                     micro_scalp_min_wall: form.microScalpMinWall,
-                    trading_session: form.tradingSession,
+                    trading_sessions: form.tradingSessions,
 
                     enable_liq_cascade: form.enableLiqCascade,
                     liq_cascade_window: form.liqCascadeWindow,
@@ -1107,26 +1107,88 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     {activeTab === 'triggers' && (
                         <div className="animate-fadeIn space-y-4">
                             {/* --- NEW: TRADING SESSION FILTER --- */}
-                            <div className="bg-black/20 p-4 rounded-xl border border-white/10 space-y-2 relative overflow-hidden">
+                            <div className="bg-black/20 p-4 rounded-xl border border-white/10 space-y-3 relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 rounded-l-xl"></div>
                                 <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-2">
                                     <span>Trading Session (UTC)</span>
                                 </div>
-                                <div className="pl-2">
-                                    <select
-                                        className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white outline-none focus:border-brand-primary text-xs font-semibold appearance-none cursor-pointer"
-                                        value={form.tradingSession}
-                                        onChange={(e) => handleFormChange('tradingSession', e.target.value)}
-                                    >
-                                        <option value="None">None (Run 24/7)</option>
-                                        <option value="Sydney">🇦🇺 Sydney (22:00 - 07:00 UTC)</option>
-                                        <option value="Tokyo">🇯🇵 Tokyo (00:00 - 09:00 UTC)</option>
-                                        <option value="London">🇬🇧 London (08:00 - 17:00 UTC)</option>
-                                        <option value="New York">🇺🇸 New York (13:00 - 22:00 UTC)</option>
-                                        <option value="Overlap">🔥 London & NY Overlap (13:00 - 17:00 UTC)</option>
-                                    </select>
+                                <div className="pl-2 space-y-2">
+                                    {[
+                                        { id: 'None', label: '24/7 (Ignore Sessions)' },
+                                        { id: 'Sydney', label: '🇦🇺 Sydney (22:00 - 07:00 UTC)' },
+                                        { id: 'Tokyo', label: '🇯🇵 Tokyo (00:00 - 09:00 UTC)' },
+                                        { id: 'London', label: '🇬🇧 London (08:00 - 17:00 UTC)' },
+                                        { id: 'New York', label: '🇺🇸 New York (13:00 - 22:00 UTC)' },
+                                        { id: 'Overlap', label: '🔥 London & NY Overlap (13:00 - 17:00 UTC)' }
+                                    ].map(session => (
+                                        <div key={session.id} className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                id={`session_${session.id}`}
+                                                className="w-3 h-3 accent-blue-500 cursor-pointer"
+                                                checked={form.tradingSessions.includes(session.id)}
+                                                onChange={(e) => {
+                                                    let updated = [...form.tradingSessions];
+                                                    if (e.target.checked) {
+                                                        if (session.id === 'None') updated = ['None'];
+                                                        else {
+                                                            updated = updated.filter(s => s !== 'None');
+                                                            if (!updated.includes(session.id)) updated.push(session.id);
+                                                        }
+                                                    } else {
+                                                        updated = updated.filter(s => s !== session.id);
+                                                        if (updated.length === 0) updated = ['None'];
+                                                    }
+                                                    handleFormChange('tradingSessions', updated);
+                                                }}
+                                            />
+                                            <label htmlFor={`session_${session.id}`} className="text-xs text-gray-300 font-semibold cursor-pointer select-none">
+                                                {session.label}
+                                            </label>
+                                        </div>
+                                    ))}
+
+                                    <div className="flex items-center space-x-2 pt-1">
+                                        <input
+                                            type="checkbox"
+                                            id="session_custom"
+                                            className="w-3 h-3 accent-blue-500 cursor-pointer"
+                                            checked={form.tradingSessions.some(s => s.startsWith('Custom|'))}
+                                            onChange={(e) => {
+                                                let updated = form.tradingSessions.filter(s => !s.startsWith('Custom|'));
+                                                if (e.target.checked) {
+                                                    updated = updated.filter(s => s !== 'None');
+                                                    updated.push('Custom|00:00-00:00'); // placeholder
+                                                } else if (updated.length === 0) {
+                                                    updated = ['None'];
+                                                }
+                                                handleFormChange('tradingSessions', updated);
+                                            }}
+                                        />
+                                        <label htmlFor="session_custom" className="text-xs text-gray-300 font-semibold cursor-pointer select-none">
+                                            Custom Time (UTC)
+                                        </label>
+                                    </div>
+                                    
+                                    {form.tradingSessions.some(s => s.startsWith('Custom|')) && (
+                                        <div className="pl-5 pt-1">
+                                            <input 
+                                                type="text" 
+                                                className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white outline-none focus:border-brand-primary text-xs font-mono"
+                                                placeholder="e.g. 14:30-16:00"
+                                                value={form.tradingSessions.find(s => s.startsWith('Custom|'))?.split('|')[1] || ''}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    let updated = form.tradingSessions.filter(s => !s.startsWith('Custom|'));
+                                                    updated.push(`Custom|${val}`);
+                                                    handleFormChange('tradingSessions', updated);
+                                                }}
+                                            />
+                                            <p className="text-[9px] text-gray-500 mt-1">Format: HH:MM-HH:MM (24-hour UTC time)</p>
+                                        </div>
+                                    )}
                                 </div>
-                                <p className="text-[8px] text-gray-500 italic mt-1 leading-tight pl-2">If a session is selected, the bot will only take entries during this window. If the session ends while running, the bot will automatically turn off and send a Telegram alert.</p>
+                                <p className="text-[8px] text-gray-500 italic mt-1 leading-tight pl-2">If any selected session is active, the bot takes entries. If all end, the bot will auto-shutdown and send a Telegram alert.</p>
                             </div>
 
                             {/* Triggers remain untouched */}

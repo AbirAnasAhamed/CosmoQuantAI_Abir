@@ -239,10 +239,10 @@ class WallHunterBot:
         self.dual_engine_standalone = DualEngineStandaloneListener(self)
         
         # --- NEW: Trading Session Tracker ---
-        self.trading_session = config.get("trading_session", "None")
+        self.trading_sessions = config.get("trading_sessions", [config.get("trading_session", "None")])
         self.session_tracker = TradingSessionTracker(
             bot_instance=self,
-            session_name=self.trading_session,
+            session_names=self.trading_sessions,
             on_session_end=self._on_trading_session_end
         )
         
@@ -1070,7 +1070,8 @@ class WallHunterBot:
 
         trigger_console_str = "\n".join(trigger_logs_console)
 
-        session_str = f"\U0001f552 Trading Session: {self.trading_session}\n" if self.trading_session and self.trading_session != "None" else ""
+        valid_sessions = [s for s in getattr(self, 'trading_sessions', []) if s and s != "None"]
+        session_str = f"\U0001f552 Trading Sessions: {', '.join(valid_sessions)}\n" if valid_sessions else ""
         startup_msg = (
             f"\U0001f7e2 WallHunter Bot [ID: {self.bot_id}] Started!\n"
             f"Pair: {self.symbol}\n"
@@ -1172,11 +1173,12 @@ class WallHunterBot:
                 extra_str = f" | {' | '.join(extras)}" if extras else ""
                 
                 # Session status for heartbeat
-                session_name = getattr(self, 'trading_session', 'None')
-                if session_name and session_name != 'None':
+                valid_sessions = [s for s in getattr(self, 'trading_sessions', []) if s and s != "None"]
+                if valid_sessions:
                     from app.strategies.helpers.trading_session_filter import TradingSessionTracker
-                    session_active = TradingSessionTracker.is_session_active(session_name)
-                    session_tag = f" | Session: {session_name} [ACTIVE]" if session_active else f" | Session: {session_name} [WAITING]"
+                    session_active = TradingSessionTracker.is_session_active(self.trading_sessions)
+                    display_name = ", ".join(valid_sessions)
+                    session_tag = f" | Session: {display_name} [ACTIVE]" if session_active else f" | Session: {display_name} [WAITING]"
                 else:
                     session_tag = ""
                 
@@ -1230,7 +1232,7 @@ class WallHunterBot:
 
 
                 if not self.active_pos:
-                    if not TradingSessionTracker.is_session_active(self.trading_session):
+                    if not TradingSessionTracker.is_session_active(self.trading_sessions):
                         await asyncio.sleep(1)
                         continue
                         
