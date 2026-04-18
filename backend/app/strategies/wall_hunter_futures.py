@@ -247,6 +247,8 @@ class WallHunterFuturesStrategy:
         self.wick_sr_sweep_threshold = self.config.get("wick_sr_sweep_threshold", 3)
         self.wick_sr_min_touches = self.config.get("wick_sr_min_touches", 10)
         self.enable_wick_sr_oib = self.config.get("enable_wick_sr_oib", False)
+        self.enable_dynamic_wick_tp = self.config.get("enable_dynamic_wick_tp", False)
+        self.dynamic_tp_frontrun_pct = self.config.get("dynamic_tp_frontrun_pct", 0.0)
         
         self.wick_sr_tracker = WickSRTracker(
             timeframe=self.wick_sr_timeframe,
@@ -1402,28 +1404,55 @@ class WallHunterFuturesStrategy:
                 
                 actual_entry = res.get('average') or res.get('price') or entry_price
                 
+                dynamic_tp_price = None
+                if getattr(self, 'enable_wick_sr', False) and getattr(self, 'enable_dynamic_wick_tp', False) and hasattr(self, 'wick_sr_tracker'):
+                    dynamic_tp_price = self.wick_sr_tracker.get_dynamic_tp(
+                        side=side, 
+                        entry_price=actual_entry, 
+                        frontrun_pct=getattr(self, 'dynamic_tp_frontrun_pct', 0.0)
+                    )
+                
                 if side == "buy": # LONG
+                    sl_price = actual_entry * (1 - (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else 0.0
+                    if dynamic_tp_price and dynamic_tp_price > actual_entry:
+                        tp_price = dynamic_tp_price
+                        logger.info(f"🎯 [Dynamic TP] Set to {tp_price:.6f} via Wick SR Resistance Level-to-Level!")
+                    else:
+                        tp_price = actual_entry + self.target_spread
+                        if getattr(self, 'enable_dynamic_wick_tp', False):
+                            logger.info(f"⚠️ [Dynamic TP] No valid Resistance found above {actual_entry:.6f}. Using Fallback Spread TP: {tp_price:.6f}")
+                            
                     self.active_pos = {
                         "entry": float(actual_entry),
                         "amount": base_amount,
-                        "sl": actual_entry * (1 - (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else 0.0,
-                        "tp": actual_entry + self.target_spread,
+                        "sl": sl_price,
+                        "tp": tp_price,
                         "side": "long",
                         "breakeven_hit": False,
                         "tsl_activated": False,
                         "entry_order_id": res.get('id')
                     }
                 else: # SHORT
+                    sl_price = actual_entry * (1 + (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else float('inf')
+                    if dynamic_tp_price and dynamic_tp_price < actual_entry:
+                        tp_price = dynamic_tp_price
+                        logger.info(f"🎯 [Dynamic TP] Set to {tp_price:.6f} via Wick SR Support Level-to-Level!")
+                    else:
+                        tp_price = actual_entry - self.target_spread
+                        if getattr(self, 'enable_dynamic_wick_tp', False):
+                            logger.info(f"⚠️ [Dynamic TP] No valid Support found below {actual_entry:.6f}. Using Fallback Spread TP: {tp_price:.6f}")
+                            
                     self.active_pos = {
                         "entry": float(actual_entry),
                         "amount": base_amount,
-                        "sl": actual_entry * (1 + (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else float('inf'),
-                        "tp": actual_entry - self.target_spread,
+                        "sl": sl_price,
+                        "tp": tp_price,
                         "side": "short",
                         "breakeven_hit": False,
-                        "tsl_activated": False
+                        "tsl_activated": False,
+                        "entry_order_id": res.get('id')
                     }
-                
+
                 self.extreme_price = actual_entry
                 
                 # --- NEW: Partial TP1 calculation ---
@@ -2513,6 +2542,14 @@ class WallHunterFuturesStrategy:
         if "enable_wick_sr_oib" in new_config and new_config["enable_wick_sr_oib"] != getattr(self, "enable_wick_sr_oib", False):
             self.enable_wick_sr_oib = new_config.get("enable_wick_sr_oib", False)
             updates.append(f"Wick SR OIB Confluence: {'ON' if self.enable_wick_sr_oib else 'OFF'}")
+            
+        if "enable_dynamic_wick_tp" in new_config and new_config["enable_dynamic_wick_tp"] != getattr(self, "enable_dynamic_wick_tp", False):
+            self.enable_dynamic_wick_tp = new_config.get("enable_dynamic_wick_tp", False)
+            updates.append(f"Dynamic Wick TP: {'ON' if self.enable_dynamic_wick_tp else 'OFF'}")
+            
+        if "dynamic_tp_frontrun_pct" in new_config and new_config["dynamic_tp_frontrun_pct"] != getattr(self, "dynamic_tp_frontrun_pct", 0.0):
+            self.dynamic_tp_frontrun_pct = new_config.get("dynamic_tp_frontrun_pct", 0.0)
+            updates.append(f"Dynamic TP Front-Run: {self.dynamic_tp_frontrun_pct}%")
 
         if updates:
             self.config.update(new_config)

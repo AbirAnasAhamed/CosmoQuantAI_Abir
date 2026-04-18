@@ -169,7 +169,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         wickSrTimeframe: '1m',
         wickSrSweepThreshold: 3,
         wickSrMinTouches: 10,
-        enableWickSrOib: false
+        enableWickSrOib: false,
+        enableDynamicWickTp: false,
+        dynamicTpFrontrunPct: 0.0
     });
 
     const [existingBot, setExistingBot] = useState<any>(null);
@@ -358,7 +360,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             wickSrTimeframe: c.wick_sr_timeframe || '1m',
                             wickSrSweepThreshold: c.wick_sr_sweep_threshold || 3,
                             wickSrMinTouches: c.wick_sr_min_touches || 10,
-                            enableWickSrOib: c.enable_wick_sr_oib !== undefined ? c.enable_wick_sr_oib : false
+                            enableWickSrOib: c.enable_wick_sr_oib !== undefined ? c.enable_wick_sr_oib : false,
+                            enableDynamicWickTp: c.enable_dynamic_wick_tp !== undefined ? c.enable_dynamic_wick_tp : false,
+                            dynamicTpFrontrunPct: c.dynamic_tp_frontrun_pct !== undefined ? c.dynamic_tp_frontrun_pct : 0.0
                         }));
                     } else {
                         setExistingBot(null);
@@ -698,7 +702,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     wick_sr_timeframe: form.wickSrTimeframe,
                     wick_sr_sweep_threshold: form.wickSrSweepThreshold,
                     wick_sr_min_touches: form.wickSrMinTouches,
-                    enable_wick_sr_oib: form.enableWickSrOib
+                    enable_wick_sr_oib: form.enableWickSrOib,
+                    enable_dynamic_wick_tp: form.enableDynamicWickTp,
+                    dynamic_tp_frontrun_pct: form.dynamicTpFrontrunPct
                 }
             };
 
@@ -1860,7 +1866,36 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                     <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform duration-200 ${form.enableWickSrOib ? 'translate-x-4' : 'translate-x-0'}`}></div>
                                                 </div>
                                             </div>
-                                            
+
+                                            {/* Dynamic TP Level-to-Level */}
+                                            <div className={`col-span-2 flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors mt-2 ${form.enableDynamicWickTp ? 'bg-cyan-500/10 border border-cyan-500/30' : 'bg-white/5 border border-white/10'}`} onClick={() => handleFormChange('enableDynamicWickTp', !form.enableDynamicWickTp)}>
+                                                <div>
+                                                    <span className="text-[10px] font-black text-white uppercase tracking-wider block text-cyan-400">🎯 Dynamic TP (Level-to-Level)</span>
+                                                    <span className="text-[9px] text-gray-500 mt-0.5 block">Ignore fixed spread. Use next SR zone as TP target</span>
+                                                </div>
+                                                <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors duration-200 ${form.enableDynamicWickTp ? 'bg-cyan-500' : 'bg-gray-700'}`}>
+                                                    <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform duration-200 ${form.enableDynamicWickTp ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                                </div>
+                                            </div>
+
+                                            {/* Front-Run % input shown only when Dynamic TP is ON */}
+                                            {form.enableDynamicWickTp && (
+                                                <div className="col-span-2 flex items-center justify-between p-2 rounded-lg bg-cyan-500/5 border border-cyan-500/20 mt-1">
+                                                    <div>
+                                                        <span className="text-[10px] font-black text-white uppercase tracking-wider block text-cyan-300">TP Front-Run %</span>
+                                                        <span className="text-[9px] text-gray-500 mt-0.5 block">Take profit this % before the zone (0 = exactly at zone)</span>
+                                                    </div>
+                                                    <input
+                                                        type="number"
+                                                        className="w-20 bg-[#0B1120] border border-cyan-500/30 rounded-lg p-1.5 text-cyan-300 outline-none focus:border-cyan-400 text-sm font-bold text-center font-mono"
+                                                        value={form.dynamicTpFrontrunPct}
+                                                        onChange={(e) => handleFormChange('dynamicTpFrontrunPct', parseFloat(e.target.value) || 0)}
+                                                        min={0} max={5} step={0.05}
+                                                        placeholder="0.0"
+                                                    />
+                                                </div>
+                                            )}
+
                                         </div>
                                     </div>
                                 )}

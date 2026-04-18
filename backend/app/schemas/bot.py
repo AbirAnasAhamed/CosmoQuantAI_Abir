@@ -148,6 +148,8 @@ class StrategyConfig(BaseModel):
     wick_sr_sweep_threshold: Optional[int] = 3
     wick_sr_min_touches: Optional[int] = 10
     enable_wick_sr_oib: Optional[bool] = False
+    enable_dynamic_wick_tp: Optional[bool] = False
+    dynamic_tp_frontrun_pct: Optional[float] = 0.0
 
     @validator('stop_loss')
     def validate_stop_loss(cls, v):

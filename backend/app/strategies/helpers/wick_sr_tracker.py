@@ -201,3 +201,38 @@ class WickSRTracker:
                     })
                     
         return signals
+
+    def get_dynamic_tp(self, side: str, entry_price: float, frontrun_pct: float = 0.0) -> Optional[float]:
+        """
+        Calculates the nearest Wick SR zone TP based on the entry side.
+        Applies a frontrun percentage to take profit slightly before the absolute level to guarantee execution.
+        """
+        valid_targets = []
+        for level in self.levels:
+            if level['status'] != 'ACTIVE':
+                continue
+                
+            if side == 'buy':
+                # Long entry: looking for the NEXT Resistance ABOVE the entry price
+                if level['type'] == 'resistance' and level['bottom_band'] > entry_price:
+                    valid_targets.append(level['bottom_band'])
+            elif side == 'sell':
+                # Short entry: looking for the NEXT Support BELOW the entry price
+                if level['type'] == 'support' and level['top_band'] < entry_price:
+                    valid_targets.append(level['top_band'])
+                    
+        if not valid_targets:
+            return None
+            
+        if side == 'buy':
+            # Nearest resistance bottom band
+            target_price = min(valid_targets)
+            if frontrun_pct > 0:
+                target_price = target_price * (1 - (frontrun_pct / 100))
+        else:
+            # Nearest support top band
+            target_price = max(valid_targets)
+            if frontrun_pct > 0:
+                target_price = target_price * (1 + (frontrun_pct / 100))
+                
+        return target_price
