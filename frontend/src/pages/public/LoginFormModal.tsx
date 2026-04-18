@@ -85,14 +85,7 @@ const LoginFormModal: React.FC<LoginFormModalProps> = ({ onClose, onLoginSuccess
                 <div className="p-6 md:p-8 relative z-10 flex flex-col justify-center">
                     <div className="text-center mb-6">
                         <div className="flex justify-center mb-4">
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.5)]">
-                                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                </div>
-                                <Logo className="!text-xl !text-white" />
-                            </div>
+                            <Logo className="!text-2xl !text-white" />
                         </div>
                         <h2 className="text-2xl font-extrabold text-white tracking-tight">Access Terminal</h2>
                         <p className="text-sm text-slate-400 mt-1">Enter credentials to authenticate into the network.</p>
