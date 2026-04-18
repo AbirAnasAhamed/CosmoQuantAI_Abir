@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     
     # API Keys
     GEMINI_API_KEY: Optional[str] = None
+    GEMINI_API_KEY_2: Optional[str] = None  # Backup key for quota rotation
     OPENAI_API_KEY: Optional[str] = None
     DEEPSEEK_API_KEY: Optional[str] = None
     

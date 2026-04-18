@@ -3,6 +3,7 @@ import json
 import requests
 import re
 import asyncio
+import logging
 try:
     from google import genai
 except ImportError:
@@ -15,15 +16,25 @@ from spacy.pipeline import entityruler
 import subprocess
 import sys
 
+logger = logging.getLogger(__name__)
+
 load_dotenv()
 
-# 1. Global Gemini Client Setup (Safe Init)
+# 1. Global Gemini Client Setup (Dual Key Rotation)
 gemini_client = None
-if settings.GEMINI_API_KEY:
-    try:
-        gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
-    except Exception as e:
-        print(f"⚠️ Gemini Client Init Warning: {e}")
+gemini_clients = []  # List of available clients for rotation
+
+for _key in [settings.GEMINI_API_KEY, getattr(settings, 'GEMINI_API_KEY_2', None)]:
+    if _key:
+        try:
+            _client = genai.Client(api_key=_key)
+            gemini_clients.append(_client)
+        except Exception as e:
+            print(f"⚠️ Gemini Client Init Warning: {e}")
+
+if gemini_clients:
+    gemini_client = gemini_clients[0]
+    print(f"✅ {len(gemini_clients)} Gemini client(s) initialized.")
 
 # 2. Global Spacy Model (Singleton)
 _nlp_model = None
@@ -309,23 +320,52 @@ class AIService:
         return f"Market Sentiment appears {sentiment} based on recent headlines. (AI Unavailable, using heuristics)"
 
     async def _call_gemini(self, full_prompt: str) -> str:
-        if not gemini_client:
+        if not gemini_clients:
             return "❌ Gemini API Key missing or client init failed."
         
-        def _sync_gemini():
-            try:
-                # Standard stable model
-                response = gemini_client.models.generate_content(
-                    model="gemini-2.5-flash", 
-                    contents=full_prompt
-                )
-                return response.text.strip()
-            except Exception as e:
-                # If the specific model fails, we can try one fallback or just return the error
-                # print(f"Gemini Model Error: {e}")
-                raise e # Let the outer try/except catch it and format the error string
-            
-        return await asyncio.to_thread(_sync_gemini)
+        # Model cascade: try each model in order
+        MODELS = [
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+        ]
+        MAX_RETRIES = 1  # retries per combo for per-minute limits
+        
+        import re as _re
+        
+        last_error = None
+        # Outer loop: try each API key (client), inner loop: each model
+        for client_idx, active_client in enumerate(gemini_clients):
+            for model in MODELS:
+                for attempt in range(MAX_RETRIES + 1):
+                    try:
+                        def _sync_gemini(c=active_client, m=model):
+                            response = c.models.generate_content(
+                                model=m,
+                                contents=full_prompt
+                            )
+                            return response.text.strip()
+                        
+                        result = await asyncio.to_thread(_sync_gemini)
+                        if client_idx > 0 or model != MODELS[0]:
+                            logger.info(f"✅ Gemini success: key={client_idx+1} model={model}")
+                        return result
+                        
+                    except Exception as e:
+                        err_str = str(e)
+                        last_error = e
+                        
+                        if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                            # Any quota error → skip to next model immediately (no point waiting)
+                            logger.warning(f"⚠️ Quota error: key={client_idx+1} model={model} → trying next...")
+                            break  # try next model with same or next key
+                        else:
+                            raise e  # Non-rate-limit error → fail fast
+        
+        # All clients and models exhausted
+        raise last_error
+
+
 
     async def _call_openai_compatible(self, api_key: str, base_url: str, model: str, system_msg: str, user_msg: str) -> str:
         if not api_key:
