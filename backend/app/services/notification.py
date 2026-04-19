@@ -109,7 +109,8 @@ class NotificationService:
     @staticmethod
     async def send_photo(db: Session, user_id: int, photo_url: str, caption: str = None, parse_mode: str = None):
         """
-        Sends a photo (by URL) to the user via Telegram.
+        Sends a photo to the user via Telegram.
+        Downloads the image first to bypass CDN restrictions (e.g. Google's lh3 CDN).
         """
         try:
             settings = db.query(NotificationSettings).filter(
@@ -120,9 +121,18 @@ class NotificationService:
                 return
 
             bot = _make_bot(settings.telegram_bot_token)
+
+            # Download image ourselves to avoid CDN/auth issues with Telegram directly fetching
+            import httpx, io
+            async with httpx.AsyncClient(timeout=10, follow_redirects=True, headers={"User-Agent": "Mozilla/5.0"}) as hc:
+                img_resp = await hc.get(photo_url)
+                img_resp.raise_for_status()
+                img_bytes = io.BytesIO(img_resp.content)
+                img_bytes.name = "thumbnail.jpg"
+
             await bot.send_photo(
                 chat_id=settings.telegram_chat_id,
-                photo=photo_url,
+                photo=img_bytes,
                 caption=caption,
                 parse_mode=parse_mode
             )
