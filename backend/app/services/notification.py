@@ -107,6 +107,31 @@ class NotificationService:
             logger.error(f"[TelegramNotify] Failed to send voice message to {user_id}: {e}")
 
     @staticmethod
+    async def send_photo(db: Session, user_id: int, photo_url: str, caption: str = None, parse_mode: str = None):
+        """
+        Sends a photo (by URL) to the user via Telegram.
+        """
+        try:
+            settings = db.query(NotificationSettings).filter(
+                NotificationSettings.user_id == user_id
+            ).first()
+
+            if not settings or not settings.is_enabled or not settings.telegram_bot_token or not settings.telegram_chat_id:
+                return
+
+            bot = _make_bot(settings.telegram_bot_token)
+            await bot.send_photo(
+                chat_id=settings.telegram_chat_id,
+                photo=photo_url,
+                caption=caption,
+                parse_mode=parse_mode
+            )
+            logger.info(f"Photo notification sent to user {user_id}")
+        except Exception as e:
+            logger.warning(f"[TelegramNotify] Could not send photo to {user_id}: {e} — falling back to text.")
+            raise  # Let caller fall back to text
+
+    @staticmethod
     async def force_send_message(bot_token: str, chat_id: str, message: str):
         """
         Sends a test message using provided credentials.
