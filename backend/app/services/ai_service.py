@@ -348,7 +348,7 @@ class AIService:
                         
                         result = await asyncio.to_thread(_sync_gemini)
                         if client_idx > 0 or model != MODELS[0]:
-                            logger.info(f"✅ Gemini success: key={client_idx+1} model={model}")
+                            logger.warning(f"✅ Gemini success: key={client_idx+1} model={model}")
                         return result
                         
                     except Exception as e:

@@ -307,11 +307,34 @@ class NewsService:
                                 f"🏦 উৎস: <i>{r.source}</i>"
                             )
                         
+                        # ── Fetch OG image from article URL ──
+                        og_image_url = None
+                        try:
+                            import httpx
+                            from bs4 import BeautifulSoup
+                            async with httpx.AsyncClient(timeout=8, follow_redirects=True, headers={"User-Agent": "Mozilla/5.0"}) as hclient:
+                                resp = await hclient.get(r.link)
+                                if resp.status_code == 200:
+                                    soup = BeautifulSoup(resp.text, "html.parser")
+                                    og = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "twitter:image"})
+                                    if og and og.get("content"):
+                                        og_image_url = og["content"]
+                        except Exception:
+                            pass  # No image, that's fine
+
                         for setting in active_notifications:
                             if voice_path:
                                 await NotificationService.send_voice(db, setting.user_id, voice_path, caption=msg, parse_mode="HTML")
                             else:
                                 await NotificationService.send_message(db, setting.user_id, msg, parse_mode="HTML")
+
+                            # Send article image if found, else send plain URL for Telegram preview
+                            if og_image_url:
+                                try:
+                                    await NotificationService.send_photo(db, setting.user_id, og_image_url)
+                                except Exception:
+                                    pass  # silently ignore if photo fails
+
                                 
                         # Cleanup temp audio
                         if voice_path:
