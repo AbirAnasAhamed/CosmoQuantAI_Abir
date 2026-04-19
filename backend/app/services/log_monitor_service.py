@@ -172,6 +172,10 @@ IGNORE_PATTERNS = [
     re.compile(r'Error: read ECONNRESET', re.IGNORECASE),
     re.compile(r'Broken pipe', re.IGNORECASE),
     re.compile(r'node:internal/stream_base_commons', re.IGNORECASE),
+    # ── Gemini API / Fallback Noise ──────────────────────────────────────────
+    # These are handled gracefully by the fallback system
+    re.compile(r'Quota\s+error:.*?trying\s+next', re.IGNORECASE),
+    re.compile(r'Gemini\s+success:', re.IGNORECASE),
 ]
 
 # Patterns that look like errors but should be downgraded to WARNING
