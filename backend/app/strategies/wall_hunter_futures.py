@@ -1537,7 +1537,7 @@ class WallHunterFuturesStrategy:
                 exit_order_type = self.sell_order_type if side == "buy" else self.buy_order_type
                 if exit_order_type == 'limit':
                     exit_side = "sell" if side == "buy" else "buy"
-                    tp_params = {'reduceOnly': True}
+                    tp_params = {'reduceOnly': True, 'postOnly': True}
                     limit_res = await self.engine.execute_trade(exit_side, base_amount, self.active_pos['tp'], order_type="limit", params=tp_params)
                     if limit_res and 'id' in limit_res:
                         self.active_pos['limit_order_id'] = limit_res['id']
@@ -2148,7 +2148,7 @@ class WallHunterFuturesStrategy:
                 await self.engine.cancel_order(self.active_pos['limit_order_id'])
                 remain_amount = self.active_pos['amount'] - sell_amount
                 if remain_amount > 0.00000001:
-                    limit_res = await self.engine.execute_trade(exit_side, remain_amount, self.active_pos['tp'], order_type="limit", params={'reduceOnly': True})
+                    limit_res = await self.engine.execute_trade(exit_side, remain_amount, self.active_pos['tp'], order_type="limit", params={'reduceOnly': True, 'postOnly': True})
                     if limit_res and 'id' in limit_res:
                         self.active_pos['limit_order_id'] = limit_res['id']
             except Exception as e:

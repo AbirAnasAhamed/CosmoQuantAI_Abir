@@ -1110,7 +1110,13 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
             { level: 0.5, title: '50.0%', color: '#22c55e', cloudColor: 'rgba(20, 184, 166, 0.15)' },
             { level: 0.618, title: '61.8%', color: '#14b8a6', cloudColor: 'rgba(59, 130, 246, 0.15)' },
             { level: 0.786, title: '78.6%', color: '#3b82f6', cloudColor: 'rgba(156, 163, 175, 0.15)' },
-            { level: 1, title: '100% (High)', color: '#ffffff', cloudColor: 'rgba(0,0,0,0)' }
+            { level: 1, title: '100% (High)', color: '#ffffff', cloudColor: 'rgba(0,0,0,0)' },
+            { level: 1.272, title: '1.272 (Cons)', color: '#d946ef', cloudColor: 'rgba(0,0,0,0)' },
+            { level: 1.618, title: '1.618 (Golden)', color: '#a855f7', cloudColor: 'rgba(0,0,0,0)' },
+            { level: 2.000, title: '2.0 (Double)', color: '#ec4899', cloudColor: 'rgba(0,0,0,0)' },
+            { level: 2.618, title: '2.618 (Aggr)', color: '#f43f5e', cloudColor: 'rgba(0,0,0,0)' },
+            { level: 3.618, title: '3.618 (Extr)', color: '#fb923c', cloudColor: 'rgba(0,0,0,0)' },
+            { level: 4.236, title: '4.236 (Max)', color: '#f59e0b', cloudColor: 'rgba(0,0,0,0)' }
         ].map(l => ({
             ...l,
             price: lowest + diff * l.level

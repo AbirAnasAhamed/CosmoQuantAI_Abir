@@ -2077,7 +2077,7 @@ class WallHunterBot:
                         await self.engine.cancel_order(active_limit_id)
                         close_side = "buy" if getattr(self, 'strategy_mode', 'long') == "short" else "sell"
                         close_amount = self.active_pos['amount']
-                        limit_res = await self.engine.execute_trade(close_side, close_amount, self.active_pos['tp'], order_type="limit")
+                        limit_res = await self.engine.execute_trade(close_side, close_amount, self.active_pos['tp'], order_type="limit", params={"postOnly": True})
                         if limit_res and 'id' in limit_res:
                             self.active_pos['limit_order_id'] = limit_res['id']
                             self.logger.info(f"🔄 Adjusted Limit TP Order to exact price {self.active_pos['tp']}")
