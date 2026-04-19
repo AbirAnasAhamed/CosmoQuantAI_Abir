@@ -2180,9 +2180,17 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 value={form.autoFiboTargetLevel} 
                                                 onChange={(e) => handleFormChange('autoFiboTargetLevel', parseFloat(e.target.value))}
                                             >
-                                                <option value={1.000}>1.000x (Measured Move / Safe)</option>
-                                                <option value={1.272}>1.272x (Conservative)</option>
-                                                <option value={1.618}>1.618x (Golden Ratio)</option>
+                                                {/* Retracement / Pullback Targets */}
+                                                <option value={0.236}>0.236x (Shallow Pullback)</option>
+                                                <option value={0.382}>0.382x (Healthy Pullback)</option>
+                                                <option value={0.500}>0.500x (Fair Value / 50%)</option>
+                                                <option value={0.618}>0.618x (Golden Pocket Zone)</option>
+                                                <option value={0.786}>0.786x (Deep Reversal Zone)</option>
+                                                
+                                                {/* Extension Targets */}
+                                                <option value={1.000}>1.000x (Measured Move / High)</option>
+                                                <option value={1.272}>1.272x (Conservative Extension)</option>
+                                                <option value={1.618}>1.618x (Golden Extension)</option>
                                                 <option value={2.000}>2.000x (Double Swing)</option>
                                                 <option value={2.618}>2.618x (Aggressive Blow-off)</option>
                                                 <option value={3.618}>3.618x (Extreme Trend)</option>
