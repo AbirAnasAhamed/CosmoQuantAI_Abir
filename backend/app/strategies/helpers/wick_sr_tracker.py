@@ -228,11 +228,17 @@ class WickSRTracker:
             # Nearest resistance bottom band
             target_price = min(valid_targets)
             if frontrun_pct > 0:
-                target_price = target_price * (1 - (frontrun_pct / 100))
+                distance = target_price - entry_price
+                if distance > 0:
+                    # Frontrun by a percentage of the distance to the zone
+                    target_price = target_price - (distance * (frontrun_pct / 100))
         else:
             # Nearest support top band
             target_price = max(valid_targets)
             if frontrun_pct > 0:
-                target_price = target_price * (1 + (frontrun_pct / 100))
+                distance = entry_price - target_price
+                if distance > 0:
+                    # Frontrun by a percentage of the distance to the zone
+                    target_price = target_price + (distance * (frontrun_pct / 100))
                 
         return target_price

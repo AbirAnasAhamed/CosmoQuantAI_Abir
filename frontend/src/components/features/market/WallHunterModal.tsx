@@ -2180,9 +2180,13 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 value={form.autoFiboTargetLevel} 
                                                 onChange={(e) => handleFormChange('autoFiboTargetLevel', parseFloat(e.target.value))}
                                             >
+                                                <option value={1.000}>1.000x (Measured Move / Safe)</option>
                                                 <option value={1.272}>1.272x (Conservative)</option>
                                                 <option value={1.618}>1.618x (Golden Ratio)</option>
+                                                <option value={2.000}>2.000x (Double Swing)</option>
                                                 <option value={2.618}>2.618x (Aggressive Blow-off)</option>
+                                                <option value={3.618}>3.618x (Extreme Trend)</option>
+                                                <option value={4.236}>4.236x (Maximum Target)</option>
                                             </select>
                                         </div>
                                     </div>
