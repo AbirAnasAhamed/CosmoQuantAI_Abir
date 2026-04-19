@@ -2444,8 +2444,16 @@ class WallHunterBot:
             close_side = "buy" if getattr(self, 'strategy_mode', 'long') == "short" else "sell"
             
             if getattr(self, 'strategy_mode', 'long') == "short":
-                # Spot Short means we sold X amount of base asset, so we must buy exactly X back to close cleanly.
-                close_amount_raw = sell_amount_raw
+                # Spot Short means we sold X amount of base asset.
+                # If price increased (SL hit), buying X back costs MORE quote than we received!
+                # We must cap the buy amount to the quote we acquired, otherwise we get Insufficient Balance.
+                acquired_quote = sell_amount_raw * float(self.active_pos['entry']) * 0.995
+                cost_estimate = sell_amount_raw * current_price
+                if cost_estimate > acquired_quote:
+                    self.logger.warning(f"Spot Short SL: Cannot afford full {sell_amount_raw} base. Capping based on acquired quote.")
+                    close_amount_raw = acquired_quote / current_price
+                else:
+                    close_amount_raw = sell_amount_raw
             else:
                 close_amount_raw = sell_amount_raw
             
@@ -2801,7 +2809,13 @@ class WallHunterBot:
             close_side = "buy" if getattr(self, 'strategy_mode', 'long') == "short" else "sell"
             # For maker exit: stay on same side. Long exit = Sell = ask side. Short exit = Buy = bid side.
             maker_price = best_ask if close_side == "sell" else best_bid
+            
             amount = self.active_pos['amount']
+            if close_side == "buy" and getattr(self, 'strategy_mode', 'long') == "short":
+                acquired_quote = amount * float(self.active_pos['entry']) * 0.995
+                if (amount * maker_price) > acquired_quote:
+                    self.logger.warning(f"Dual-Exit Fallback: Capping {amount} base due to insufficient quote balance on Spot Short.")
+                    amount = acquired_quote / (maker_price * 1.005) if maker_price > 0 else amount
             
             self.logger.info(f"🛡️ Dual-Exit Step 1: Placing Maker {close_side.upper()} order at {maker_price:.6f}")
             maker_res = await self.engine.execute_trade(close_side, amount, maker_price, order_type="limit", params={"postOnly": True})
@@ -2960,6 +2974,12 @@ class WallHunterBot:
                 
         close_side = "buy" if getattr(self, 'strategy_mode', 'long') == "short" else "sell"
         action_name = "BUY" if close_side == "buy" else "SELL"
+        
+        if close_side == "buy" and getattr(self, 'strategy_mode', 'long') == "short":
+            acquired_quote = sell_amount * float(self.active_pos['entry']) * 0.995
+            if (sell_amount * current_price) > acquired_quote:
+                self.logger.warning(f"Emergency Sell: Capping {sell_amount} base due to insufficient quote balance on Spot Short.")
+                sell_amount = acquired_quote / (current_price * 1.005) if current_price > 0 else sell_amount
         
         if sell_type in ["market", "marketable_limit"]:
             actual_type = "market" # Engine will convert to marketable limit if needed
