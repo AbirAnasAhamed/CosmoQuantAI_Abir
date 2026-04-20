@@ -4,20 +4,20 @@ from datetime import datetime
 
 # Shared properties
 class StrategyConfig(BaseModel):
-    stop_loss: Optional[float] = None
+    stop_loss: Optional[float] = 0.0
     take_profit: Optional[float] = None
-    trailing_stop: Optional[float] = None
+    trailing_stop: Optional[float] = 0.0
     tsl_activation_pct: Optional[float] = 0.0
     target_spread: Optional[float] = None
     leverage: Optional[int] = 1
     timeframe: str = "1h"
     amount_per_trade: float
     vol_threshold: Optional[float] = None
-    risk_pct: Optional[float] = None
+    risk_pct: Optional[float] = 0.0
     sell_order_type: Optional[str] = "limit"
     sl_order_type: Optional[str] = "market"
     min_wall_lifetime: Optional[float] = 3.0
-    partial_tp_pct: Optional[float] = 50.0
+    partial_tp_pct: Optional[float] = 0.0
     partial_tp_trigger_pct: Optional[float] = 0.0
     sl_breakeven_trigger_pct: Optional[float] = 0.0
     sl_breakeven_target_pct: Optional[float] = 0.0
@@ -164,7 +164,7 @@ class StrategyConfig(BaseModel):
     dynamic_tp_frontrun_pct: Optional[float] = 0.0
     
     # --- Auto-Fibo Extensions TP ---
-    enable_auto_fibo_tp: Optional[bool] = False
+    enable_auto_fibo_tp: Optional[bool] = True
     auto_fibo_target_level: Optional[float] = 1.618
     auto_fibo_timeframe: Optional[str] = "5m"
     auto_fibo_lookback: Optional[int] = 30

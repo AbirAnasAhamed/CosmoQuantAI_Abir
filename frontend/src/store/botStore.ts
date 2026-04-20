@@ -16,7 +16,7 @@ export const useBotStore = create<BotState>((set) => ({
         showBB: true,
         showRSI: false,
         showMACD: false,
-        showVolume: true,
+        showVolume: false,
         showAutoFibo: false,
         showIchimoku: false,
         showTrendFinder: false,
