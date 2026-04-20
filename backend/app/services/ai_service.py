@@ -20,22 +20,30 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-# 1. Global Gemini Client Setup (Dual Key Rotation)
+# 1. Global AI Clients Setup (Dual Key Rotation)
 gemini_client = None
-gemini_clients = []  # List of available clients for rotation
+gemini_clients = [] 
 
-for _key in [settings.GEMINI_API_KEY, getattr(settings, 'GEMINI_API_KEY_2', None)]:
+if getattr(settings, 'LLM_PROVIDER', '').lower() == 'gemini':
+    for _key in [getattr(settings, 'GEMINI_API_KEY', None), getattr(settings, 'GEMINI_API_KEY_2', None)]:
+        if _key:
+            try:
+                _client = genai.Client(api_key=_key)
+                gemini_clients.append(_client)
+            except Exception as e:
+                print(f"⚠️ Gemini Client Init Warning: {e}")
+
+    if gemini_clients:
+        gemini_client = gemini_clients[0]
+        print(f"✅ {len(gemini_clients)} Gemini client(s) initialized.")
+
+groq_keys = []
+for _key in [getattr(settings, 'GROQ_API_KEY', None), getattr(settings, 'GROQ_API_KEY_2', None)]:
     if _key:
-        try:
-            _client = genai.Client(api_key=_key)
-            gemini_clients.append(_client)
-        except Exception as e:
-            print(f"⚠️ Gemini Client Init Warning: {e}")
+        groq_keys.append(_key)
 
-if gemini_clients:
-    gemini_client = gemini_clients[0]
-    print(f"✅ {len(gemini_clients)} Gemini client(s) initialized.")
-
+if groq_keys:
+    print(f"✅ {len(groq_keys)} Groq client(s) initialized.")
 # 2. Global Spacy Model (Singleton)
 _nlp_model = None
 
@@ -297,13 +305,44 @@ class AIService:
                     system_prompt, 
                     user_content
                 )
+
+            elif active_provider == "groq":
+                res_temp = "❌ Groq Keys missing"
+                for index, _ckey in enumerate(groq_keys):
+                    res_temp = await self._call_openai_compatible(
+                        _ckey, 
+                        "https://api.groq.com/openai/v1", 
+                        "llama-3.3-70b-versatile", 
+                        system_prompt, 
+                        user_content
+                    )
+                    if res_temp and "API Error 429" in res_temp:
+                        print(f"⚠️ Groq Quota limit on Key {index+1}, trying next...")
+                        continue
+                    break
+                return res_temp
             
             else:
                 return f"❌ Error: Unknown Provider '{active_provider}'"
 
         except Exception as e:
             print(f"❌ AI Error ({active_provider}): {e}")
-            # Fallback: Rule-based Summary
+            if active_provider == "gemini" and groq_keys:
+                print("🔄 Falling back from Gemini to Groq API...")
+                res_fb = ""
+                for index, _ckey in enumerate(groq_keys):
+                    res_fb = await self._call_openai_compatible(
+                        _ckey,
+                        "https://api.groq.com/openai/v1",
+                        "llama-3.3-70b-versatile",
+                        system_prompt,
+                        user_content
+                    )
+                    if res_fb and "API Error 429" in res_fb:
+                        continue
+                    return res_fb
+            
+            # Final Fallback: Rule-based Summary
             return self._generate_fallback_summary(user_content)
 
     def _generate_fallback_summary(self, content: str) -> str:
@@ -447,11 +486,16 @@ class AIService:
     def _clean_and_parse_json(self, text: str, default=None):
         if default is None: default = []
         try:
-            # Clean markdown code blocks
-            clean_text = text.replace("```json", "").replace("```", "").strip()
+            import re
+            # Extract anything between the first { and last } or first [ and last ]
+            match = re.search(r'(\{.*\}|\[.*\])', text, re.DOTALL)
+            if match:
+                clean_text = match.group(1)
+            else:
+                clean_text = text.replace("```json", "").replace("```", "").strip()
             return json.loads(clean_text)
-        except json.JSONDecodeError:
-            print(f"Failed to parse JSON: {text[:100]}...")
+        except json.JSONDecodeError as e:
+            print(f"Failed to parse JSON: {text[:80]}... Error: {e}")
             return default
 
 # ✅ Create Global Instance

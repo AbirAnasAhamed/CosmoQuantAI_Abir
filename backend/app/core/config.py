@@ -45,14 +45,16 @@ class Settings(BaseSettings):
     REDDIT_USER_AGENT: str = "CosmoQuantAI/1.0"
     
     # ✅ AI / LLM Configuration (NEW)
-    # Options: "gemini", "openai", "deepseek"
-    LLM_PROVIDER: str = "gemini" 
+    # Options: "gemini", "openai", "deepseek", "groq"
+    LLM_PROVIDER: str = "groq" 
     
     # API Keys
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_API_KEY_2: Optional[str] = None  # Backup key for quota rotation
     OPENAI_API_KEY: Optional[str] = None
     DEEPSEEK_API_KEY: Optional[str] = None
+    GROQ_API_KEY: Optional[str] = None
+    GROQ_API_KEY_2: Optional[str] = None
     
     # Exchange API Keys
     BINANCE_API_KEY: Optional[str] = None

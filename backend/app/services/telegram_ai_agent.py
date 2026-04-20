@@ -58,7 +58,7 @@ class TelegramAIAgent:
         
         try:
             # Re-using the private _route_request method from ai_service safely
-            raw_response = await ai_service._route_request(system_prompt, content_to_analyze, provider="gemini")
+            raw_response = await ai_service._route_request(system_prompt, content_to_analyze, provider=None)
             parsed = ai_service._clean_and_parse_json(raw_response)
             
             # Basic validation

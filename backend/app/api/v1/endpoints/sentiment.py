@@ -30,7 +30,7 @@ async def get_dark_pool_sentiment(symbol: str):
 class SummaryRequest(BaseModel):
     headlines: str
     asset: str
-    provider: str = "gemini"
+    provider: str = None
 
 class MacroSummaryRequest(BaseModel):
     data: str # Stringified JSON of macro data
