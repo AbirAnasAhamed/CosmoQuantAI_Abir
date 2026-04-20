@@ -155,6 +155,7 @@ class StrategyConfig(BaseModel):
     enable_auto_fibo_tp: Optional[bool] = False
     auto_fibo_target_level: Optional[float] = 1.618
     auto_fibo_timeframe: Optional[str] = "5m"
+    auto_fibo_lookback: Optional[int] = 30
 
     @validator('stop_loss')
     def validate_stop_loss(cls, v):
