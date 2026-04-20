@@ -100,12 +100,20 @@ class StrategyConfig(BaseModel):
     # --- Dual Engine Command Center ---
     enable_dual_engine: Optional[bool] = False
     dual_engine_mode: Optional[str] = "Classic"
+    dual_engine_confluence_mode: Optional[bool] = False
+    dual_engine_min_confluence: Optional[int] = 3
     dual_engine_ema_filter: Optional[bool] = False
+    dual_engine_triple_ema_filter: Optional[bool] = False
     dual_engine_rsi_filter: Optional[bool] = False
     dual_engine_candle_filter: Optional[bool] = False
     dual_engine_macd_filter: Optional[bool] = False
     dual_engine_squeeze_filter: Optional[bool] = False
+    dual_engine_adx_filter: Optional[bool] = False
+    dual_engine_vol_filter: Optional[bool] = False
     dual_engine_ema_length: Optional[int] = 100
+    dual_engine_ema_fast: Optional[int] = 10
+    dual_engine_ema_med: Optional[int] = 15
+    dual_engine_ema_slow: Optional[int] = 27
     dual_engine_rsi_length: Optional[int] = 14
     dual_engine_rsi_ob: Optional[int] = 70
     dual_engine_rsi_os: Optional[int] = 30
@@ -115,6 +123,10 @@ class StrategyConfig(BaseModel):
     dual_engine_squeeze_length: Optional[int] = 20
     dual_engine_squeeze_bb_mult: Optional[float] = 2.0
     dual_engine_squeeze_kc_mult: Optional[float] = 1.5
+    dual_engine_adx_length: Optional[int] = 14
+    dual_engine_adx_threshold: Optional[int] = 25
+    dual_engine_vol_length: Optional[int] = 20
+    dual_engine_vol_multiplier: Optional[float] = 1.5
 
     # --- UT Bot Alerts ---
     enable_ut_trend_filter: Optional[bool] = False

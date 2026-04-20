@@ -114,10 +114,16 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         // --- NEW: Dual Engine Command Center ---
         enableDualEngine: false,
         dualEngineMode: 'Classic',
+        dualEngineConfluenceMode: false,
+        dualEngineMinConfluence: 3,
         dualEngineEmaFilter: false,
+        dualEngineTripleEmaFilter: false,
         dualEngineRsiFilter: false,
         dualEngineCandleFilter: false,
         dualEngineEmaLength: 100,
+        dualEngineEmaFast: 10,
+        dualEngineEmaMed: 15,
+        dualEngineEmaSlow: 27,
         dualEngineRsiLength: 14,
         dualEngineRsiOb: 70,
         dualEngineRsiOs: 30,
@@ -129,6 +135,12 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         dualEngineSqueezeLength: 20,
         dualEngineSqueezeBbMult: 2.0,
         dualEngineSqueezeKcMult: 1.5,
+        dualEngineAdxFilter: false,
+        dualEngineAdxLength: 14,
+        dualEngineAdxThreshold: 25,
+        dualEngineVolFilter: false,
+        dualEngineVolLength: 20,
+        dualEngineVolMultiplier: 1.5,
 
         // --- NEW: Modular UT Bot Alerts ---
         enableUtBot: false,
@@ -663,12 +675,20 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     // Dual Engine Command Center
                     enable_dual_engine: form.enableDualEngine,
                     dual_engine_mode: form.dualEngineMode,
+                    dual_engine_confluence_mode: form.dualEngineConfluenceMode,
+                    dual_engine_min_confluence: form.dualEngineMinConfluence,
                     dual_engine_ema_filter: form.dualEngineEmaFilter,
+                    dual_engine_triple_ema_filter: form.dualEngineTripleEmaFilter,
                     dual_engine_rsi_filter: form.dualEngineRsiFilter,
                     dual_engine_candle_filter: form.dualEngineCandleFilter,
                     dual_engine_macd_filter: form.dualEngineMacdFilter,
                     dual_engine_squeeze_filter: form.dualEngineSqueezeFilter,
+                    dual_engine_adx_filter: form.dualEngineAdxFilter,
+                    dual_engine_vol_filter: form.dualEngineVolFilter,
                     dual_engine_ema_length: form.dualEngineEmaLength,
+                    dual_engine_ema_fast: form.dualEngineEmaFast,
+                    dual_engine_ema_med: form.dualEngineEmaMed,
+                    dual_engine_ema_slow: form.dualEngineEmaSlow,
                     dual_engine_rsi_length: form.dualEngineRsiLength,
                     dual_engine_rsi_ob: form.dualEngineRsiOb,
                     dual_engine_rsi_os: form.dualEngineRsiOs,
@@ -678,6 +698,10 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     dual_engine_squeeze_length: form.dualEngineSqueezeLength,
                     dual_engine_squeeze_bb_mult: form.dualEngineSqueezeBbMult,
                     dual_engine_squeeze_kc_mult: form.dualEngineSqueezeKcMult,
+                    dual_engine_adx_length: form.dualEngineAdxLength,
+                    dual_engine_adx_threshold: form.dualEngineAdxThreshold,
+                    dual_engine_vol_length: form.dualEngineVolLength,
+                    dual_engine_vol_multiplier: form.dualEngineVolMultiplier,
 
                     // Modular UT Bot Alerts
                     enable_ut_trend_filter: form.enableUtBot ? form.enableUtTrendFilter : false,
@@ -1949,10 +1973,28 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                             </div>
                                             {form.dualEngineMode === 'Classic' ? (
                                                 <>
-                                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+                                                    <div className="flex justify-between items-center mb-3 bg-yellow-500/10 border border-yellow-500/30 p-2 rounded-lg cursor-pointer" onClick={() => handleFormChange('dualEngineConfluenceMode', !form.dualEngineConfluenceMode)}>
+                                                        <div>
+                                                            <span className="text-[10px] font-bold text-yellow-500 uppercase block">Majority Vote Confluence</span>
+                                                            <span className="text-[9px] text-gray-400">Trigger if min. required active filters align</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                                                            {form.dualEngineConfluenceMode && (
+                                                                <input type="number" min="1" max="8" className="bg-black/50 text-center text-yellow-400 font-mono text-[10px] w-10 border border-yellow-500/30 rounded py-1 outline-none" value={form.dualEngineMinConfluence} onChange={(e) => handleFormChange('dualEngineMinConfluence', parseInt(e.target.value))} title="Min Confluence Count" />
+                                                            )}
+                                                            <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors duration-200 ${form.dualEngineConfluenceMode ? 'bg-yellow-500' : 'bg-gray-700'}`} onClick={() => handleFormChange('dualEngineConfluenceMode', !form.dualEngineConfluenceMode)}>
+                                                                <div className={`w-3 h-3 bg-white rounded-full transform transition-transform duration-200 ${form.dualEngineConfluenceMode ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mb-4">
                                                         <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineEmaFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineEmaFilter', !form.dualEngineEmaFilter)}>
-                                                            <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">EMA Trend</p>
+                                                            <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">SMA 100</p>
                                                             <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineEmaFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
+                                                        </div>
+                                                        <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineTripleEmaFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineTripleEmaFilter', !form.dualEngineTripleEmaFilter)}>
+                                                            <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">Triple EMA</p>
+                                                            <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineTripleEmaFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
                                                         </div>
                                                         <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineRsiFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineRsiFilter', !form.dualEngineRsiFilter)}>
                                                             <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">RSI Mom</p>
@@ -1961,6 +2003,14 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                         <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineMacdFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineMacdFilter', !form.dualEngineMacdFilter)}>
                                                             <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">MACD Cross</p>
                                                             <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineMacdFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
+                                                        </div>
+                                                        <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineAdxFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineAdxFilter', !form.dualEngineAdxFilter)}>
+                                                            <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">ADX Trend</p>
+                                                            <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineAdxFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
+                                                        </div>
+                                                        <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineVolFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineVolFilter', !form.dualEngineVolFilter)}>
+                                                            <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">Volume</p>
+                                                            <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineVolFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
                                                         </div>
                                                         <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineSqueezeFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineSqueezeFilter', !form.dualEngineSqueezeFilter)}>
                                                             <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">Squeeze</p>
@@ -2016,7 +2066,35 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                                 </div>
                                                             </div>
                                                         )}
-                                                        {!form.dualEngineEmaFilter && !form.dualEngineRsiFilter && !form.dualEngineMacdFilter && !form.dualEngineSqueezeFilter && (
+                                                        {form.dualEngineTripleEmaFilter && (
+                                                            <div className="flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
+                                                                <span className="text-[10px] font-bold text-gray-300 uppercase">Fast / Med / Slow</span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineEmaFast} onChange={(e) => handleFormChange('dualEngineEmaFast', e.target.value)} />
+                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineEmaMed} onChange={(e) => handleFormChange('dualEngineEmaMed', e.target.value)} />
+                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineEmaSlow} onChange={(e) => handleFormChange('dualEngineEmaSlow', e.target.value)} />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {form.dualEngineAdxFilter && (
+                                                            <div className="flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
+                                                                <span className="text-[10px] font-bold text-gray-300 uppercase">ADX Length / Threshold</span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineAdxLength} onChange={(e) => handleFormChange('dualEngineAdxLength', e.target.value)} />
+                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineAdxThreshold} onChange={(e) => handleFormChange('dualEngineAdxThreshold', e.target.value)} />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {form.dualEngineVolFilter && (
+                                                            <div className="flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
+                                                                <span className="text-[10px] font-bold text-gray-300 uppercase">Vol Length / Multiplier</span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineVolLength} onChange={(e) => handleFormChange('dualEngineVolLength', e.target.value)} />
+                                                                    <input type="number" step="0.1" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-10 outline-none" value={form.dualEngineVolMultiplier} onChange={(e) => handleFormChange('dualEngineVolMultiplier', e.target.value)} />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {!form.dualEngineEmaFilter && !form.dualEngineTripleEmaFilter && !form.dualEngineRsiFilter && !form.dualEngineMacdFilter && !form.dualEngineAdxFilter && !form.dualEngineVolFilter && !form.dualEngineSqueezeFilter && (
                                                             <p className="text-center text-[10px] text-gray-500 uppercase">Enable filters to see parameters</p>
                                                         )}
                                                     </div>

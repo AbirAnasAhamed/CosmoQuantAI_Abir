@@ -17,13 +17,21 @@ class DualEngineTracker:
         
         # Filters (Mapping from Pine Script)
         self.use_ema_filter = config.get("dual_engine_ema_filter", False)
+        self.use_triple_ema_filter = config.get("dual_engine_triple_ema_filter", False)
         self.use_rsi_filter = config.get("dual_engine_rsi_filter", False)
         self.use_candle_filter = config.get("dual_engine_candle_filter", False)
         self.use_macd_filter = config.get("dual_engine_macd_filter", False)
         self.use_squeeze_filter = config.get("dual_engine_squeeze_filter", False)
+        self.use_adx_filter = config.get("dual_engine_adx_filter", False)
+        self.use_vol_filter = config.get("dual_engine_vol_filter", False)
+        self.use_confluence_mode = config.get("dual_engine_confluence_mode", False)
+        self.min_confluence = config.get("dual_engine_min_confluence", 3)
         
         # Params
         self.ema_length = config.get("dual_engine_ema_length", 100)
+        self.ema_fast = config.get("dual_engine_ema_fast", 10)
+        self.ema_med = config.get("dual_engine_ema_med", 15)
+        self.ema_slow = config.get("dual_engine_ema_slow", 27)
         self.rsi_length = config.get("dual_engine_rsi_length", 14)
         self.rsi_ob = config.get("dual_engine_rsi_ob", 70)
         self.rsi_os = config.get("dual_engine_rsi_os", 30)
@@ -33,6 +41,10 @@ class DualEngineTracker:
         self.squeeze_length = config.get("dual_engine_squeeze_length", 20)
         self.squeeze_bb_mult = config.get("dual_engine_squeeze_bb_mult", 2.0)
         self.squeeze_kc_mult = config.get("dual_engine_squeeze_kc_mult", 1.5)
+        self.adx_length = config.get("dual_engine_adx_length", 14)
+        self.adx_threshold = config.get("dual_engine_adx_threshold", 25)
+        self.vol_length = config.get("dual_engine_vol_length", 20)
+        self.vol_multiplier = config.get("dual_engine_vol_multiplier", 1.5)
         
         # State
         self.current_state = {
@@ -47,10 +59,50 @@ class DualEngineTracker:
         self.last_candle_time = 0
         
     def update_params(self, **kwargs):
+        mapping = {
+            "enable_dual_engine": "is_enabled",
+            "dual_engine_mode": "mode",
+            "dual_engine_ema_filter": "use_ema_filter",
+            "dual_engine_triple_ema_filter": "use_triple_ema_filter",
+            "dual_engine_rsi_filter": "use_rsi_filter",
+            "dual_engine_candle_filter": "use_candle_filter",
+            "dual_engine_macd_filter": "use_macd_filter",
+            "dual_engine_squeeze_filter": "use_squeeze_filter",
+            "dual_engine_adx_filter": "use_adx_filter",
+            "dual_engine_vol_filter": "use_vol_filter",
+            "dual_engine_confluence_mode": "use_confluence_mode",
+            "dual_engine_min_confluence": "min_confluence",
+            "dual_engine_ema_length": "ema_length",
+            "dual_engine_ema_fast": "ema_fast",
+            "dual_engine_ema_med": "ema_med",
+            "dual_engine_ema_slow": "ema_slow",
+            "dual_engine_rsi_length": "rsi_length",
+            "dual_engine_rsi_ob": "rsi_ob",
+            "dual_engine_rsi_os": "rsi_os",
+            "dual_engine_macd_fast": "macd_fast",
+            "dual_engine_macd_slow": "macd_slow",
+            "dual_engine_macd_signal": "macd_signal",
+            "dual_engine_squeeze_length": "squeeze_length",
+            "dual_engine_squeeze_bb_mult": "squeeze_bb_mult",
+            "dual_engine_squeeze_kc_mult": "squeeze_kc_mult",
+            "dual_engine_adx_length": "adx_length",
+            "dual_engine_adx_threshold": "adx_threshold",
+            "dual_engine_vol_length": "vol_length",
+            "dual_engine_vol_multiplier": "vol_multiplier",
+        }
+        
+        updated_keys = []
         for k, v in kwargs.items():
-            if hasattr(self, k):
+            if k in mapping:
+                setattr(self, mapping[k], v)
+                updated_keys.append(k)
+            elif hasattr(self, k):
+                # Fallback for exact attribute matches
                 setattr(self, k, v)
-        logger.info(f"⚡ [Dual Engine Tracker] Params updated: {kwargs}")
+                updated_keys.append(k)
+                
+        if updated_keys:
+            logger.info(f"⚡ [Dual Engine Tracker] Params live-updated cleanly: {updated_keys}")
 
     async def start(self):
         self.running = True
@@ -109,6 +161,11 @@ class DualEngineTracker:
             if self.use_ema_filter:
                 df['ema_slow'] = ta.ema(df['close'], length=len_slow_ema)
                 
+            if self.use_triple_ema_filter:
+                df['fast_ema'] = ta.ema(df['close'], length=int(self.ema_fast))
+                df['med_ema'] = ta.ema(df['close'], length=int(self.ema_med))
+                df['slow_ema'] = ta.ema(df['close'], length=int(self.ema_slow))
+                
             if self.use_rsi_filter:
                 df['rsi'] = ta.rsi(df['close'], length=len_rsi)
 
@@ -133,6 +190,16 @@ class DualEngineTracker:
                 kc_lower = sma - (float(self.squeeze_kc_mult) * atr)
                 
                 df['squeeze_on'] = (bb_upper < kc_upper) & (bb_lower > kc_lower)
+                
+            if self.use_adx_filter:
+                adx_df = ta.adx(df['high'], df['low'], df['close'], length=int(self.adx_length))
+                if adx_df is not None and not adx_df.empty:
+                    df['adx_str'] = adx_df.iloc[:, 0]
+                else:
+                    df['adx_str'] = 0.0
+
+            if self.use_vol_filter:
+                df['vol_ma'] = ta.sma(df['volume'], length=int(self.vol_length))
                 
             # Full Pine Script Legacy Metrics for "Hybrid" and "Legacy" Modes
             if self.mode in ['Hybrid', 'Legacy']:
@@ -236,11 +303,24 @@ class DualEngineTracker:
                 cond_ema_long = (last_row['close'] > last_row['ema_slow']) if self.use_ema_filter else True
                 cond_ema_short = (last_row['close'] < last_row['ema_slow']) if self.use_ema_filter else True
                 
+                cond_triple_ema_long = (last_row['fast_ema'] > last_row['med_ema'] and last_row['med_ema'] > last_row['slow_ema']) if self.use_triple_ema_filter else True
+                cond_triple_ema_short = (last_row['fast_ema'] < last_row['med_ema'] and last_row['med_ema'] < last_row['slow_ema']) if self.use_triple_ema_filter else True
+                
                 cond_rsi_long = (last_row['rsi'] <= rsi_os) if self.use_rsi_filter else True
                 cond_rsi_short = (last_row['rsi'] >= rsi_ob) if self.use_rsi_filter else True
 
                 cond_macd_long = (last_row['macd_line'] > last_row['macd_signal']) if self.use_macd_filter else True
                 cond_macd_short = (last_row['macd_line'] < last_row['macd_signal']) if self.use_macd_filter else True
+
+                cond_adx = (last_row['adx_str'] > float(self.adx_threshold)) if self.use_adx_filter else True
+
+                if self.use_vol_filter:
+                    high_vol = last_row['volume'] > (last_row['vol_ma'] * float(self.vol_multiplier))
+                    cond_vol_long = high_vol and last_row['close'] > last_row['open']
+                    cond_vol_short = high_vol and last_row['close'] < last_row['open']
+                else:
+                    cond_vol_long = True
+                    cond_vol_short = True
 
                 if self.use_squeeze_filter:
                     was_squeezed = df['squeeze_on'].iloc[-6:-1].any()
@@ -266,8 +346,40 @@ class DualEngineTracker:
                 cond_candle_long = is_bull_engulf if self.use_candle_filter else True
                 cond_candle_short = is_bear_engulf if self.use_candle_filter else True
 
-                buy_signal = cond_ema_long and cond_rsi_long and cond_macd_long and cond_squeeze_long and cond_candle_long
-                sell_signal = cond_ema_short and cond_rsi_short and cond_macd_short and cond_squeeze_short and cond_candle_short
+                if self.use_confluence_mode:
+                    long_conditions = []
+                    short_conditions = []
+                    
+                    if self.use_ema_filter:
+                        long_conditions.append(cond_ema_long)
+                        short_conditions.append(cond_ema_short)
+                    if self.use_triple_ema_filter:
+                        long_conditions.append(cond_triple_ema_long)
+                        short_conditions.append(cond_triple_ema_short)
+                    if self.use_rsi_filter:
+                        long_conditions.append(cond_rsi_long)
+                        short_conditions.append(cond_rsi_short)
+                    if self.use_macd_filter:
+                        long_conditions.append(cond_macd_long)
+                        short_conditions.append(cond_macd_short)
+                    if self.use_squeeze_filter:
+                        long_conditions.append(cond_squeeze_long)
+                        short_conditions.append(cond_squeeze_short)
+                    if self.use_candle_filter:
+                        long_conditions.append(cond_candle_long)
+                        short_conditions.append(cond_candle_short)
+                    if self.use_vol_filter:
+                        long_conditions.append(cond_vol_long)
+                        short_conditions.append(cond_vol_short)
+                        
+                    long_count = sum(1 for c in long_conditions if c)
+                    short_count = sum(1 for c in short_conditions if c)
+                    
+                    buy_signal = (long_count >= int(self.min_confluence)) and cond_adx
+                    sell_signal = (short_count >= int(self.min_confluence)) and cond_adx
+                else:
+                    buy_signal = cond_ema_long and cond_triple_ema_long and cond_rsi_long and cond_macd_long and cond_squeeze_long and cond_candle_long and cond_vol_long and cond_adx
+                    sell_signal = cond_ema_short and cond_triple_ema_short and cond_rsi_short and cond_macd_short and cond_squeeze_short and cond_candle_short and cond_vol_short and cond_adx
                 
                 if buy_signal and not sell_signal:
                     final_signal = "BUY"
