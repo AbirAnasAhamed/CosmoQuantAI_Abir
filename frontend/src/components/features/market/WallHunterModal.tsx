@@ -176,7 +176,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         // --- NEW: Auto Fibo TP ---
         enableAutoFiboTp: false,
         autoFiboTargetLevel: 1.618,
-        autoFiboTimeframe: '5m'
+        autoFiboTimeframe: '5m',
+        autoFiboLookback: 30
     });
 
     const [existingBot, setExistingBot] = useState<any>(null);
@@ -372,7 +373,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             // Auto Fibo TP
                             enableAutoFiboTp: c.enable_auto_fibo_tp !== undefined ? c.enable_auto_fibo_tp : false,
                             autoFiboTargetLevel: c.auto_fibo_target_level || 1.618,
-                            autoFiboTimeframe: c.auto_fibo_timeframe || '5m'
+                            autoFiboTimeframe: c.auto_fibo_timeframe || '5m',
+                            autoFiboLookback: c.auto_fibo_lookback || 30
                         }));
                     } else {
                         setExistingBot(null);
@@ -718,7 +720,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     
                     enable_auto_fibo_tp: form.enableAutoFiboTp,
                     auto_fibo_target_level: form.autoFiboTargetLevel,
-                    auto_fibo_timeframe: form.autoFiboTimeframe
+                    auto_fibo_timeframe: form.autoFiboTimeframe,
+                    auto_fibo_lookback: form.autoFiboLookback
                 }
             };
 
@@ -2157,9 +2160,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                     </div>
                                 </div>
                                 {form.enableAutoFiboTp && (
-                                    <div onClick={(e) => e.stopPropagation()} className="mt-4 pt-4 border-t border-indigo-500/20 grid grid-cols-2 gap-4">
+                                    <div onClick={(e) => e.stopPropagation()} className="mt-4 pt-4 border-t border-indigo-500/20 grid grid-cols-3 gap-4">
                                         <div>
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Timeframe (Swing High/Low)</label>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Timeframe</label>
                                             <select 
                                                 className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-indigo-500 font-mono text-sm"
                                                 value={form.autoFiboTimeframe} 
@@ -2172,6 +2175,17 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 <option value="1h">1h</option>
                                                 <option value="4h">4h</option>
                                             </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Lookback</label>
+                                            <input 
+                                                type="number"
+                                                min="10"
+                                                max="150"
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-indigo-500 font-mono text-sm text-center"
+                                                value={form.autoFiboLookback} 
+                                                onChange={(e) => handleFormChange('autoFiboLookback', parseInt(e.target.value) || 30)}
+                                            />
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Extension Level</label>

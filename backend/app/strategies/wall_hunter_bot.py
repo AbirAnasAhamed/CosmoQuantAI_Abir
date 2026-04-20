@@ -261,6 +261,7 @@ class WallHunterBot:
         self.enable_auto_fibo_tp = config.get("enable_auto_fibo_tp", False)
         self.auto_fibo_target_level = config.get("auto_fibo_target_level", 1.618)
         self.auto_fibo_timeframe = config.get("auto_fibo_timeframe", "5m")
+        self.auto_fibo_lookback = config.get("auto_fibo_lookback", 30)
         
         self.wick_sr_tracker = WickSRTracker(
             timeframe=self.wick_sr_timeframe,
@@ -690,6 +691,10 @@ class WallHunterBot:
         if "auto_fibo_timeframe" in new_config and new_config["auto_fibo_timeframe"] != getattr(self, "auto_fibo_timeframe", "5m"):
             self.auto_fibo_timeframe = new_config.get("auto_fibo_timeframe", "5m")
             updates.append(f"Auto-Fibo Timeframe: {self.auto_fibo_timeframe}")
+            
+        if "auto_fibo_lookback" in new_config and new_config["auto_fibo_lookback"] != getattr(self, "auto_fibo_lookback", 30):
+            self.auto_fibo_lookback = new_config.get("auto_fibo_lookback", 30)
+            updates.append(f"Auto-Fibo Lookback: {self.auto_fibo_lookback}")
 
         # Update internal config dictionary
         self.config.update(new_config)
@@ -1811,8 +1816,9 @@ class WallHunterBot:
                     try:
                         fibo_tf = getattr(self, 'auto_fibo_timeframe', '5m')
                         fibo_level = getattr(self, 'auto_fibo_target_level', 1.618)
+                        fibo_lookback = getattr(self, 'auto_fibo_lookback', 30)
                         
-                        ohlcv = await self.public_exchange.fetch_ohlcv(self.symbol, timeframe=fibo_tf, limit=30)
+                        ohlcv = await self.public_exchange.fetch_ohlcv(self.symbol, timeframe=fibo_tf, limit=fibo_lookback)
                         if ohlcv:
                             calculated_tp = calculate_fibo_extension_tp(ohlcv, initial_entry, side, float(fibo_level))
                             if calculated_tp:
