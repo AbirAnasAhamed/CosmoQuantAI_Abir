@@ -1530,7 +1530,7 @@ class WallHunterFuturesStrategy:
                             # Native Stop-Limit
                             sl_params['price'] = self.active_pos['sl']
                             # CCXT unified stop order
-                            sl_res = await self.engine.execute_trade(exit_side, base_amount, self.active_pos['sl'], order_type="stop_limit", params=sl_params)
+                            sl_res = await self.engine.execute_trade(exit_side, base_amount, self.active_pos['sl'], order_type="STOP", params=sl_params)
                         else:
                             # CCXT unified stop order
                             sl_res = await self.engine.execute_trade(exit_side, base_amount, self.active_pos['sl'], order_type="stop_market", params=sl_params)
