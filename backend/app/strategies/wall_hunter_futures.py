@@ -1039,7 +1039,11 @@ class WallHunterFuturesStrategy:
                                     else:
                                         await self.execute_snipe(w_sig['price'], target_side, mid_price, best_bid, best_ask)
                                     self.tracked_walls.clear()
-                                    continue # Wait for next tick to avoid double entries
+                                    break # Exit the wick sig loop to avoid double entries
+                            
+                        # If a wick signal just executed and opened a position, move to the next tick safely
+                        if self.active_pos:
+                            continue
 
                     if not self.enable_wall_trigger:
                         self._publish_status(mid_price)

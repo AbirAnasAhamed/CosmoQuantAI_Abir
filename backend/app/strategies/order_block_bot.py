@@ -295,7 +295,7 @@ class OrderBlockExecutionEngine:
                 type=final_order_type,
                 side=side.lower(),
                 amount=amount,
-                price=final_price if final_order_type == 'limit' else None,
+                price=final_price if final_order_type in ['limit', 'stop'] else None,
                 params=order_params
             )
             return order
