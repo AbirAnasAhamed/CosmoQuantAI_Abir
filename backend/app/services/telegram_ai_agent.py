@@ -22,7 +22,8 @@ class TelegramAIAgent:
     async def fetch_article_text(self, url: str) -> str:
         """Lightweight scrape to get article body or fallback to snippet"""
         try:
-            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True, headers=headers) as client:
                 res = await client.get(url)
                 if res.status_code == 200:
                     soup = BeautifulSoup(res.text, 'lxml')
@@ -34,7 +35,7 @@ class TelegramAIAgent:
                             paragraphs.append(text)
                     return " ".join(paragraphs)
         except Exception as e:
-            logger.error(f"Failed to scrape {url}: {e}")
+            logger.warning(f"Failed to scrape {url} (fallback to headline): {e}")
         return ""
 
     async def get_ai_insights(self, title: str, url: str) -> dict:

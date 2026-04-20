@@ -35,7 +35,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         tsl: 0.03,
         tslActivationPct: 0.13,
         amount: 100,
-        sellOrderType: 'market',
+        sellOrderType: 'limit',
         spoofTime: 3.0,
         enablePartialTp: true,
         partialTp: 20.0,
@@ -50,13 +50,13 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         atrMultiplier: 2.0,
         
         // --- NEW: Custom Buy Order Type & Buffer ---
-        buyOrderType: 'market',
+        buyOrderType: 'limit',
         limitBuffer: 0.05,
         
         // --- NEW: Risk SL Order Type ---
         slOrderType: 'market',
 
-        enableWallTrigger: true,        
+        enableWallTrigger: false,        
         maxWallDistancePct: 1.0,        
         enableLiqTrigger: false,        
         liqThreshold: 50000,
@@ -178,7 +178,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         // --- NEW: Smart Wick S/R ---
         enableWickSr: false,
         wickSrModes: ['bounce'],
-        wickSrTimeframe: '1m',
+        wickSrTimeframe: '15m',
         wickSrSweepThreshold: 3,
         wickSrMinTouches: 10,
         enableWickSrOib: false,
@@ -271,7 +271,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             tsl: c.trailing_stop !== undefined && c.trailing_stop > 0 ? c.trailing_stop : 0.03,
                             tslActivationPct: c.tsl_activation_pct !== undefined ? c.tsl_activation_pct : 0.13,
                             amount: c.amount_per_trade || 100,
-                            sellOrderType: c.sell_order_type || 'market',
+                            sellOrderType: c.sell_order_type || 'limit',
                             slOrderType: c.sl_order_type || 'market',
                             spoofTime: c.min_wall_lifetime !== undefined ? c.min_wall_lifetime : 3.0,
                             enablePartialTp: c.partial_tp_pct !== undefined ? c.partial_tp_pct > 0 : true,
@@ -286,7 +286,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             atrPeriod: c.atr_period !== undefined ? c.atr_period : 14,
                             atrMultiplier: c.atr_multiplier !== undefined ? c.atr_multiplier : 2.0,
 
-                            enableWallTrigger: c.enable_wall_trigger !== undefined ? c.enable_wall_trigger : true,
+                            enableWallTrigger: c.enable_wall_trigger !== undefined ? c.enable_wall_trigger : false,
                             maxWallDistancePct: c.max_wall_distance_pct !== undefined ? c.max_wall_distance_pct : 1.0,
                             enableLiqTrigger: c.enable_liq_trigger !== undefined ? c.enable_liq_trigger : false,
                             liqThreshold: c.liq_threshold || 50000,
@@ -364,7 +364,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             supertrendCandleClose: c.supertrend_candle_close !== undefined ? c.supertrend_candle_close : false,
                             
                             // Load custom buy order settings
-                            buyOrderType: c.buy_order_type || 'market',
+                            buyOrderType: c.buy_order_type || 'limit',
                             limitBuffer: c.limit_buffer !== undefined ? c.limit_buffer : 0.05,
 
                             // Proxy Wall Support
@@ -375,7 +375,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             // Smart Wick SR
                             enableWickSr: c.enable_wick_sr !== undefined ? c.enable_wick_sr : false,
                             wickSrModes: c.wick_sr_modes || ['bounce'],
-                            wickSrTimeframe: c.wick_sr_timeframe || '1m',
+                            wickSrTimeframe: c.wick_sr_timeframe || '15m',
                             wickSrSweepThreshold: c.wick_sr_sweep_threshold || 3,
                             wickSrMinTouches: c.wick_sr_min_touches || 10,
                             enableWickSrOib: c.enable_wick_sr_oib !== undefined ? c.enable_wick_sr_oib : false,
