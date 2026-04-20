@@ -1521,12 +1521,20 @@ class WallHunterFuturesStrategy:
                     })
 
                 # --- PLACE NATIVE SL ORDER ---
-                if getattr(self, 'initial_risk_pct', 0) > 0 and getattr(self, 'sl_order_type', 'market') == 'market':
+                if getattr(self, 'initial_risk_pct', 0) > 0:
                     exit_side = "sell" if side == "buy" else "buy"
+                    sl_type = getattr(self, 'sl_order_type', 'market')
                     try:
                         sl_params = {'reduceOnly': True, 'stopPrice': self.active_pos['sl']}
-                        # CCXT unified stop order
-                        sl_res = await self.engine.execute_trade(exit_side, base_amount, self.active_pos['sl'], order_type="stop_market", params=sl_params)
+                        if sl_type == 'limit':
+                            # Native Stop-Limit
+                            sl_params['price'] = self.active_pos['sl']
+                            # CCXT unified stop order
+                            sl_res = await self.engine.execute_trade(exit_side, base_amount, self.active_pos['sl'], order_type="stop_limit", params=sl_params)
+                        else:
+                            # CCXT unified stop order
+                            sl_res = await self.engine.execute_trade(exit_side, base_amount, self.active_pos['sl'], order_type="stop_market", params=sl_params)
+                            
                         if sl_res and 'id' in sl_res:
                             self.active_pos['sl_order_id'] = sl_res['id']
                             self.logger.info(f"Placed Native Stop-Loss Order {sl_res['id']} at {self.active_pos['sl']}")

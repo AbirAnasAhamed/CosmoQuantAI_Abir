@@ -176,6 +176,7 @@ IGNORE_PATTERNS = [
     # These are handled gracefully by the fallback system
     re.compile(r'Quota\s+error:.*?trying\s+next', re.IGNORECASE),
     re.compile(r'Gemini\s+success:', re.IGNORECASE),
+    re.compile(r'Failed to parse JSON:.*using heuristics', re.IGNORECASE),
 ]
 
 # Patterns that look like errors but should be downgraded to WARNING
