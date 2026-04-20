@@ -15,7 +15,7 @@ class StrategyConfig(BaseModel):
     vol_threshold: Optional[float] = None
     risk_pct: Optional[float] = 0.0
     sell_order_type: Optional[str] = "limit"
-    sl_order_type: Optional[str] = "market"
+    sl_order_type: Optional[str] = "limit"
     min_wall_lifetime: Optional[float] = 3.0
     partial_tp_pct: Optional[float] = 0.0
     partial_tp_trigger_pct: Optional[float] = 0.0
@@ -32,7 +32,7 @@ class StrategyConfig(BaseModel):
     # --- NEW: Futures Config ---
     trading_mode: Optional[str] = "spot"
     strategy_mode: Optional[str] = "long"
-    margin_mode: Optional[str] = "cross"
+    margin_mode: Optional[str] = "isolated"
     position_direction: Optional[str] = "auto"
     reduce_only: Optional[bool] = True
     liquidation_safety_pct: Optional[float] = 5.0
@@ -158,16 +158,16 @@ class StrategyConfig(BaseModel):
     wick_sr_modes: Optional[List[str]] = ["bounce"]
     wick_sr_timeframe: Optional[str] = "15m"
     wick_sr_sweep_threshold: Optional[int] = 3
-    wick_sr_min_touches: Optional[int] = 10
+    wick_sr_min_touches: Optional[int] = 25
     enable_wick_sr_oib: Optional[bool] = False
     enable_dynamic_wick_tp: Optional[bool] = False
     dynamic_tp_frontrun_pct: Optional[float] = 0.0
     
     # --- Auto-Fibo Extensions TP ---
     enable_auto_fibo_tp: Optional[bool] = True
-    auto_fibo_target_level: Optional[float] = 1.618
+    auto_fibo_target_level: Optional[float] = 0.236
     auto_fibo_timeframe: Optional[str] = "5m"
-    auto_fibo_lookback: Optional[int] = 30
+    auto_fibo_lookback: Optional[int] = 50
 
     @validator('stop_loss')
     def validate_stop_loss(cls, v):
