@@ -54,7 +54,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         limitBuffer: 0.05,
         
         // --- NEW: Risk SL Order Type ---
-        slOrderType: 'market',
+        slOrderType: 'limit',
 
         enableWallTrigger: false,        
         maxWallDistancePct: 1.0,        
@@ -84,7 +84,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         btcLiqThreshold: 500000,
 
         // --- NEW: Futures Specific States ---
-        marginMode: 'cross',
+        marginMode: 'isolated',
         leverage: 10,
         positionDirection: 'auto',
         reduceOnly: true,
@@ -180,16 +180,16 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         wickSrModes: ['bounce'],
         wickSrTimeframe: '15m',
         wickSrSweepThreshold: 3,
-        wickSrMinTouches: 10,
+        wickSrMinTouches: 25,
         enableWickSrOib: false,
         enableDynamicWickTp: false,
         dynamicTpFrontrunPct: 0.0,
         
         // --- NEW: Auto Fibo TP ---
         enableAutoFiboTp: true,
-        autoFiboTargetLevel: 1.618,
+        autoFiboTargetLevel: 0.236,
         autoFiboTimeframe: '5m',
-        autoFiboLookback: 30
+        autoFiboLookback: 50
     });
 
     const [existingBot, setExistingBot] = useState<any>(null);
@@ -272,7 +272,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             tslActivationPct: c.tsl_activation_pct !== undefined ? c.tsl_activation_pct : 0.13,
                             amount: c.amount_per_trade || 100,
                             sellOrderType: c.sell_order_type || 'limit',
-                            slOrderType: c.sl_order_type || 'market',
+                            slOrderType: c.sl_order_type || 'limit',
                             spoofTime: c.min_wall_lifetime !== undefined ? c.min_wall_lifetime : 3.0,
                             enablePartialTp: c.partial_tp_pct !== undefined ? c.partial_tp_pct > 0 : false,
                             partialTp: c.partial_tp_pct !== undefined && c.partial_tp_pct > 0 ? c.partial_tp_pct : 20.0,
@@ -313,7 +313,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             btcLiqThreshold: c.btc_liq_threshold || 500000,
 
                             // Futures existing configs
-                            marginMode: c.margin_mode || 'cross',
+                            marginMode: c.margin_mode || 'isolated',
                             leverage: c.leverage || 10,
                             positionDirection: c.position_direction || 'auto',
                             reduceOnly: c.reduce_only !== undefined ? c.reduce_only : true,
@@ -377,16 +377,16 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             wickSrModes: c.wick_sr_modes || ['bounce'],
                             wickSrTimeframe: c.wick_sr_timeframe || '15m',
                             wickSrSweepThreshold: c.wick_sr_sweep_threshold || 3,
-                            wickSrMinTouches: c.wick_sr_min_touches || 10,
+                            wickSrMinTouches: c.wick_sr_min_touches || 25,
                             enableWickSrOib: c.enable_wick_sr_oib !== undefined ? c.enable_wick_sr_oib : false,
                             enableDynamicWickTp: c.enable_dynamic_wick_tp !== undefined ? c.enable_dynamic_wick_tp : false,
                             dynamicTpFrontrunPct: c.dynamic_tp_frontrun_pct !== undefined ? c.dynamic_tp_frontrun_pct : 0.0,
                             
                             // Auto Fibo TP
                             enableAutoFiboTp: c.enable_auto_fibo_tp !== undefined ? c.enable_auto_fibo_tp : true,
-                            autoFiboTargetLevel: c.auto_fibo_target_level || 1.618,
+                            autoFiboTargetLevel: c.auto_fibo_target_level || 0.236,
                             autoFiboTimeframe: c.auto_fibo_timeframe || '5m',
-                            autoFiboLookback: c.auto_fibo_lookback || 30
+                            autoFiboLookback: c.auto_fibo_lookback || 50
                         }));
                     } else {
                         setExistingBot(null);
