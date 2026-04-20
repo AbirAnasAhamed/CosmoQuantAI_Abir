@@ -14,7 +14,7 @@ class StrategyConfig(BaseModel):
     amount_per_trade: float
     vol_threshold: Optional[float] = None
     risk_pct: Optional[float] = None
-    sell_order_type: Optional[str] = "market"
+    sell_order_type: Optional[str] = "limit"
     sl_order_type: Optional[str] = "market"
     min_wall_lifetime: Optional[float] = 3.0
     partial_tp_pct: Optional[float] = 50.0
@@ -38,7 +38,7 @@ class StrategyConfig(BaseModel):
     liquidation_safety_pct: Optional[float] = 5.0
 
     # --- Liquidation & Micro-Scalp Config ---
-    enable_wall_trigger: Optional[bool] = True
+    enable_wall_trigger: Optional[bool] = False
     max_wall_distance_pct: Optional[float] = 1.0
     enable_liq_trigger: Optional[bool] = False
     liq_threshold: Optional[float] = 50000.0
@@ -89,7 +89,7 @@ class StrategyConfig(BaseModel):
     iceberg_min_absorbed_vol: Optional[float] = 100000.0
 
     # --- Buy Order Type Logic ---
-    buy_order_type: Optional[str] = "market"
+    buy_order_type: Optional[str] = "limit"
     limit_buffer: Optional[float] = 1.0
 
     # --- Adaptive Trend Filter ---
@@ -156,7 +156,7 @@ class StrategyConfig(BaseModel):
     # --- Smart Support & Resistance (Wick SR) ---
     enable_wick_sr: Optional[bool] = False
     wick_sr_modes: Optional[List[str]] = ["bounce"]
-    wick_sr_timeframe: Optional[str] = "1m"
+    wick_sr_timeframe: Optional[str] = "15m"
     wick_sr_sweep_threshold: Optional[int] = 3
     wick_sr_min_touches: Optional[int] = 10
     enable_wick_sr_oib: Optional[bool] = False
