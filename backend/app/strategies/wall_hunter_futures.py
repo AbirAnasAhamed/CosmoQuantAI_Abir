@@ -1382,8 +1382,8 @@ class WallHunterFuturesStrategy:
                 if self.buy_order_type in ['limit', 'marketable_limit'] and res.get('id') and not self.is_paper_trading:
                     try:
                         order_status = None
-                        for _ in range(5):
-                            await asyncio.sleep(0.4)
+                        for _ in range(10):
+                            await asyncio.sleep(1.0)
                             try:
                                 order_status = await self.engine.exchange.fetch_order(res['id'], self.symbol)
                                 if order_status and order_status.get('status') != 'open':
