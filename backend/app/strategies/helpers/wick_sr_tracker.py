@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import List, Dict, Optional, Any
 import numpy as np
 
@@ -55,36 +56,67 @@ class WickSRTracker:
             
         tolerance = current_atr * self.atr_multiplier
         
-        high_wicks = []
-        low_wicks = []
+        # 1. Use Swing High/Low detection (Left=1, Right=1) to prevent generic ranging candles from forming false levels
+        candidate_res = []
+        candidate_sup = []
         
-        for k in klines:
-            high_wicks.append(float(k['high']))
-            low_wicks.append(float(k['low']))
+        for i in range(1, len(klines) - 1):
+            h = float(klines[i]['high'])
+            if h > float(klines[i-1]['high']) and h > float(klines[i+1]['high']):
+                candidate_res.append(h)
+                
+            l = float(klines[i]['low'])
+            if l < float(klines[i-1]['low']) and l < float(klines[i+1]['low']):
+                candidate_sup.append(l)
             
-        def extract_clusters(wicks, is_resistance):
+        def extract_clusters(pivots, is_resistance):
             clusters = []
-            for w in wicks:
+            for p in pivots:
                 found = False
                 for c in clusters:
-                    if abs(c['avgPrice'] - w) <= tolerance:
-                        c['touches'] += 1
-                        c['avgPrice'] = c['avgPrice'] + (w - c['avgPrice']) / c['touches']
+                    if abs(c['avgPrice'] - p) <= tolerance:
+                        c['pCount'] += 1
+                        c['avgPrice'] = c['avgPrice'] + (p - c['avgPrice']) / c['pCount']
                         found = True
                         break
                 if not found:
                     clusters.append({
-                        'avgPrice': w,
-                        'touches': 1,
+                        'avgPrice': p,
+                        'pCount': 1,
+                        'touches': 0,
                         'isResistance': is_resistance,
                         'isBroken': False
                     })
             return clusters
 
-        res_clusters = extract_clusters(high_wicks, True)
-        sup_clusters = extract_clusters(low_wicks, False)
+        res_clusters = extract_clusters(candidate_res, True)
+        sup_clusters = extract_clusters(candidate_sup, False)
         
         all_clusters = res_clusters + sup_clusters
+        
+        # 2. Count REAL touches for each cluster based on candlestick interaction
+        for c in all_clusters:
+            top_zone = c['avgPrice'] + tolerance
+            bottom_zone = c['avgPrice'] - tolerance
+            touches = 0
+            
+            for k in klines:
+                h = float(k['high'])
+                l = float(k['low'])
+                close_price = float(k['close'])
+                
+                if c['isResistance']:
+                    # Resistance touch: High tested the zone, but candle failed to close strongly above it
+                    if h >= bottom_zone and close_price <= top_zone + (tolerance * 0.5):
+                        touches += 1
+                else:
+                    # Support touch: Low tested the zone, but candle failed to close strongly below it
+                    if l <= top_zone and close_price >= bottom_zone - (tolerance * 0.5):
+                        touches += 1
+                        
+            c['touches'] = touches
+            
+        # 3. Filter using the user's min_touches parameter
         valid = [c for c in all_clusters if c['touches'] >= self.min_touches]
         
         latest_close = float(klines[-1]['close'])
@@ -147,27 +179,37 @@ class WickSRTracker:
         for level in self.levels:
             if level['status'] == 'ACTIVE':
                 if level['bottom_band'] <= latest_close <= level['top_band']:
-                    signals.append({
-                        'mode': 'bounce',
-                        'side': 'short' if level['type'] == 'resistance' else 'long',
-                        'price': level['price']
-                    })
+                    now = time.time()
+                    # 5-minute cooldown to prevent endless entries while resting in the same S/R zone
+                    if now - level.get('last_trigger_time', 0) > 300:
+                        signals.append({
+                            'mode': 'bounce',
+                            'side': 'short' if level['type'] == 'resistance' else 'long',
+                            'price': level['price']
+                        })
+                        level['last_trigger_time'] = now
                 
                 # Check for live breakout
                 if level['type'] == 'resistance' and latest_close > level['top_band']:
-                    signals.append({
-                        'mode': 'breakout',
-                        'side': 'long',  # Breakout above resistance means go LONG
-                        'price': level['price']
-                    })
+                    now = time.time()
+                    if now - level.get('last_trigger_time', 0) > 300:
+                        signals.append({
+                            'mode': 'breakout',
+                            'side': 'long',  # Breakout above resistance means go LONG
+                            'price': level['price']
+                        })
+                        level['last_trigger_time'] = now
                     level['status'] = 'BROKEN_SWEEP_WATCH'
                     level['candles_since_break'] = 0
                 elif level['type'] == 'support' and latest_close < level['bottom_band']:
-                    signals.append({
-                        'mode': 'breakout',
-                        'side': 'short', # Breakout below support means go SHORT
-                        'price': level['price']
-                    })
+                    now = time.time()
+                    if now - level.get('last_trigger_time', 0) > 300:
+                        signals.append({
+                            'mode': 'breakout',
+                            'side': 'short', # Breakout below support means go SHORT
+                            'price': level['price']
+                        })
+                        level['last_trigger_time'] = now
                     level['status'] = 'BROKEN_SWEEP_WATCH'
                     level['candles_since_break'] = 0
                     
@@ -181,11 +223,14 @@ class WickSRTracker:
                     recovered = True
                     
                 if recovered:
-                    signals.append({
-                        'mode': 'sweep',
-                        'side': 'short' if level['original_type'] == 'resistance' else 'long',
-                        'price': level['price']
-                    })
+                    now = time.time()
+                    if now - level.get('last_trigger_time', 0) > 300:
+                        signals.append({
+                            'mode': 'sweep',
+                            'side': 'short' if level['original_type'] == 'resistance' else 'long',
+                            'price': level['price']
+                        })
+                        level['last_trigger_time'] = now
                     level['status'] = 'ACTIVE'
                     level['candles_since_break'] = 0
                 elif level['candles_since_break'] >= self.sweep_threshold_candles:
@@ -194,11 +239,14 @@ class WickSRTracker:
                     
             elif level['status'] == 'BROKEN_RETEST':
                 if level['bottom_band'] <= latest_close <= level['top_band']:
-                    signals.append({
-                        'mode': 'retest',
-                        'side': 'short' if level['type'] == 'resistance' else 'long',
-                        'price': level['price']
-                    })
+                    now = time.time()
+                    if now - level.get('last_trigger_time', 0) > 300:
+                        signals.append({
+                            'mode': 'retest',
+                            'side': 'short' if level['type'] == 'resistance' else 'long',
+                            'price': level['price']
+                        })
+                        level['last_trigger_time'] = now
                     
         return signals
 
