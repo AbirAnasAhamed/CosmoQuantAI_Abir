@@ -274,6 +274,13 @@ class BotManager:
                     abs_win = config.get('absorption_window', 10.0)
                     dynamic_logs.append(f"🧬 CVD Absorption: ON (${abs_thresh:,.0f} / {abs_win}s)")
 
+                # OIB Filter Info
+                if config.get('enable_oib_filter'):
+                    oib_thresh = config.get('min_oib_threshold', 0.65)
+                    dynamic_logs.append(f"⚖️ OIB Filter: ON (Min Bid Dominance: {oib_thresh*100:.0f}%)")
+                else:
+                    dynamic_logs.append(f"⚖️ OIB Filter: OFF")
+
                 # Iceberg / Hidden Wall Trigger Info
                 if config.get('enable_iceberg_trigger'):
                     ice_vol = config.get('iceberg_min_absorbed_vol', 100000.0)
