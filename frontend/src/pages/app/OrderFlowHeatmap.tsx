@@ -41,6 +41,7 @@ import { BotSettingsTab } from '../../components/features/market/BotSettingsTab'
 import { BotLogsTab } from '../../components/features/market/BotLogsTab';
 import { WallHunterModal } from '../../components/features/market/WallHunterModal';
 import { ManualTradeModal } from '../../components/features/market/ManualTradeModal';
+import { FloatingTVChartButton } from '../../components/features/market/FloatingTVChartButton';
 import { DualEngineDashboard } from '../../components/features/market/DualEngineDashboard';
 import { WatchlistScanner } from '../../components/features/market/WatchlistScanner';
 import { botService } from '../../services/botService';
@@ -2478,6 +2479,9 @@ const OrderFlowHeatmap: React.FC = () => {
 
             {/* MANUAL TRADE MODAL */}
             <ManualTradeModal symbol={symbol} currentPrice={currentPrice} onApiKeyChange={setSelectedApiKeyId} />
+
+            {/* FLOATING ORDER FLOW CHART BUTTON (above Manual Trade button) */}
+            <FloatingTVChartButton symbol={symbol} exchange={exchange} />
 
             <WallHunterModal
                 isOpen={isWallHunterOpen}
