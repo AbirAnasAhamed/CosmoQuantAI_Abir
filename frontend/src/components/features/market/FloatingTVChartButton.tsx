@@ -478,7 +478,7 @@ export const FloatingTVChartButton: React.FC<FloatingTVChartButtonProps> = ({
             initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
             onClick={() => setIsOpen(true)}
             className="fixed bottom-[196px] right-8 w-16 h-16 rounded-full flex items-center justify-center bg-gradient-to-br from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 border border-violet-400/30 text-white shadow-[0_0_24px_rgba(139,92,246,0.5)] z-[100] transition-all focus:outline-none group"
-            title="Order Flow Chart"
+            title="TVChart"
           >
             <BarChart2 className="w-7 h-7 group-hover:scale-110 transition-transform" />
           </MotionButton>
@@ -508,7 +508,7 @@ export const FloatingTVChartButton: React.FC<FloatingTVChartButtonProps> = ({
                 <div className="w-5 h-5 rounded-md bg-violet-600/30 flex items-center justify-center">
                   <BarChart2 className="w-3 h-3 text-violet-400" />
                 </div>
-                <span className="text-[10px] font-bold text-violet-400 uppercase tracking-widest">Order Flow Chart</span>
+                <span className="text-[10px] font-bold text-violet-400 uppercase tracking-widest">TVChart</span>
                 <span className="text-[9px] text-gray-600 font-mono">· {stripFutures(chartSym)} · {interval}</span>
               </div>
               <div className="flex items-center gap-1 pointer-events-auto" onMouseDown={e => e.stopPropagation()}>

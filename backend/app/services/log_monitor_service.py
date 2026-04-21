@@ -166,12 +166,16 @@ IGNORE_PATTERNS = [
     re.compile(r'redo starts at', re.IGNORECASE),
     re.compile(r'redo done at', re.IGNORECASE),
     re.compile(r'invalid record length at.*expected at least.*got 0', re.IGNORECASE),
-    # ── Frontend / Node.js Dev Server Noise (EPIPE / Broken Pipe) ────────────
-    # These happen when a browser tab is closed or refreshed mid-transfer.
+    # ── Frontend / Node.js Dev Server Noise (EPIPE / Broken Pipe / HMR WS) ──
+    # These happen when a browser tab is closed, refreshed, or has a network
+    # hiccup. The Vite dev server recovers automatically — no action needed.
     re.compile(r'Error: write EPIPE', re.IGNORECASE),
     re.compile(r'Error: read ECONNRESET', re.IGNORECASE),
     re.compile(r'Broken pipe', re.IGNORECASE),
     re.compile(r'node:internal/stream_base_commons', re.IGNORECASE),
+    re.compile(r'\[vite\].*ws proxy.*error', re.IGNORECASE),   # Vite HMR WebSocket disconnect
+    re.compile(r'ws proxy socket error', re.IGNORECASE),
+    re.compile(r'TCP\.onStreamRead', re.IGNORECASE),
     # ── Gemini API / Fallback Noise ──────────────────────────────────────────
     # These are handled gracefully by the fallback system
     re.compile(r'Quota\s+error:.*?trying\s+next', re.IGNORECASE),
