@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  BarChart2, X, RefreshCw, ChevronDown,
-} from 'lucide-react';
+import { BarChart2, X, RefreshCw, ChevronDown } from 'lucide-react';
 import {
   createChart,
   ISeriesApi,
@@ -19,17 +17,10 @@ import {
   calculateMACD,
 } from '../../../utils/indicators';
 import { HeatmapSymbolSelector } from './HeatmapSymbolSelector';
+import { TimeframeSelector } from './TimeframeSelector';
 
 const MotionButton = motion.button as any;
 const MotionDiv   = motion.div   as any;
-
-// ── Intervals ─────────────────────────────────────────────────────────────────
-const INTERVALS = [
-  { label: '1m', value: '1m' }, { label: '5m', value: '5m' },
-  { label: '15m', value: '15m' }, { label: '30m', value: '30m' },
-  { label: '1h', value: '1h' }, { label: '4h', value: '4h' },
-  { label: '1d', value: '1d' },
-];
 
 // ── EMA periods ───────────────────────────────────────────────────────────────
 const EMA_PERIODS = [9, 21, 50, 100, 200];
@@ -422,12 +413,9 @@ export const FloatingTVChartButton: React.FC<FloatingTVChartButtonProps> = ({
   exchange = 'bybit',
 }) => {
   const [isOpen,      setIsOpen]      = useState(false);
-  // The exchange shown in the floating chart (independent from heatmap after open)
   const [chartExchange, setChartExchange] = useState(exchange);
-  // The symbol shown in the floating chart
   const [chartSym,    setChartSym]    = useState(symbol);
   const [interval,    setInterval]    = useState('15m');
-  const [showTf,      setShowTf]      = useState(false);
   const [chartKey,    setChartKey]    = useState(0);
   const [ind,         setInd]         = useState<IndSettings>(DEFAULT_IND);
   const [showEmaPick, setShowEmaPick] = useState(false);
@@ -481,8 +469,6 @@ export const FloatingTVChartButton: React.FC<FloatingTVChartButtonProps> = ({
     setInd(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const activeLabel = INTERVALS.find(i => i.value === interval)?.label ?? interval;
-
   return (
     <>
       {/* ── FAB ─────────────────────────────────────────────────────────── */}
@@ -523,7 +509,7 @@ export const FloatingTVChartButton: React.FC<FloatingTVChartButtonProps> = ({
                   <BarChart2 className="w-3 h-3 text-violet-400" />
                 </div>
                 <span className="text-[10px] font-bold text-violet-400 uppercase tracking-widest">Order Flow Chart</span>
-                <span className="text-[9px] text-gray-600 font-mono">· {stripFutures(chartSym)} · {activeLabel}</span>
+                <span className="text-[9px] text-gray-600 font-mono">· {stripFutures(chartSym)} · {interval}</span>
               </div>
               <div className="flex items-center gap-1 pointer-events-auto" onMouseDown={e => e.stopPropagation()}>
                 <button onClick={() => setChartKey(k => k + 1)}
@@ -542,39 +528,18 @@ export const FloatingTVChartButton: React.FC<FloatingTVChartButtonProps> = ({
               className="flex-shrink-0 bg-[#0A0F1C] border-b border-white/[0.05] px-3 py-2 flex flex-col gap-1.5"
               onMouseDown={e => e.stopPropagation()}
             >
-              {/* Row 1: HeatmapSymbolSelector (same as main page) + Interval */}
+              {/* Symbol + Timeframe on same row, side by side */}
               <div className="flex items-center gap-2">
-                {/* Reuse the exact same component as the heatmap toolbar */}
                 <HeatmapSymbolSelector
                   symbol={chartSym}
                   exchange={chartExchange}
                   onSymbolChange={handleSymbolChange}
                   onExchangeChange={handleExchangeChange}
                 />
-
-                {/* Interval picker */}
-                <div className="relative flex-shrink-0 ml-auto">
-                  <button onClick={() => setShowTf(v => !v)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-black/40 hover:bg-white/8 border border-white/10 text-[11px] font-bold text-gray-300 hover:text-white transition-colors">
-                    {activeLabel}
-                    <ChevronDown className={`w-3 h-3 transition-transform ${showTf ? 'rotate-180' : ''}`} />
-                  </button>
-                  <AnimatePresence>
-                    {showTf && (
-                      <MotionDiv initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.1 }}
-                        className="absolute top-full right-0 mt-1 bg-[#0A0F1C] border border-white/10 rounded-xl shadow-2xl p-1 z-[300] grid grid-cols-3 gap-0.5 w-28">
-                        {INTERVALS.map(tf => (
-                          <button key={tf.value}
-                            onClick={() => { setInterval(tf.value); setShowTf(false); setChartKey(k => k + 1); }}
-                            className={`py-1.5 text-[10px] font-bold rounded-lg transition-colors text-center ${
-                              interval === tf.value ? 'bg-violet-600 text-white shadow-[0_0_8px_rgba(139,92,246,0.4)]' : 'text-gray-500 hover:bg-white/5 hover:text-white'
-                            }`}>{tf.label}</button>
-                        ))}
-                      </MotionDiv>
-                    )}
-                  </AnimatePresence>
-                </div>
+                <TimeframeSelector
+                  interval={interval}
+                  onIntervalChange={(tf) => { setInterval(tf); setChartKey(k => k + 1); }}
+                />
               </div>
 
               {/* ── Row 3: INDICATOR TOOLBAR ─────────────────────────────── */}
