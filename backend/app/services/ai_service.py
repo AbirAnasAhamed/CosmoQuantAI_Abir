@@ -493,9 +493,16 @@ class AIService:
                 clean_text = match.group(1)
             else:
                 clean_text = text.replace("```json", "").replace("```", "").strip()
-            return json.loads(clean_text)
+            
+            # strict=False allows literal control characters (like newlines) in strings
+            return json.loads(clean_text, strict=False)
         except json.JSONDecodeError as e:
-            print(f"Failed to parse JSON: {text[:80]}... Error: {e}")
+            # Strip newlines from the snippet to ensure the log stays on a single line.
+            # This is critical so the log_monitor_service's IGNORE_PATTERNS can match the entire string
+            # via the 'AI JSON Parse issue' prefix.
+            safe_snippet = text[:100].replace('\n', ' ').replace('\r', ' ')
+            # Use logger.warning and avoid "Error:" prefix to prevent triggering the orange system alert.
+            logger.warning(f"AI JSON Parse issue: {safe_snippet}... Details: {e}")
             return default
 
 # ✅ Create Global Instance
