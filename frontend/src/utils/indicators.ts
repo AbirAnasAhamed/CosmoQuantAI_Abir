@@ -1446,21 +1446,28 @@ export const calculateWickRejectionSR = (
 
     const tolerance = atr * atrMultiplier;
 
-    // ── Step 3: Collect wick tips ────────────────────────────────────────────
-    const highWicks: { price: number; time: any }[] = [];
-    const lowWicks: { price: number; time: any }[] = [];
+    // ── Step 3: Extract Pivot Highs/Lows (Swing High/Low) ───────────────────
+    const candidateRes: { price: number; time: any }[] = [];
+    const candidateSup: { price: number; time: any }[] = [];
 
-    for (const bar of slice) {
-        highWicks.push({ price: bar.high, time: bar.time });
-        lowWicks.push({ price: bar.low, time: bar.time });
+    for (let i = 1; i < slice.length - 1; i++) {
+        const h = slice[i].high;
+        if (h > slice[i-1].high && h > slice[i+1].high) {
+            candidateRes.push({ price: h, time: slice[i].time });
+        }
+        
+        const l = slice[i].low;
+        if (l < slice[i-1].low && l < slice[i+1].low) {
+            candidateSup.push({ price: l, time: slice[i].time });
+        }
     }
 
-    // ── Step 4: Cluster function ─────────────────────────────────────────────
+    // ── Step 4: Cluster pivots and count REAL candlestick touches ────────────
     type WickPoint = { price: number; time: any };
 
-    const clusterWicks = (wicks: WickPoint[], type: 'resistance' | 'support'): SRLevel[] => {
+    const buildClusters = (pivots: WickPoint[], type: 'resistance' | 'support'): SRLevel[] => {
         // Sort by price to make clustering easier
-        const sorted = [...wicks].sort((a, b) => a.price - b.price);
+        const sorted = [...pivots].sort((a, b) => a.price - b.price);
         const clusters: { prices: number[]; times: any[] }[] = [];
 
         for (const wick of sorted) {
@@ -1479,37 +1486,55 @@ export const calculateWickRejectionSR = (
             }
         }
 
-        // Filter clusters by minTouches
+        // Filter and validate clusters
         const levels: SRLevel[] = [];
         for (const cluster of clusters) {
-            if (cluster.prices.length < minTouches) continue;
-
             const avgPrice = cluster.prices.reduce((s, v) => s + v, 0) / cluster.prices.length;
-            const touchCount = cluster.prices.length;
+            const topZone = avgPrice + tolerance;
+            const bottomZone = avgPrice - tolerance;
+            
+            // Count REAL touches based on candlestick interaction
+            let touches = 0;
+            for (const bar of slice) {
+                if (type === 'resistance') {
+                    // Tested the zone but didn't close strongly above
+                    if (bar.high >= bottomZone && bar.close <= topZone + (tolerance * 0.5)) {
+                        touches++;
+                    }
+                } else {
+                    // Tested the zone but didn't close strongly below
+                    if (bar.low <= topZone && bar.close >= bottomZone - (tolerance * 0.5)) {
+                        touches++;
+                    }
+                }
+            }
+
+            if (touches < minTouches) continue;
+
             const sortedTimes = [...cluster.times].sort((a, b) => Number(a) - Number(b));
             const startTime = sortedTimes[0];
             const endTime = sortedTimes[sortedTimes.length - 1];
 
             // Strength classification
             let strength: SRLevel['strength'] = 'weak';
-            if (touchCount >= minTouches * 3) strength = 'ultra';
-            else if (touchCount >= minTouches * 2) strength = 'strong';
-            else if (touchCount >= Math.ceil(minTouches * 1.5)) strength = 'moderate';
+            if (touches >= minTouches * 3) strength = 'ultra';
+            else if (touches >= minTouches * 2) strength = 'strong';
+            else if (touches >= Math.ceil(minTouches * 1.5)) strength = 'moderate';
 
             // Break detection: did price close beyond this level after formation?
             const lastBar = slice[slice.length - 1];
             let isBroken = false;
-            if (type === 'resistance' && lastBar.close > avgPrice + tolerance) isBroken = true;
-            if (type === 'support' && lastBar.close < avgPrice - tolerance) isBroken = true;
+            if (type === 'resistance' && lastBar.close > topZone) isBroken = true;
+            if (type === 'support' && lastBar.close < bottomZone) isBroken = true;
 
             levels.push({
                 price: avgPrice,
                 type,
-                touchCount,
+                touchCount: touches,
                 strength,
                 startTime,
                 endTime,
-                zone: { top: avgPrice + tolerance * 0.5, bottom: avgPrice - tolerance * 0.5 },
+                zone: { top: topZone, bottom: bottomZone },
                 isBroken,
             });
         }
@@ -1519,8 +1544,8 @@ export const calculateWickRejectionSR = (
     };
 
     // ── Step 5: Deduplicate overlapping resistance vs support ─────────────────
-    const resistanceLevels = clusterWicks(highWicks, 'resistance');
-    const supportLevels    = clusterWicks(lowWicks,  'support');
+    const resistanceLevels = buildClusters(candidateRes, 'resistance');
+    const supportLevels    = buildClusters(candidateSup, 'support');
 
     // Merge and remove levels that are within tolerance of each other (keep higher touch count)
     const allLevels = [...resistanceLevels, ...supportLevels].sort((a, b) => b.touchCount - a.touchCount);
