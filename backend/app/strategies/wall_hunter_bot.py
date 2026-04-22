@@ -621,6 +621,56 @@ class WallHunterBot:
                 asyncio.create_task(self.ut_bot_tracker.stop())
                 self.ut_bot_tracker = None
 
+        # --- Supertrend Alerts Live Updates ---
+        if "enable_supertrend_trend_filter" in new_config and new_config["enable_supertrend_trend_filter"] != self.enable_supertrend_trend_filter:
+            self.enable_supertrend_trend_filter = new_config["enable_supertrend_trend_filter"]
+            updates.append(f"ST Trend Filter: {'ON' if self.enable_supertrend_trend_filter else 'OFF'}")
+        if "enable_supertrend_entry_trigger" in new_config and new_config["enable_supertrend_entry_trigger"] != self.enable_supertrend_entry_trigger:
+            self.enable_supertrend_entry_trigger = new_config["enable_supertrend_entry_trigger"]
+            updates.append(f"ST Entry Trigger: {'ON' if self.enable_supertrend_entry_trigger else 'OFF'}")
+        if "enable_supertrend_trailing_sl" in new_config and new_config["enable_supertrend_trailing_sl"] != self.enable_supertrend_trailing_sl:
+            self.enable_supertrend_trailing_sl = new_config["enable_supertrend_trailing_sl"]
+            updates.append(f"ST Trailing SL: {'ON' if self.enable_supertrend_trailing_sl else 'OFF'}")
+        if "enable_supertrend_exit" in new_config and new_config["enable_supertrend_exit"] != self.enable_supertrend_exit:
+            self.enable_supertrend_exit = new_config["enable_supertrend_exit"]
+            updates.append(f"ST Exit Signal: {'ON' if self.enable_supertrend_exit else 'OFF'}")
+        if "enable_supertrend_trend_unlock_mode" in new_config:
+            self.supertrend_trend_unlock_mode = new_config["enable_supertrend_trend_unlock_mode"]
+        if "supertrend_exit_timeout" in new_config:
+            self.supertrend_exit_timeout = new_config["supertrend_exit_timeout"]
+        if "supertrend_candle_close" in new_config:
+            self.supertrend_candle_close = new_config["supertrend_candle_close"]
+
+        st_params = {}
+        if "supertrend_period" in new_config and new_config["supertrend_period"] != self.supertrend_period:
+            updates.append(f"ST ATR Period: {self.supertrend_period} -> {new_config['supertrend_period']}")
+            self.supertrend_period = new_config["supertrend_period"]
+            st_params['atr_period'] = self.supertrend_period
+        if "supertrend_multiplier" in new_config and new_config["supertrend_multiplier"] != self.supertrend_multiplier:
+            updates.append(f"ST Multiplier: {self.supertrend_multiplier} -> {new_config['supertrend_multiplier']}")
+            self.supertrend_multiplier = new_config["supertrend_multiplier"]
+            st_params['multiplier'] = self.supertrend_multiplier
+        if "supertrend_timeframe" in new_config and new_config["supertrend_timeframe"] != self.supertrend_timeframe:
+            updates.append(f"ST Timeframe: {self.supertrend_timeframe} -> {new_config['supertrend_timeframe']}")
+            self.supertrend_timeframe = new_config["supertrend_timeframe"]
+            st_params['timeframe'] = self.supertrend_timeframe
+
+        any_st_enabled = self.enable_supertrend_trend_filter or self.enable_supertrend_entry_trigger or self.enable_supertrend_trailing_sl or self.enable_supertrend_exit
+        if any_st_enabled:
+            if not getattr(self, 'supertrend_tracker', None):
+                self.supertrend_tracker = SupertrendTracker(
+                    exchange_id=self.exchange_id, symbol=self.symbol,
+                    atr_period=self.supertrend_period, multiplier=self.supertrend_multiplier,
+                    timeframe=self.supertrend_timeframe)
+                if hasattr(self, '_supertrend_task'):
+                    self._supertrend_task = asyncio.create_task(self.supertrend_tracker.start())
+            elif st_params:
+                self.supertrend_tracker.update_params(**st_params)
+        else:
+            if getattr(self, 'supertrend_tracker', None):
+                asyncio.create_task(self.supertrend_tracker.stop())
+                self.supertrend_tracker = None
+
         if "enable_dual_engine" in new_config and new_config["enable_dual_engine"] != getattr(self.dual_engine_tracker, "is_enabled", False):
             status = "ON" if new_config["enable_dual_engine"] else "OFF"
             updates.append(f"Dual Engine Tracker: {status}")

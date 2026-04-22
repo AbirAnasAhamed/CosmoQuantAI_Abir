@@ -351,7 +351,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             utBotRetestSnipe: c.ut_bot_retest_snipe !== undefined ? c.ut_bot_retest_snipe : false,
                             
                             // Load Modular Supertrend settings
-                            enableSupertrendBot: !!(c.enable_supertrend_trend_filter || c.enable_supertrend_entry_trigger || c.enable_supertrend_trailing_sl),
+                            enableSupertrendBot: !!(c.enable_supertrend_trend_filter || c.enable_supertrend_entry_trigger || c.enable_supertrend_trailing_sl || c.enable_supertrend_exit),
                             enableSupertrendTrendFilter: c.enable_supertrend_trend_filter !== undefined ? c.enable_supertrend_trend_filter : false,
                             enableSupertrendEntryTrigger: c.enable_supertrend_entry_trigger !== undefined ? c.enable_supertrend_entry_trigger : false,
                             enableSupertrendTrendUnlockMode: c.enable_supertrend_trend_unlock_mode !== undefined ? c.enable_supertrend_trend_unlock_mode : false,
@@ -781,12 +781,42 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                 return;
             }
         }
+        if (field === 'enableSupertrendBot' && value === false) {
+            // Reset all sub-flags when parent module is disabled to prevent ghost configurations
+            setForm(prev => ({
+                ...prev,
+                enableSupertrendBot: false,
+                enableSupertrendTrendFilter: false,
+                enableSupertrendEntryTrigger: false,
+                enableSupertrendTrendUnlockMode: false,
+                enableSupertrendTrailingSl: false,
+                enableSupertrendExit: false,
+            }));
+            return;
+        }
         if (field === 'enableSupertrendBot' && value === true) {
             // Auto-enable Entry Trigger if no other triggers are active
             if (!form.enableWallTrigger && !form.enableLiqTrigger && !form.enableUtBot) {
                 setForm(prev => ({ ...prev, enableSupertrendBot: true, enableSupertrendEntryTrigger: true }));
                 return;
             }
+        }
+        if (field === 'enableDualEngine' && value === false) {
+            // Reset all sub-flags when Dual Engine is disabled
+            setForm(prev => ({
+                ...prev,
+                enableDualEngine: false,
+                dualEngineEmaFilter: false,
+                dualEngineTripleEmaFilter: false,
+                dualEngineRsiFilter: false,
+                dualEngineCandleFilter: false,
+                dualEngineMacdFilter: false,
+                dualEngineSqueezeFilter: false,
+                dualEngineAdxFilter: false,
+                dualEngineVolFilter: false,
+                dualEngineConfluenceMode: false,
+            }));
+            return;
         }
         if (field === 'enableDualEngine' && value === true) {
             setForm(prev => ({ 

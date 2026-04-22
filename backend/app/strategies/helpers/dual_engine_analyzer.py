@@ -226,7 +226,8 @@ class DualEngineTracker:
             
             final_signal = "NEUTRAL"
             trend = "NEUTRAL"
-            rsi_val = round(last_row.get('rsi', 50), 2)
+            rsi_raw = last_row.get('rsi', 50)
+            rsi_val = round(float(rsi_raw) if pd.notna(rsi_raw) else 50.0, 2)
             overall_score = 0
             
             if self.mode in ['Hybrid', 'Legacy']:
@@ -300,19 +301,30 @@ class DualEngineTracker:
                     
             else:
                 # --- Emulate "Classic" Pine Script Logic ---
-                cond_ema_long = (last_row['close'] > last_row['ema_slow']) if self.use_ema_filter else True
-                cond_ema_short = (last_row['close'] < last_row['ema_slow']) if self.use_ema_filter else True
+                # Guard all column accesses — columns only exist when their filter is enabled
+                ema_slow_val = last_row.get('ema_slow')
+                cond_ema_long = (last_row['close'] > ema_slow_val) if (self.use_ema_filter and pd.notna(ema_slow_val)) else (not self.use_ema_filter)
+                cond_ema_short = (last_row['close'] < ema_slow_val) if (self.use_ema_filter and pd.notna(ema_slow_val)) else (not self.use_ema_filter)
                 
-                cond_triple_ema_long = (last_row['fast_ema'] > last_row['med_ema'] and last_row['med_ema'] > last_row['slow_ema']) if self.use_triple_ema_filter else True
-                cond_triple_ema_short = (last_row['fast_ema'] < last_row['med_ema'] and last_row['med_ema'] < last_row['slow_ema']) if self.use_triple_ema_filter else True
+                fast_ema_val = last_row.get('fast_ema')
+                med_ema_val = last_row.get('med_ema')
+                slow_ema_val = last_row.get('slow_ema')
+                triple_ema_valid = self.use_triple_ema_filter and pd.notna(fast_ema_val) and pd.notna(med_ema_val) and pd.notna(slow_ema_val)
+                cond_triple_ema_long = (fast_ema_val > med_ema_val and med_ema_val > slow_ema_val) if triple_ema_valid else (not self.use_triple_ema_filter)
+                cond_triple_ema_short = (fast_ema_val < med_ema_val and med_ema_val < slow_ema_val) if triple_ema_valid else (not self.use_triple_ema_filter)
                 
-                cond_rsi_long = (last_row['rsi'] <= rsi_os) if self.use_rsi_filter else True
-                cond_rsi_short = (last_row['rsi'] >= rsi_ob) if self.use_rsi_filter else True
+                rsi_col = last_row.get('rsi')
+                cond_rsi_long = (rsi_col <= rsi_os) if (self.use_rsi_filter and pd.notna(rsi_col)) else (not self.use_rsi_filter)
+                cond_rsi_short = (rsi_col >= rsi_ob) if (self.use_rsi_filter and pd.notna(rsi_col)) else (not self.use_rsi_filter)
 
-                cond_macd_long = (last_row['macd_line'] > last_row['macd_signal']) if self.use_macd_filter else True
-                cond_macd_short = (last_row['macd_line'] < last_row['macd_signal']) if self.use_macd_filter else True
+                macd_line_val = last_row.get('macd_line')
+                macd_sig_val = last_row.get('macd_signal')
+                macd_valid = self.use_macd_filter and pd.notna(macd_line_val) and pd.notna(macd_sig_val)
+                cond_macd_long = (macd_line_val > macd_sig_val) if macd_valid else (not self.use_macd_filter)
+                cond_macd_short = (macd_line_val < macd_sig_val) if macd_valid else (not self.use_macd_filter)
 
-                cond_adx = (last_row['adx_str'] > float(self.adx_threshold)) if self.use_adx_filter else True
+                adx_val = last_row.get('adx_str')
+                cond_adx = (adx_val > float(self.adx_threshold)) if (self.use_adx_filter and pd.notna(adx_val)) else (not self.use_adx_filter)
 
                 if self.use_vol_filter:
                     high_vol = last_row['volume'] > (last_row['vol_ma'] * float(self.vol_multiplier))

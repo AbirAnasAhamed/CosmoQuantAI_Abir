@@ -104,6 +104,8 @@ export interface IndicatorSettings {
     dualEngineSqueezeBB: number;
     dualEngineSqueezeKC: number;
     dualEngineMode: 'Hybrid' | 'Legacy';
+    dualEngineAdxLength: number;
+    dualEngineAdxThreshold: number;
     fredApiKey: string;
     showWatchlistScanner: boolean;
     // ── ICT Killzones & Pivots [TFO] ──

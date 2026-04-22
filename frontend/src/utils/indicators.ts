@@ -858,11 +858,12 @@ export const calculateSupertrend = (
     const atrs: number[] = new Array(data.length).fill(0);
     if (changeATR) {
         // Pine's atr(period) is RMA (Relative Moving Average)
+        // Pine seeds with SMA of first `period` TR values (indices 0 to period-1)
         let trSum = 0;
-        for (let i = 1; i <= period; i++) trSum += trs[i];
-        atrs[period] = trSum / period;
+        for (let i = 0; i < period; i++) trSum += trs[i];
+        atrs[period - 1] = trSum / period;
         const alpha = 1 / period;
-        for (let i = period + 1; i < data.length; i++) {
+        for (let i = period; i < data.length; i++) {
             atrs[i] = alpha * trs[i] + (1 - alpha) * atrs[i - 1];
         }
     } else {

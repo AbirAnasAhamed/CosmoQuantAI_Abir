@@ -1579,14 +1579,16 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
                         } as any}
                         visibleLogicalRange={chartRef.current?.timeScale().getVisibleLogicalRange()}
                     />
-                    <SupertrendRenderer 
-                        chart={chartRef.current} 
-                        series={candlestickSeriesRef.current} 
-                        data={supertrendData} 
-                        ohlcData={allCandlesRef.current}
-                        showSignals={indicatorSettings.supertrendShowSignals}
-                        highlighter={indicatorSettings.supertrendHighlighting}
-                    />
+                    {indicatorSettings.showSupertrend && (
+                        <SupertrendRenderer 
+                            chart={chartRef.current} 
+                            series={candlestickSeriesRef.current} 
+                            data={supertrendData} 
+                            ohlcData={allCandlesRef.current}
+                            showSignals={indicatorSettings.supertrendShowSignals}
+                            highlighter={indicatorSettings.supertrendHighlighting}
+                        />
+                    )}
                     {indicatorSettings.showMsbOb && msbObData && (
                         <MsbObRenderer 
                             chart={chartRef.current} 
