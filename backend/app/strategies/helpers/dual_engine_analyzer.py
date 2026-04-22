@@ -45,6 +45,7 @@ class DualEngineTracker:
         self.adx_threshold = config.get("dual_engine_adx_threshold", 25)
         self.vol_length = config.get("dual_engine_vol_length", 20)
         self.vol_multiplier = config.get("dual_engine_vol_multiplier", 1.5)
+        self.timeframe = config.get("dual_engine_timeframe", config.get("timeframe", "1m"))
         
         # State
         self.current_state = {
@@ -89,6 +90,8 @@ class DualEngineTracker:
             "dual_engine_adx_threshold": "adx_threshold",
             "dual_engine_vol_length": "vol_length",
             "dual_engine_vol_multiplier": "vol_multiplier",
+            "dual_engine_timeframe": "timeframe",
+            "timeframe": "timeframe",
         }
         
         updated_keys = []
@@ -112,8 +115,8 @@ class DualEngineTracker:
         while self.running:
             try:
                 if self.is_enabled:
-                    # Fetching 1m candles for fast scalping calculation
-                    klines = await market_depth_service.fetch_ohlcv(self.symbol, self.exchange_id, '1m', 150)
+                    # Fetching candles dynamically based on the configured timeframe
+                    klines = await market_depth_service.fetch_ohlcv(self.symbol, self.exchange_id, self.timeframe, 150)
                     if klines and len(klines) > 50:
                         # Only recalculate if new candle closed or enough time passed
                         current_candle_time = int(klines[-1].get('time', klines[-1].get('timestamp', 0)))

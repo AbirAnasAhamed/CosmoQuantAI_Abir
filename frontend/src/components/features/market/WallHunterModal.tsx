@@ -141,6 +141,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         dualEngineVolFilter: false,
         dualEngineVolLength: 20,
         dualEngineVolMultiplier: 1.5,
+        dualEngineTimeframe: '1m',
 
         // --- NEW: Modular UT Bot Alerts ---
         enableUtBot: false,
@@ -311,6 +312,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
 
                             followBtcLiq: c.follow_btc_liq !== undefined ? c.follow_btc_liq : false,
                             btcLiqThreshold: c.btc_liq_threshold || 500000,
+                            
+                            dualEngineTimeframe: c.dual_engine_timeframe || '1m',
 
                             // Futures existing configs
                             marginMode: c.margin_mode || 'isolated',
@@ -702,6 +705,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     dual_engine_adx_threshold: form.dualEngineAdxThreshold,
                     dual_engine_vol_length: form.dualEngineVolLength,
                     dual_engine_vol_multiplier: form.dualEngineVolMultiplier,
+                    dual_engine_timeframe: form.dualEngineTimeframe,
 
                     // Modular UT Bot Alerts
                     enable_ut_trend_filter: form.enableUtBot ? form.enableUtTrendFilter : false,
@@ -1990,16 +1994,31 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
 
                                     {form.enableDualEngine && (
                                         <div className="mt-4 animate-fadeIn" onClick={e => e.stopPropagation()}>
-                                            <div className="flex items-center gap-2 mb-4 p-1 bg-black/20 rounded-lg border border-white/5">
-                                                {(['Classic', 'Hybrid', 'Legacy'] as const).map(mode => (
-                                                    <button
-                                                        key={mode}
-                                                        onClick={() => handleFormChange('dualEngineMode', mode)}
-                                                        className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded transition-all ${form.dualEngineMode === mode ? 'bg-yellow-500 text-black shadow-[0_0_10px_rgba(234,179,8,0.5)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
-                                                    >
-                                                        {mode}
-                                                    </button>
-                                                ))}
+                                            <div className="flex justify-between items-center gap-2 mb-4">
+                                                <div className="flex items-center gap-2 p-1 bg-black/20 rounded-lg border border-white/5 flex-1">
+                                                    {(['Classic', 'Hybrid', 'Legacy'] as const).map(mode => (
+                                                        <button
+                                                            key={mode}
+                                                            onClick={() => handleFormChange('dualEngineMode', mode)}
+                                                            className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded transition-all ${form.dualEngineMode === mode ? 'bg-yellow-500 text-black shadow-[0_0_10px_rgba(234,179,8,0.5)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                                                        >
+                                                            {mode}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <select
+                                                    value={form.dualEngineTimeframe}
+                                                    onChange={e => handleFormChange('dualEngineTimeframe', e.target.value)}
+                                                    className="bg-black/50 border border-white/10 text-yellow-500 font-mono text-[10px] rounded px-2 py-1.5 focus:border-yellow-500 outline-none w-20 text-center"
+                                                    title="Dual Engine Timeframe"
+                                                >
+                                                    <option value="1s">1s</option>
+                                                    <option value="1m">1m</option>
+                                                    <option value="3m">3m</option>
+                                                    <option value="5m">5m</option>
+                                                    <option value="15m">15m</option>
+                                                    <option value="1h">1h</option>
+                                                </select>
                                             </div>
                                             {form.dualEngineMode === 'Classic' ? (
                                                 <>
