@@ -82,11 +82,12 @@ class SupertrendTracker:
             trs[i] = max(h - l, abs(h - pc), abs(l - pc))
 
         atrs = [0.0] * n
-        tr_sum = sum(trs[1:period+1])
-        atrs[period] = tr_sum / period
+        # Pine seeds RMA with SMA of first `period` TR values (indices 0 to period-1)
+        tr_sum = sum(trs[0:period])
+        atrs[period - 1] = tr_sum / period
 
         alpha = 1.0 / period
-        for i in range(period + 1, n):
+        for i in range(period, n):
             atrs[i] = alpha * trs[i] + (1 - alpha) * atrs[i - 1]
 
         # Initial direction (Match Pine Script / Frontend default)

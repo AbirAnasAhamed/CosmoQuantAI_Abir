@@ -97,6 +97,8 @@ export const useBotStore = create<BotState>((set) => ({
         dualEngineSqueezeBB: 2.0,
         dualEngineSqueezeKC: 1.5,
         dualEngineMode: 'Hybrid', // 'Hybrid' | 'Legacy'
+        dualEngineAdxLength: 14,
+        dualEngineAdxThreshold: 25,
         fredApiKey: '',
         showWatchlistScanner: false,
         // ── ICT Killzones & Pivots [TFO] ──

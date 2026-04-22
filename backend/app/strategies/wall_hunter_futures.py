@@ -228,10 +228,11 @@ class WallHunterFuturesStrategy:
             timeframe=self.supertrend_timeframe
         ) if any_supertrend_enabled else None
         
-        self.supertrend_standalone_listener = SupertrendStandaloneListener(self)
+        self.supertrend_standalone_listener = SupertrendStandaloneListener(self) if any_supertrend_enabled else None
 
-        self.dual_engine_tracker = DualEngineTracker(self.exchange_id, self.symbol, self.config)
-        self.dual_engine_standalone = DualEngineStandaloneListener(self)
+        _de_enabled = self.config.get("enable_dual_engine", False)
+        self.dual_engine_tracker = DualEngineTracker(self.exchange_id, self.symbol, self.config) if _de_enabled else None
+        self.dual_engine_standalone = DualEngineStandaloneListener(self) if _de_enabled else None
         
         # --- NEW: Trading Session Tracker ---
         self.trading_sessions = self.config.get("trading_sessions", [self.config.get("trading_session", "None")])
@@ -2661,7 +2662,110 @@ class WallHunterFuturesStrategy:
                 self.iceberg_min_absorbed_vol = new_config["iceberg_min_absorbed_vol"]
                 self.iceberg_tracker.update_params(min_absorbed_vol=self.iceberg_min_absorbed_vol)
 
-            
+            # --- UT Bot Alerts Live Sync ---
+            if "enable_ut_trend_filter" in new_config:
+                self.enable_ut_trend_filter = new_config["enable_ut_trend_filter"]
+                updates.append(f"UT Trend Filter: {'ON' if self.enable_ut_trend_filter else 'OFF'}")
+            if "enable_ut_entry_trigger" in new_config:
+                self.enable_ut_entry_trigger = new_config["enable_ut_entry_trigger"]
+                updates.append(f"UT Entry Trigger: {'ON' if self.enable_ut_entry_trigger else 'OFF'}")
+            if "enable_ut_trailing_sl" in new_config:
+                self.enable_ut_trailing_sl = new_config["enable_ut_trailing_sl"]
+                updates.append(f"UT Trailing SL: {'ON' if self.enable_ut_trailing_sl else 'OFF'}")
+            if "enable_ut_trend_unlock_mode" in new_config:
+                self.ut_trend_unlock_mode = new_config["enable_ut_trend_unlock_mode"]
+
+            ut_params = {}
+            if "ut_bot_sensitivity" in new_config and new_config["ut_bot_sensitivity"] != self.ut_bot_sensitivity:
+                updates.append(f"UT Key Value: {self.ut_bot_sensitivity} → {new_config['ut_bot_sensitivity']}")
+                self.ut_bot_sensitivity = new_config["ut_bot_sensitivity"]
+                ut_params['sensitivity'] = self.ut_bot_sensitivity
+            if "ut_bot_atr_period" in new_config and new_config["ut_bot_atr_period"] != self.ut_bot_atr_period:
+                updates.append(f"UT ATR Period: {self.ut_bot_atr_period} → {new_config['ut_bot_atr_period']}")
+                self.ut_bot_atr_period = new_config["ut_bot_atr_period"]
+                ut_params['atr_period'] = self.ut_bot_atr_period
+            if "ut_bot_timeframe" in new_config and new_config["ut_bot_timeframe"] != self.ut_bot_timeframe:
+                updates.append(f"UT Timeframe: {self.ut_bot_timeframe} → {new_config['ut_bot_timeframe']}")
+                self.ut_bot_timeframe = new_config["ut_bot_timeframe"]
+                ut_params['timeframe'] = self.ut_bot_timeframe
+            if "ut_bot_use_heikin_ashi" in new_config and new_config["ut_bot_use_heikin_ashi"] != self.ut_bot_use_heikin_ashi:
+                self.ut_bot_use_heikin_ashi = new_config["ut_bot_use_heikin_ashi"]
+                ut_params['use_heikin_ashi'] = self.ut_bot_use_heikin_ashi
+            if "ut_bot_candle_close" in new_config:
+                self.ut_bot_candle_close = new_config["ut_bot_candle_close"]
+            if "ut_bot_validation_secs" in new_config:
+                self.ut_bot_validation_secs = new_config["ut_bot_validation_secs"]
+            if "ut_bot_retest_snipe" in new_config:
+                self.ut_bot_retest_snipe = new_config["ut_bot_retest_snipe"]
+
+            any_ut_enabled = self.enable_ut_trend_filter or self.enable_ut_entry_trigger or self.enable_ut_trailing_sl
+            if any_ut_enabled:
+                if not getattr(self, 'ut_bot_tracker', None):
+                    from app.strategies.helpers.ut_bot_tracker import UTBotTracker
+                    self.ut_bot_tracker = UTBotTracker(
+                        exchange_id=self.exchange_id, symbol=self.symbol,
+                        sensitivity=self.ut_bot_sensitivity, atr_period=self.ut_bot_atr_period,
+                        use_heikin_ashi=self.ut_bot_use_heikin_ashi, timeframe=self.ut_bot_timeframe)
+                    if hasattr(self, '_utbot_task'):
+                        self._utbot_task = asyncio.create_task(self.ut_bot_tracker.start())
+                elif ut_params:
+                    self.ut_bot_tracker.update_params(**ut_params)
+            else:
+                if getattr(self, 'ut_bot_tracker', None):
+                    asyncio.create_task(self.ut_bot_tracker.stop())
+                    self.ut_bot_tracker = None
+
+            # --- Supertrend Alerts Live Sync ---
+            if "enable_supertrend_trend_filter" in new_config:
+                self.enable_supertrend_trend_filter = new_config["enable_supertrend_trend_filter"]
+                updates.append(f"ST Trend Filter: {'ON' if self.enable_supertrend_trend_filter else 'OFF'}")
+            if "enable_supertrend_entry_trigger" in new_config:
+                self.enable_supertrend_entry_trigger = new_config["enable_supertrend_entry_trigger"]
+                updates.append(f"ST Entry Trigger: {'ON' if self.enable_supertrend_entry_trigger else 'OFF'}")
+            if "enable_supertrend_trailing_sl" in new_config:
+                self.enable_supertrend_trailing_sl = new_config["enable_supertrend_trailing_sl"]
+                updates.append(f"ST Trailing SL: {'ON' if self.enable_supertrend_trailing_sl else 'OFF'}")
+            if "enable_supertrend_exit" in new_config:
+                self.enable_supertrend_exit = new_config["enable_supertrend_exit"]
+                updates.append(f"ST Exit Signal: {'ON' if self.enable_supertrend_exit else 'OFF'}")
+            if "enable_supertrend_trend_unlock_mode" in new_config:
+                self.supertrend_trend_unlock_mode = new_config["enable_supertrend_trend_unlock_mode"]
+            if "supertrend_exit_timeout" in new_config:
+                self.supertrend_exit_timeout = new_config["supertrend_exit_timeout"]
+            if "supertrend_candle_close" in new_config:
+                self.supertrend_candle_close = new_config["supertrend_candle_close"]
+
+            st_params = {}
+            if "supertrend_period" in new_config and new_config["supertrend_period"] != self.supertrend_period:
+                updates.append(f"ST ATR Period: {self.supertrend_period} → {new_config['supertrend_period']}")
+                self.supertrend_period = new_config["supertrend_period"]
+                st_params['atr_period'] = self.supertrend_period
+            if "supertrend_multiplier" in new_config and new_config["supertrend_multiplier"] != self.supertrend_multiplier:
+                updates.append(f"ST Multiplier: {self.supertrend_multiplier} → {new_config['supertrend_multiplier']}")
+                self.supertrend_multiplier = new_config["supertrend_multiplier"]
+                st_params['multiplier'] = self.supertrend_multiplier
+            if "supertrend_timeframe" in new_config and new_config["supertrend_timeframe"] != self.supertrend_timeframe:
+                updates.append(f"ST Timeframe: {self.supertrend_timeframe} → {new_config['supertrend_timeframe']}")
+                self.supertrend_timeframe = new_config["supertrend_timeframe"]
+                st_params['timeframe'] = self.supertrend_timeframe
+
+            any_st_enabled = self.enable_supertrend_trend_filter or self.enable_supertrend_entry_trigger or self.enable_supertrend_trailing_sl or self.enable_supertrend_exit
+            if any_st_enabled:
+                if not getattr(self, 'supertrend_tracker', None):
+                    from app.strategies.helpers.supertrend_tracker import SupertrendTracker
+                    self.supertrend_tracker = SupertrendTracker(
+                        exchange_id=self.exchange_id, symbol=self.symbol,
+                        atr_period=self.supertrend_period, multiplier=self.supertrend_multiplier,
+                        timeframe=self.supertrend_timeframe)
+                    if hasattr(self, '_supertrend_task'):
+                        self._supertrend_task = asyncio.create_task(self.supertrend_tracker.start())
+                elif st_params:
+                    self.supertrend_tracker.update_params(**st_params)
+            else:
+                if getattr(self, 'supertrend_tracker', None):
+                    asyncio.create_task(self.supertrend_tracker.stop())
+                    self.supertrend_tracker = None
+
             asyncio.create_task(self._send_telegram(f"⚙️ *Live Config Update*\n{self.symbol} Futures Bot\n\n" + "\n".join([f"• {u}" for u in updates])))
 
     async def _vpvr_updater_loop(self):

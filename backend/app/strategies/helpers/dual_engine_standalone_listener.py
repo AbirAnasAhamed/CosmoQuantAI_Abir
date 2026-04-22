@@ -45,6 +45,11 @@ class DualEngineStandaloneListener:
                     
                     if current_signal != 'NEUTRAL' and signal_updated_time != last_processed_signal_time:
                         
+                        # Prevent double-entry: skip if a position is already open
+                        if getattr(self.bot, 'active_pos', None):
+                            await asyncio.sleep(interval)
+                            continue
+                        
                         # Validate the signal matches our intended trade direction
                         is_valid_signal = False
                         if target_trade_dir == 'long' and current_signal == 'BUY':

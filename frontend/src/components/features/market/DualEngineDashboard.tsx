@@ -131,10 +131,12 @@ export const DualEngineDashboard: React.FC<DualEngineDashboardProps> = ({ settin
         let adxValue = 0;
         let isStrongTrend = false;
         try {
-            const adxData = calculateADX(closePrices, 14);
+            const adxPeriod = settings.dualEngineAdxLength || 14;
+            const adxThresh = settings.dualEngineAdxThreshold || 25;
+            const adxData = calculateADX(closePrices, adxPeriod);
             if (adxData.length > 0) {
                 adxValue = adxData[adxData.length - 1].adx;
-                isStrongTrend = adxValue > 25;
+                isStrongTrend = adxValue > adxThresh;
             }
         } catch(e) {}
 
