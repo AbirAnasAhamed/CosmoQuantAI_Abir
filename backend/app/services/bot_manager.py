@@ -394,13 +394,48 @@ class BotManager:
                     logger.info(f"{idx}. {log_item}")
                     msg_lines.append(f"{idx}. {log_item}")
                     
-                # ⚙️ ACTIVE CONFIG (Compact Dump - No Falsy/Zeros)
+                # ⚙️ ACTIVE CONFIG (Compact Dump - No Falsy/Zeros + Parent-Child Filter)
                 logger.info("⚙️ ACTIVE CONFIG:")
                 msg_lines.append("\n⚙️ *Active Config:*")
-                skip_keys = ['symbol', 'exchange', 'is_paper_trading']
+                skip_keys = ['symbol', 'exchange', 'is_paper_trading', 'name', 'description']
+                
+                # Evaluate Parent-Child Relationships to hide inactive module configs
+                disabled_prefixes = []
+                if not config.get('enable_dual_engine'):
+                    disabled_prefixes.append('dual_engine_')
+                else:
+                    if not config.get('dual_engine_ema_filter') and not config.get('dual_engine_triple_ema_filter'):
+                        disabled_prefixes.extend(['dual_engine_ema_length', 'dual_engine_ema_fast', 'dual_engine_ema_med', 'dual_engine_ema_slow'])
+                    if not config.get('dual_engine_rsi_filter'):
+                        disabled_prefixes.extend(['dual_engine_rsi_length', 'dual_engine_rsi_ob', 'dual_engine_rsi_os'])
+                    if not config.get('dual_engine_macd_filter'):
+                        disabled_prefixes.extend(['dual_engine_macd_fast', 'dual_engine_macd_slow', 'dual_engine_macd_signal'])
+                    if not config.get('dual_engine_squeeze_filter'):
+                        disabled_prefixes.extend(['dual_engine_squeeze_length', 'dual_engine_squeeze_bb_mult', 'dual_engine_squeeze_kc_mult'])
+                    if not config.get('dual_engine_adx_filter'):
+                        disabled_prefixes.extend(['dual_engine_adx_length', 'dual_engine_adx_threshold'])
+                    if not config.get('dual_engine_vol_filter'):
+                        disabled_prefixes.extend(['dual_engine_vol_length', 'dual_engine_vol_multiplier'])
+                
+                if not config.get('enable_supertrend_bot'): disabled_prefixes.append('supertrend_')
+                if not config.get('enable_ut_bot'): disabled_prefixes.append('ut_bot_')
+                if not config.get('enable_wick_sr'): disabled_prefixes.append('wick_sr_')
+                if not config.get('enable_iceberg_trigger'): disabled_prefixes.append('iceberg_')
+                if not config.get('enable_absorption'): disabled_prefixes.append('absorption_')
+                if not config.get('enable_btc_correlation'): disabled_prefixes.append('btc_')
+                if not config.get('enable_auto_fibo_tp'): disabled_prefixes.extend(['auto_fibo_', 'enable_auto_fibo_tp'])
+                if not config.get('enable_trend_filter'): disabled_prefixes.append('trend_filter_')
+                if not config.get('enable_wall_trigger') and not config.get('enable_micro_scalp'):
+                    disabled_prefixes.extend(['max_wall_distance_pct', 'micro_scalp_'])
+                if not config.get('enable_liq_trigger'): disabled_prefixes.extend(['liq_threshold', 'liq_target_side'])
+                if not config.get('enable_proxy_wall'): disabled_prefixes.extend(['proxy_exchange', 'proxy_symbol'])
                 
                 for k, v in sorted(config.items()):
                     if k in skip_keys: continue
+                    
+                    # Parent-Child check
+                    if any(k.startswith(prefix) for prefix in disabled_prefixes):
+                        continue
                     
                     # Skip disabled, 0, None, empty, or False values
                     if not v or v == [] or v == ['None'] or v == 0.0: continue
