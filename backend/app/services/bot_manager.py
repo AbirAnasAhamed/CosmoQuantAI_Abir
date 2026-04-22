@@ -409,7 +409,7 @@ class BotManager:
                     # ⚙️ ACTIVE CONFIG (Compact Dump - No Falsy/Zeros + Parent-Child Filter)
                     logger.info("⚙️ ACTIVE CONFIG:")
                     msg_lines.append("\n⚙️ *Active Config:*")
-                    skip_keys = ['symbol', 'exchange', 'is_paper_trading', 'name', 'description']
+                    skip_keys = ['symbol', 'exchange', 'is_paper_trading', 'name', 'description', 'timeframe']
                     
                     # Evaluate Parent-Child Relationships to hide inactive module configs
                     disabled_prefixes = []
