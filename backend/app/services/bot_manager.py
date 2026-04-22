@@ -74,6 +74,7 @@ class BotManager:
                     "exchange": bot.exchange or "binance",
                     "symbol": bot.market,
                     "is_paper_trading": bot.is_paper_trading,
+                    "timeframe": bot.timeframe,
                 }
                 if bot.config:
                     config.update(bot.config)
