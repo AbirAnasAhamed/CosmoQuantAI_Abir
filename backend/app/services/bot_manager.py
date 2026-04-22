@@ -304,10 +304,13 @@ class BotManager:
                     if de_mode == 'CLASSIC':
                         filters = []
                         if config.get('dual_engine_ema_filter'): filters.append(f"EMA({config.get('dual_engine_ema_length', 100)})")
+                        if config.get('dual_engine_triple_ema_filter'): filters.append(f"3xEMA")
                         if config.get('dual_engine_rsi_filter'): filters.append(f"RSI")
                         if config.get('dual_engine_macd_filter'): filters.append(f"MACD")
                         if config.get('dual_engine_squeeze_filter'): filters.append(f"SQZ")
                         if config.get('dual_engine_candle_filter'): filters.append(f"Candles")
+                        if config.get('dual_engine_adx_filter'): filters.append(f"ADX({config.get('dual_engine_adx_threshold', 25)})")
+                        if config.get('dual_engine_vol_filter'): filters.append(f"Vol")
                         filters_str = "+".join(filters) if filters else "None"
                         dynamic_logs.append(f"🧠 Dual Engine (CLASSIC): {filters_str}")
                     else:
@@ -389,6 +392,18 @@ class BotManager:
                 for idx, log_item in enumerate(dynamic_logs, 1):
                     logger.info(f"{idx}. {log_item}")
                     msg_lines.append(f"{idx}. {log_item}")
+                    
+                # ⚙️ FULL RAW CONFIG (Auto-detected future-proof dump)
+                logger.info("⚙️ RAW CONFIG DUMP:")
+                msg_lines.append("\n⚙️ *Full Bot Configuration:*")
+                
+                # Exclude long or redundant internal keys if necessary
+                skip_keys = ['symbol', 'exchange', 'is_paper_trading']
+                for k, v in sorted(config.items()):
+                    if k not in skip_keys and v is not None and str(v).strip() != "":
+                        pretty_key = k.replace('_', ' ').title()
+                        logger.info(f"  - {pretty_key}: {v}")
+                        msg_lines.append(f"  • {pretty_key}: {v}")
 
             else:
                 logger.info(f"📈 Strategy: {bot.strategy} | Timeframe: {bot.timeframe}")

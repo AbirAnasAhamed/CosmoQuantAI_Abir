@@ -873,11 +873,19 @@ class WallHunterFuturesStrategy:
                 if getattr(self, "dual_engine_tracker", None) and self.dual_engine_tracker.is_enabled:
                     de_mode = self.config.get("dual_engine_mode", "Classic").upper()
                     sig = self.dual_engine_tracker.current_state.get('signal', 'NEUTRAL')
+                    
+                    direction = getattr(self, 'direction', 'auto').upper()
+                    if direction == 'AUTO':
+                        wait_str = "" if sig in ['BUY', 'SELL'] else " (Waiting for BUY/SELL)"
+                    else:
+                        target_sig = 'BUY' if direction == 'LONG' else 'SELL'
+                        wait_str = "" if sig == target_sig else f" (Waiting for {target_sig})"
+                    
                     if de_mode in ['HYBRID', 'LEGACY']:
                         score = self.dual_engine_tracker.current_state.get('insight_score', 0)
-                        de_status = f" | \U0001f9e0 Dual Engine [{de_mode}]: {sig} (Score: {score})"
+                        de_status = f" | \U0001f9e0 Dual Engine [{de_mode}]: {sig}{wait_str} (Score: {score})"
                     else:
-                        de_status = f" | \U0001f9e0 Dual Engine [CLASSIC]: {sig}"
+                        de_status = f" | \U0001f9e0 Dual Engine [CLASSIC]: {sig}{wait_str}"
 
                 # Wick SR live status
                 wick_sr_status = ""
