@@ -393,18 +393,6 @@ class BotManager:
                 for idx, log_item in enumerate(dynamic_logs, 1):
                     logger.info(f"{idx}. {log_item}")
                     msg_lines.append(f"{idx}. {log_item}")
-                    
-                # ⚙️ FULL RAW CONFIG (Auto-detected future-proof dump)
-                logger.info("⚙️ RAW CONFIG DUMP:")
-                msg_lines.append("\n⚙️ *Full Bot Configuration:*")
-                
-                # Exclude long or redundant internal keys if necessary
-                skip_keys = ['symbol', 'exchange', 'is_paper_trading']
-                for k, v in sorted(config.items()):
-                    if k not in skip_keys and v is not None and str(v).strip() != "":
-                        pretty_key = k.replace('_', ' ').title()
-                        logger.info(f"  - {pretty_key}: {v}")
-                        msg_lines.append(f"  • {pretty_key}: {v}")
 
             else:
                 logger.info(f"📈 Strategy: {bot.strategy} | Timeframe: {bot.timeframe}")
