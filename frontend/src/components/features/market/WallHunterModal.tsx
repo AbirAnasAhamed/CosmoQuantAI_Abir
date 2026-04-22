@@ -102,9 +102,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
 
         // --- NEW: BTC Correlation Filter ---
         enableBtcCorrelation: false,
-        btcCorrelationThreshold: 0.5,
+        btcCorrelationThreshold: 0.7,
         btcTimeWindow: 15,
-        btcMinMovePct: 0.025,
+        btcMinMovePct: 0.1,
 
         // --- NEW: Adaptive Trend Filter ---
         enableTrendFilter: false,

@@ -85,7 +85,7 @@ class StrategyConfig(BaseModel):
 
     # --- Iceberg & Hidden Wall Trigger ---
     enable_iceberg_trigger: Optional[bool] = False
-    iceberg_time_window_secs: Optional[int] = 5
+    iceberg_time_window_secs: Optional[int] = 10
     iceberg_min_absorbed_vol: Optional[float] = 100000.0
 
     # --- Buy Order Type Logic ---

@@ -153,7 +153,7 @@ class WallHunterBot:
         
         # --- NEW FEATURES: Iceberg & Hidden Wall Trigger ---
         self.enable_iceberg_trigger = config.get("enable_iceberg_trigger", False)
-        self.iceberg_time_window_secs = config.get("iceberg_time_window_secs", 5)
+        self.iceberg_time_window_secs = config.get("iceberg_time_window_secs", 10)
         self.iceberg_min_absorbed_vol = config.get("iceberg_min_absorbed_vol", 100000.0)
         self.iceberg_tracker = IcebergTracker(
             window_seconds=self.iceberg_time_window_secs,
@@ -332,6 +332,22 @@ class WallHunterBot:
             
         if "strategy_mode" in new_config:
             self.strategy_mode = new_config["strategy_mode"].lower()
+            
+        # --- Trading Session Live Update ---
+        if "trading_sessions" in new_config and new_config["trading_sessions"] != self.trading_sessions:
+            old_sessions = self.trading_sessions
+            self.trading_sessions = new_config["trading_sessions"]
+            self.logger.info(f"🕒 [Session] Trading sessions updated: {old_sessions} → {self.trading_sessions}")
+            # Stop old monitor and restart with new sessions
+            if getattr(self, 'session_tracker', None):
+                asyncio.create_task(self.session_tracker.stop_monitor())
+            from app.strategies.helpers.trading_session_filter import TradingSessionTracker as _TST
+            self.session_tracker = _TST(
+                bot_instance=self,
+                session_names=self.trading_sessions,
+                on_session_end=self._on_trading_session_end
+            )
+            asyncio.create_task(self.session_tracker.start_monitor())
         
         # Keep track of old values for logging
         updates = []
@@ -1241,14 +1257,23 @@ class WallHunterBot:
         while self.running:
             try:
                 # Real-time L2 Data Fetching via WebSocket (Proxy Routing Enabled)
-                watch_sym = self.proxy_symbol if self.enable_proxy_wall and self.proxy_symbol else self.symbol
-                limit = market_depth_service._normalize_order_book_limit(self.exchange_id, 20)
+                # BUG FIX: When proxy wall is enabled, use proxy_public_exchange (not public_exchange)
+                # and normalize the limit against the proxy exchange, not the native exchange.
+                if self.enable_proxy_wall and self.proxy_symbol:
+                    watch_sym = self.proxy_symbol
+                    watch_exchange = getattr(self, 'proxy_public_exchange', self.public_exchange)
+                    proxy_ex_id = getattr(self, 'proxy_exchange', self.exchange_id)
+                    limit = market_depth_service._normalize_order_book_limit(proxy_ex_id, 20)
+                else:
+                    watch_sym = self.symbol
+                    watch_exchange = self.public_exchange
+                    limit = market_depth_service._normalize_order_book_limit(self.exchange_id, 20)
                 try:
-                    orderbook = await self.public_exchange.watch_order_book(watch_sym, limit=limit)
+                    orderbook = await watch_exchange.watch_order_book(watch_sym, limit=limit)
                 except Exception as e:
                     self.logger.warning(f"WebSocket orderbook error on {watch_sym}: {e}, falling back to REST")
                     await asyncio.sleep(1.5) # Rate limit protection for REST fallback
-                    orderbook = await self.public_exchange.fetch_order_book(watch_sym, limit=limit)
+                    orderbook = await watch_exchange.fetch_order_book(watch_sym, limit=limit)
                     
                 if not orderbook['bids'] or not orderbook['asks']:
                     await asyncio.sleep(1)
@@ -1260,7 +1285,19 @@ class WallHunterBot:
                 current_time = time.time()
 
                 if getattr(self, 'enable_iceberg_trigger', False):
-                    self.iceberg_tracker.update_orderbook(orderbook['bids'], orderbook['asks'])
+                    # BUG FIX: Only update iceberg tracker with NATIVE orderbook.
+                    # When proxy wall is active, 'orderbook' is proxy symbol data (e.g. BTC/USDT).
+                    # Iceberg tracks native symbol trades, so we must use native book.
+                    if self.enable_proxy_wall and self.proxy_symbol:
+                        try:
+                            native_limit = market_depth_service._normalize_order_book_limit(self.exchange_id, 20)
+                            native_ob = await self.public_exchange.fetch_order_book(self.symbol, limit=native_limit)
+                            if native_ob['bids'] and native_ob['asks']:
+                                self.iceberg_tracker.update_orderbook(native_ob['bids'], native_ob['asks'])
+                        except Exception:
+                            pass  # Silently skip if native book fetch fails — trades still accumulate
+                    else:
+                        self.iceberg_tracker.update_orderbook(orderbook['bids'], orderbook['asks'])
 
 
                 if not self.active_pos:
@@ -1656,19 +1693,17 @@ class WallHunterBot:
                                         self.logger.info(f"📈 [Dual Engine] Confirmed aligned for {side.upper()}! {self.dual_engine_tracker.get_metrics_string()}")
 
                                 # --- Multi-Level Orderbook Imbalance (OIB) ---
+                                # NOTE: No cache used — OIB is re-evaluated every tick so improving
+                                # orderbook conditions can unlock a previously-rejected wall.
                                 if getattr(self, 'enable_oib_filter', False):
-                                    if self.tracked_walls[price].get('oib_rejected'):
-                                        continue
                                     oib_ratio = self.calculate_oib(orderbook, depth=10)
                                     min_oib_threshold = getattr(self, 'min_oib_threshold', 0.4)
                                     
                                     if side == "buy" and oib_ratio < min_oib_threshold:
                                         self.logger.info(f"🚫 [OIB Filter] Confirmed Snipe at {price} rejected! Weak Bid presence ({oib_ratio*100:.1f}%).")
-                                        self.tracked_walls[price]['oib_rejected'] = True
                                         continue
                                     elif side == "sell" and (1 - oib_ratio) < min_oib_threshold:
                                         self.logger.info(f"🚫 [OIB Filter] Confirmed Snipe at {price} rejected! Weak Ask presence ({(1-oib_ratio)*100:.1f}%).")
-                                        self.tracked_walls[price]['oib_rejected'] = True
                                         continue
                                     else:
                                         support = oib_ratio if side == "buy" else (1-oib_ratio)
@@ -3219,7 +3254,12 @@ class WallHunterBot:
                                     self.logger.info(f"💥 {target_liq_side.capitalize()} Liquidation Triggered! Stream: {triggered_symbol} | Cascade Total: ${cascade_total:.2f} | Threshold: ${active_threshold:.2f}")
                                     if self.enable_liq_cascade:
                                         self.liq_history.clear() # Reset after triggering
-                                    await self._handle_liquidation_trigger(data)
+                                    # BUG FIX: Derive entry_side from the liq side that triggered (mirrors Futures engine).
+                                    # short liq (shorts squeezed = pump)  → we BUY
+                                    # long  liq (longs dumped   = dump)   → we SELL
+                                    derived_entry_side = "buy" if target_liq_side == "short" else "sell"
+                                    reason = f"Liquidation Trigger ({target_liq_side.upper()} ${cascade_total:,.0f} [Thresh: ${active_threshold:,.0f}])"
+                                    await self._handle_liquidation_trigger(derived_entry_side, reason=reason)
                                     
                         except json.JSONDecodeError:
                             self.logger.error(f"Failed to decode Redis liquidation message: {message['data']}")
@@ -3227,7 +3267,8 @@ class WallHunterBot:
                 self.logger.error(f"Liquidation Listener Error: {e}")
             await asyncio.sleep(0.1)
 
-    async def _handle_liquidation_trigger(self, liq_data):
+    async def _handle_liquidation_trigger(self, entry_side: str, reason: str = ""):
+        """Execute a liquidation snipe. entry_side is pre-determined by the caller based on liq direction."""
         if self.active_pos: return
         
         try:
@@ -3239,28 +3280,24 @@ class WallHunterBot:
             best_ask = ob['asks'][0][0]
             mid_price = (best_bid + best_ask) / 2
             
-            # --- 1. Orderbook Imbalance Check (Tape Reading) ---
+            # --- 1. Directional OB Imbalance Check ---
             if self.enable_ob_imbalance:
-                # Calculate volume ratio near mid price
                 bid_vol = sum(level[1] for level in ob['bids'])
                 ask_vol = sum(level[1] for level in ob['asks'])
-                
-                if ask_vol > 0:
-                    current_ratio = bid_vol / ask_vol
-                    if current_ratio < self.ob_imbalance_ratio:
-                        self.logger.info(f"⏭️ Liquidation ignoring: OB Imbalance Ratio too low ({current_ratio:.2f} < {self.ob_imbalance_ratio})")
-                        return
-                    else:
-                        self.logger.info(f"✅ OB Imbalance check passed ({current_ratio:.2f} >= {self.ob_imbalance_ratio})")
+                if entry_side == "buy":
+                    ratio = bid_vol / ask_vol if ask_vol > 0 else 999
                 else:
-                    return # No asks, weird state
+                    ratio = ask_vol / bid_vol if bid_vol > 0 else 999
                 
-            # --- 2. Confluence Mode (Wall Check) ---
-            entry_side = "sell" if getattr(self, 'strategy_mode', 'long') == "short" else "buy"
+                if ratio < self.ob_imbalance_ratio:
+                    self.logger.info(f"⏭️ [LIQ] Rejected: OB Imbalance Ratio {ratio:.2f} < {self.ob_imbalance_ratio}")
+                    return
+                self.logger.info(f"✅ [LIQ] OB Imbalance Confirmed: {ratio:.2f}x")
+                
+            # --- 2. Wall Confluence Check ---
             target_price = best_ask if entry_side == "sell" else best_bid
             
             if self.enable_wall_trigger:
-                # Check for walls
                 strong_wall_found = False
                 wall_price = 0
                 search_levels = ob['asks'] if entry_side == "sell" else ob['bids']
@@ -3273,13 +3310,12 @@ class WallHunterBot:
                         break
                         
                 if strong_wall_found:
-                    self.logger.info(f"🔥 Confluence Met: Liquidation + Wall at {wall_price}. Sniping ({entry_side.upper()})!")
+                    self.logger.info(f"🔥 Confluence Met: Liquidation + Wall at {wall_price}. Sniping ({entry_side.upper()})! | {reason}")
                     await self.execute_snipe(wall_price, entry_side, mid_price)
                 else:
                     self.logger.info(f"⏭️ Liquidation ignoring: No supporting wall (Needed >= {self.micro_scalp_min_wall})")
             else:
-                # Only Liquidation mode
-                self.logger.info(f"🔥 Liquidation Snipe at {target_price}")
+                self.logger.info(f"🔥 Liquidation Snipe at {target_price} | {reason}")
                 await self.execute_snipe(target_price, entry_side, mid_price)
                 
         except Exception as e:

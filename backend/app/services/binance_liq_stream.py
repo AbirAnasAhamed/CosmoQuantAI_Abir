@@ -82,8 +82,16 @@ class BinanceLiquidationStream:
                 # This is a simple heuristic. It might need refinement for other asset classes.
                 if symbol.endswith("USDT"):
                     formatted_symbol = f"{symbol[:-4]}/USDT"
+                elif symbol.endswith("USDC"):
+                    formatted_symbol = f"{symbol[:-4]}/USDC"
+                elif symbol.endswith("BUSD"):
+                    formatted_symbol = f"{symbol[:-4]}/BUSD"
+                elif symbol.endswith("BTC") and len(symbol) > 3:
+                    formatted_symbol = f"{symbol[:-3]}/BTC"
+                elif symbol.endswith("ETH") and len(symbol) > 3:
+                    formatted_symbol = f"{symbol[:-3]}/ETH"
                 else:
-                    formatted_symbol = symbol 
+                    formatted_symbol = symbol  # Fallback for unknown quote assets
                     
                 payload = {
                     "symbol": formatted_symbol,

@@ -159,7 +159,7 @@ class WallHunterFuturesStrategy:
         
         # --- NEW FEATURES: Iceberg & Hidden Wall Trigger ---
         self.enable_iceberg_trigger = self.config.get("enable_iceberg_trigger", False)
-        self.iceberg_time_window_secs = self.config.get("iceberg_time_window_secs", 5)
+        self.iceberg_time_window_secs = self.config.get("iceberg_time_window_secs", 10)
         self.iceberg_min_absorbed_vol = self.config.get("iceberg_min_absorbed_vol", 100000.0)
         self.iceberg_tracker = IcebergTracker(
             window_seconds=self.iceberg_time_window_secs,
@@ -2445,6 +2445,21 @@ class WallHunterFuturesStrategy:
         """Update strategy parameters dynamically."""
         self.logger.info(f"🔄 [FuturesHunter {self.bot_id}] Live config update: {new_config}")
         
+        # --- Trading Session Live Update ---
+        if "trading_sessions" in new_config and new_config["trading_sessions"] != self.trading_sessions:
+            old_sessions = self.trading_sessions
+            self.trading_sessions = new_config["trading_sessions"]
+            self.logger.info(f"🕒 [Session] Trading sessions updated: {old_sessions} → {self.trading_sessions}")
+            if getattr(self, 'session_tracker', None):
+                asyncio.create_task(self.session_tracker.stop_monitor())
+            from app.strategies.helpers.trading_session_filter import TradingSessionTracker as _TST
+            self.session_tracker = _TST(
+                bot_instance=self,
+                session_names=self.trading_sessions,
+                on_session_end=self._on_trading_session_end
+            )
+            asyncio.create_task(self.session_tracker.start_monitor())
+        
         updates = []
         if "partial_tp_pct" in new_config and new_config["partial_tp_pct"] != getattr(self, "partial_tp_pct", 50.0):
             updates.append(f"Partial TP: {getattr(self, 'partial_tp_pct', 50.0)}% -> {new_config['partial_tp_pct']}%")
@@ -2612,10 +2627,15 @@ class WallHunterFuturesStrategy:
             if "atr_sl_enabled" in new_config: self.atr_sl_enabled = new_config["atr_sl_enabled"]
             if "enable_wall_trigger" in new_config: self.enable_wall_trigger = new_config["enable_wall_trigger"]
             if "enable_liq_trigger" in new_config: self.enable_liq_trigger = new_config["enable_liq_trigger"]
+            if "liq_threshold" in new_config: self.liq_threshold = new_config["liq_threshold"]
+            if "liq_target_side" in new_config: self.liq_target_side = new_config["liq_target_side"].lower()
             if "enable_ob_imbalance" in new_config: self.enable_ob_imbalance = new_config["enable_ob_imbalance"]
             if "ob_imbalance_ratio" in new_config: self.ob_imbalance_ratio = new_config["ob_imbalance_ratio"]
             if "enable_liq_cascade" in new_config: self.enable_liq_cascade = new_config["enable_liq_cascade"]
+            if "liq_cascade_window" in new_config: self.liq_cascade_window = new_config["liq_cascade_window"]
             if "enable_dynamic_liq" in new_config: self.enable_dynamic_liq = new_config["enable_dynamic_liq"]
+            if "dynamic_liq_multiplier" in new_config: self.dynamic_liq_multiplier = new_config["dynamic_liq_multiplier"]
+            if "micro_scalp_min_wall" in new_config: self.micro_scalp_min_wall = new_config["micro_scalp_min_wall"]
             if "enable_btc_correlation" in new_config: self.enable_btc_correlation = new_config["enable_btc_correlation"]
             if "btc_correlation_threshold" in new_config: self.btc_correlation_threshold = new_config["btc_correlation_threshold"]
             if "btc_time_window" in new_config: self.btc_time_window = new_config["btc_time_window"]

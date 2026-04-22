@@ -1759,7 +1759,9 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
                              <div className="bg-black/60 border border-white/10 text-[14px] font-mono px-3 py-1.5 rounded backdrop-blur-md">
                                 <span className="text-gray-400 mr-2 text-[11px] uppercase tracking-tighter">Backend CVD</span>
                                 <span className={botStatus.absorption_delta >= 0 ? 'text-green-400' : 'text-red-400'}>
-                                    {botStatus.absorption_delta > 0 ? '+' : ''}{botStatus.absorption_delta.toLocaleString()}
+                                    {botStatus.absorption_delta > 0 ? '+' : ''}{typeof botStatus.absorption_delta === 'number'
+                                        ? botStatus.absorption_delta.toLocaleString(undefined, { maximumFractionDigits: 0 })
+                                        : botStatus.absorption_delta}
                                 </span>
                              </div>
                         )}
