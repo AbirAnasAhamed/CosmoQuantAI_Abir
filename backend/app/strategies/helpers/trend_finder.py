@@ -29,6 +29,13 @@ class AdaptiveTrendFinder:
             'Ultra Strong': 0.98
         }
         
+    def update_params(self, lookback=None, threshold=None):
+        """Live-update lookback or threshold without recreating the object."""
+        if lookback is not None:
+            self.lookback = lookback
+        if threshold is not None:
+            self.threshold = threshold
+
     def _get_periods(self):
         return [self.lookback]
             

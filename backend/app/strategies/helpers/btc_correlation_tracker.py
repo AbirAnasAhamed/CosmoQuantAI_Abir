@@ -90,7 +90,8 @@ class BtcCorrelationTracker:
                     continue
 
                 # Fetch 1m candles for target and BTC
-                limit = self.window_minutes + 1 
+                # Re-read limit each iteration in case window_minutes was updated via update_params()
+                limit = self.window_minutes + 1
                 
                 # Run concurrently
                 target_task = asyncio.create_task(self.exchange.fetch_ohlcv(self.target_symbol, '1m', limit=limit))
@@ -146,16 +147,17 @@ class BtcCorrelationTracker:
     def is_aligned(self, side: str) -> bool:
         """
         Check if the trade direction is aligned with BTC momentum.
-        Throws False if data is stale.
+        Returns True (pass-through) if data is stale to avoid over-blocking during warmup.
         """
-        # If data hasn't updated in 5 minutes, consider it stale and reject block
+        # If data hasn't updated in 5 minutes, allow trade — don't block on stale data
         if time.time() - self.last_update > 300:
-            logger.warning(f"[BTC Correlation] Data stale or initializing. Rejecting {side.upper()}.")
-            return False
+            logger.warning(f"[BTC Correlation] Data stale or initializing. Allowing {side.upper()} (pass-through).")
+            return True
             
-        if side.lower() == 'buy':
+        side_lower = side.lower()
+        if side_lower in ('buy', 'long'):
             return self.is_aligned_long
-        elif side.lower() == 'sell':
+        elif side_lower in ('sell', 'short'):
             return self.is_aligned_short
             
         return False

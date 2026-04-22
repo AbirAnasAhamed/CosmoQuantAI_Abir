@@ -1189,9 +1189,8 @@ class WallHunterFuturesStrategy:
                                             self.logger.info(f"📈 [Trend Filter] {tb_reason}")
                                             reason += f" ({tb_reason})"
                                 except Exception as e:
-                                    self.logger.error(f"Failed to execute trend filter check: {e}")
-                                    # If filter fails to fetch data, conservatively reject the trade
-                                    continue
+                                    self.logger.warning(f"⚠️ [Trend Filter] Could not fetch OHLCV for trend check: {e}. Allowing trade (pass-through).")
+                                    # Pass-through on fetch failure — don't block entries due to transient network errors
 
                             # --- Modular UT Bot Alerts Filter ---
                             target_side = "buy" if best_wall['type'] == 'buy' else "sell"
@@ -2659,7 +2658,20 @@ class WallHunterFuturesStrategy:
             
             # --- Sync internal parameters ---
             if "partial_tp_pct" in new_config: self.partial_tp_pct = new_config["partial_tp_pct"]
-            if "vpvr_enabled" in new_config: self.vpvr_enabled = new_config["vpvr_enabled"]
+            if "vpvr_enabled" in new_config:
+                self.vpvr_enabled = new_config["vpvr_enabled"]
+                # Manage task lifecycle on toggle
+                if self.vpvr_enabled:
+                    if getattr(self, '_vpvr_task', None) and not self._vpvr_task.done():
+                        self._vpvr_task.cancel()
+                    self._vpvr_task = asyncio.create_task(self._vpvr_updater_loop())
+                    self.logger.info(f"📊 [VPVR] Live-enabled: VPVR updater task started.")
+                else:
+                    if getattr(self, '_vpvr_task', None) and not self._vpvr_task.done():
+                        self._vpvr_task.cancel()
+                    self.top_hvns = []
+                    self.logger.info(f"📊 [VPVR] Live-disabled: VPVR task stopped, HVNs cleared.")
+
             if "vpvr_tolerance" in new_config: self.vpvr_tolerance = new_config["vpvr_tolerance"]
             if "atr_sl_enabled" in new_config: self.atr_sl_enabled = new_config["atr_sl_enabled"]
             if "enable_wall_trigger" in new_config: self.enable_wall_trigger = new_config["enable_wall_trigger"]
@@ -2701,6 +2713,31 @@ class WallHunterFuturesStrategy:
             if "iceberg_min_absorbed_vol" in new_config:
                 self.iceberg_min_absorbed_vol = new_config["iceberg_min_absorbed_vol"]
                 self.iceberg_tracker.update_params(min_absorbed_vol=self.iceberg_min_absorbed_vol)
+
+            # --- Adaptive Trend Filter Live Sync ---
+            if "enable_trend_filter" in new_config:
+                self.enable_trend_filter = new_config["enable_trend_filter"]
+                updates.append(f"Adaptive Trend Filter: {'ON' if self.enable_trend_filter else 'OFF'}")
+                if self.enable_trend_filter and not self.trend_finder:
+                    # Lazy-init if toggled ON without a restart
+                    self.trend_finder = AdaptiveTrendFinder(
+                        lookback=self.trend_filter_lookback,
+                        threshold=self.trend_filter_threshold
+                    )
+                elif not self.enable_trend_filter:
+                    self.trend_finder = None
+
+            if "trend_filter_lookback" in new_config:
+                self.trend_filter_lookback = new_config["trend_filter_lookback"]
+                updates.append(f"Trend Lookback: {self.trend_filter_lookback}")
+                if self.trend_finder:
+                    self.trend_finder.update_params(lookback=self.trend_filter_lookback)
+
+            if "trend_filter_threshold" in new_config:
+                self.trend_filter_threshold = new_config["trend_filter_threshold"]
+                updates.append(f"Trend Min Confidence: {self.trend_filter_threshold}")
+                if self.trend_finder:
+                    self.trend_finder.update_params(threshold=self.trend_filter_threshold)
 
             # --- UT Bot Alerts Live Sync ---
             if "enable_ut_trend_filter" in new_config:
@@ -2817,21 +2854,34 @@ class WallHunterFuturesStrategy:
             try:
                 ohlcv = await self.public_exchange.fetch_ohlcv(self.symbol, timeframe='5m', limit=100)
                 if ohlcv:
-                    prices = [c[4] for c in ohlcv]
-                    vols = [c[5] for c in ohlcv]
-                    min_p, max_p = min(prices), max(prices)
+                    low_prices  = [c[3] for c in ohlcv]
+                    high_prices = [c[2] for c in ohlcv]
+                    vols        = [c[5] for c in ohlcv]
+
+                    min_p, max_p = min(low_prices), max(high_prices)
+
+                    if max_p == min_p:          # flat market guard
+                        await asyncio.sleep(300)
+                        continue
+
                     bins = 50
                     step = (max_p - min_p) / bins
                     profile = [0.0] * bins
-                    for i, p in enumerate(prices):
-                        idx = int((p - min_p) / step) if step > 0 else 0
+
+                    for i, c in enumerate(ohlcv):
+                        c_low, c_high, c_vol = c[3], c[2], c[5]
+                        c_mid = (c_low + c_high) / 2   # use midpoint, not close
+                        idx = int((c_mid - min_p) / step)
                         if idx >= bins: idx = bins - 1
-                        profile[idx] += vols[i]
+                        profile[idx] += c_vol
+
                     top_indices = sorted(range(bins), key=lambda i: profile[i], reverse=True)[:3]
-                    self.top_hvns = [min_p + (i * step) + (step/2) for i in top_indices]
-                    self.logger.info(f"📊 [FuturesHunter {self.bot_id}] VPVR HVNs: {self.top_hvns}")
-            except Exception as e: self.logger.error(f"VPVR Error: {e}")
+                    self.top_hvns = [min_p + (i * step) + (step / 2) for i in top_indices]
+                    self.logger.info(f"📊 [FuturesHunter {self.bot_id}] VPVR HVNs: {[f'{h:.4f}' for h in self.top_hvns]}")
+            except Exception as e:
+                self.logger.error(f"VPVR Error: {e}")
             await asyncio.sleep(300)
+
 
     async def _trades_listener(self):
         """Background task to watch trades and feed the AbsorptionTracker."""
@@ -2966,6 +3016,30 @@ class WallHunterFuturesStrategy:
                     self.logger.info(f"⏭️ [LIQ] Rejected: OB Imbalance Ratio {ratio:.2f} < {self.ob_imbalance_ratio}")
                     return
                 self.logger.info(f"✅ [LIQ] OB Imbalance Confirmed: {ratio:.2f}x")
+
+            # BTC Correlation Anti-Fakeout Check (same as Wall Trigger path)
+            if self.enable_btc_correlation and self.btc_correlation_tracker:
+                if not self.btc_correlation_tracker.is_aligned(side):
+                    metrics = self.btc_correlation_tracker.get_metrics_string()
+                    self.logger.info(f"🚫 [LIQ][BTC Divergence] Liq entry rejected! {metrics}")
+                    return
+
+            # Adaptive Trend Filter Check (same as Wall Trigger path)
+            if self.enable_trend_filter and self.trend_finder:
+                try:
+                    from app.services.market_depth_service import market_depth_service
+                    klines = await market_depth_service.fetch_ohlcv(self.symbol, self.exchange_id, '1m', 1200)
+                    if klines:
+                        close_prices = [float(k['close']) for k in klines]
+                        trend_analysis = self.trend_finder.analyze_trend(close_prices)
+                        is_acceptable, tf_reason = self.trend_finder.is_trend_acceptable(trend_analysis, side)
+                        if not is_acceptable:
+                            self.logger.info(f"🚫 [LIQ][Trend Filter] Liq entry rejected! {tf_reason}")
+                            return
+                        else:
+                            self.logger.info(f"📈 [LIQ][Trend Filter] {tf_reason}")
+                except Exception as e:
+                    self.logger.warning(f"⚠️ [LIQ][Trend Filter] OHLCV fetch failed: {e}. Allowing trade (pass-through).")
 
             # 3. Wall Confirmation Filter
             if self.enable_wall_trigger:
