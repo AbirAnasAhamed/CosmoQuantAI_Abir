@@ -2673,7 +2673,20 @@ class WallHunterFuturesStrategy:
                     self.logger.info(f"📊 [VPVR] Live-disabled: VPVR task stopped, HVNs cleared.")
 
             if "vpvr_tolerance" in new_config: self.vpvr_tolerance = new_config["vpvr_tolerance"]
-            if "atr_sl_enabled" in new_config: self.atr_sl_enabled = new_config["atr_sl_enabled"]
+            if "atr_sl_enabled" in new_config:
+                self.atr_sl_enabled = new_config["atr_sl_enabled"]
+                any_atr_needed = self.atr_sl_enabled or getattr(self, 'enable_dynamic_atr_scalp', False)
+                if any_atr_needed:
+                    if getattr(self, '_atr_task', None) and not self._atr_task.done():
+                        self._atr_task.cancel()
+                    self._atr_task = asyncio.create_task(self._atr_updater_loop())
+                    self.logger.info(f"📈 [ATR] Live-enabled: ATR updater task started.")
+                else:
+                    if getattr(self, '_atr_task', None) and not self._atr_task.done():
+                        self._atr_task.cancel()
+                    self.current_atr = 0.0
+                    self.logger.info(f"📈 [ATR] Live-disabled: ATR task stopped, current_atr reset.")
+
             if "enable_wall_trigger" in new_config: self.enable_wall_trigger = new_config["enable_wall_trigger"]
             if "enable_liq_trigger" in new_config: self.enable_liq_trigger = new_config["enable_liq_trigger"]
             if "liq_threshold" in new_config: self.liq_threshold = new_config["liq_threshold"]
@@ -2910,7 +2923,7 @@ class WallHunterFuturesStrategy:
     async def _atr_updater_loop(self):
         """ATR ভ্যালু আপডেট করবে (প্রতি মিনিটে)"""
         while self.running:
-            if not self.atr_sl_enabled:
+            if not self.atr_sl_enabled and not getattr(self, 'enable_dynamic_atr_scalp', False):
                 await asyncio.sleep(60)
                 continue
             try:

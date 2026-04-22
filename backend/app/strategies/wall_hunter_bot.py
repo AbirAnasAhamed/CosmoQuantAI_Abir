@@ -432,7 +432,19 @@ class WallHunterBot:
             status = "Enabled" if new_config["atr_sl_enabled"] else "Disabled"
             updates.append(f"ATR Dynamic SL: {status}")
             self.atr_sl_enabled = new_config.get("atr_sl_enabled")
-            
+            # Manage task lifecycle on toggle
+            any_atr_needed = self.atr_sl_enabled or getattr(self, 'enable_dynamic_atr_scalp', False)
+            if any_atr_needed:
+                if getattr(self, '_atr_task', None) and not self._atr_task.done():
+                    self._atr_task.cancel()
+                self._atr_task = asyncio.create_task(self._atr_updater_loop())
+                self.logger.info(f"📈 [ATR] Live-enabled: ATR updater task started.")
+            else:
+                if getattr(self, '_atr_task', None) and not self._atr_task.done():
+                    self._atr_task.cancel()
+                self.current_atr = 0.0
+                self.logger.info(f"📈 [ATR] Live-disabled: ATR task stopped, current_atr reset.")
+
         if "atr_period" in new_config and new_config["atr_period"] != self.atr_period:
             updates.append(f"ATR Period: {self.atr_period} -> {new_config['atr_period']}")
             self.atr_period = new_config.get("atr_period")
@@ -3207,7 +3219,7 @@ class WallHunterBot:
     async def _atr_updater_loop(self):
         """Background task to calculate ATR every 1 minute."""
         while self.running:
-            if not self.atr_sl_enabled:
+            if not self.atr_sl_enabled and not getattr(self, 'enable_dynamic_atr_scalp', False):
                 await asyncio.sleep(60)
                 continue
                 
