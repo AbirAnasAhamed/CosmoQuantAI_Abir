@@ -146,6 +146,7 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
         alert_server_errors: true,
         broadcast_live_logs: true,
         alert_market_news: true,
+        alert_active_config_dump: true,
     });
     const [isSavingNotifications, setIsSavingNotifications] = useState(false);
     const [isTestingNotification, setIsTestingNotification] = useState(false);
@@ -211,6 +212,7 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
                         alert_server_errors: data.alert_server_errors ?? true,
                         broadcast_live_logs: data.broadcast_live_logs ?? true,
                         alert_market_news: data.alert_market_news ?? true,
+                        alert_active_config_dump: data.alert_active_config_dump ?? true,
                     });
                 }
             })
@@ -684,6 +686,7 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
                                     { key: 'alert_server_errors', label: '🔧 Server Errors', desc: 'System docker logs issues' },
                                     { key: 'broadcast_live_logs', label: '📡 Live Logs', desc: 'Broadcast docker logs stream' },
                                     { key: 'alert_market_news', label: '📰 Market News', desc: 'Sentiment AI news updates' },
+                                    { key: 'alert_active_config_dump', label: '⚙️ Active Config Dump', desc: 'Show bot config in startup logs' },
                                 ].map(({ key, label, desc }) => (
                                     <label key={key} className={`flex flex-col gap-1 p-3 rounded-lg border cursor-pointer transition-all ${
                                         notificationSettings[key as keyof typeof notificationSettings]

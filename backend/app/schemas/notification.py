@@ -21,6 +21,7 @@ class NotificationSettingsBase(BaseModel):
     alert_server_errors: bool = True
     broadcast_live_logs: bool = True
     alert_market_news: bool = True
+    alert_active_config_dump: bool = True
 
 class NotificationSettingsCreate(NotificationSettingsBase):
     pass

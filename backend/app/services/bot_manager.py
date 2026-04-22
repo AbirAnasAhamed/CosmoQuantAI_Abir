@@ -302,20 +302,28 @@ class BotManager:
                 # Dual Engine Command Center Info
                 if config.get('enable_dual_engine'):
                     de_mode = config.get('dual_engine_mode', 'Classic').upper()
+                    de_tf = config.get('dual_engine_timeframe', '1m')
                     if de_mode == 'CLASSIC':
                         filters = []
                         if config.get('dual_engine_ema_filter'): filters.append(f"EMA({config.get('dual_engine_ema_length', 100)})")
-                        if config.get('dual_engine_triple_ema_filter'): filters.append(f"3xEMA")
-                        if config.get('dual_engine_rsi_filter'): filters.append(f"RSI")
-                        if config.get('dual_engine_macd_filter'): filters.append(f"MACD")
+                        if config.get('dual_engine_triple_ema_filter'): 
+                            f, m, s = config.get('dual_engine_ema_fast', 10), config.get('dual_engine_ema_med', 15), config.get('dual_engine_ema_slow', 27)
+                            filters.append(f"3xEMA({f}/{m}/{s})")
+                        if config.get('dual_engine_rsi_filter'): 
+                            filters.append(f"RSI({config.get('dual_engine_rsi_length', 14)})")
+                        if config.get('dual_engine_macd_filter'): 
+                            f, s, sig = config.get('dual_engine_macd_fast', 12), config.get('dual_engine_macd_slow', 26), config.get('dual_engine_macd_signal', 9)
+                            filters.append(f"MACD({f}/{s}/{sig})")
                         if config.get('dual_engine_squeeze_filter'): filters.append(f"SQZ")
                         if config.get('dual_engine_candle_filter'): filters.append(f"Candles")
-                        if config.get('dual_engine_adx_filter'): filters.append(f"ADX({config.get('dual_engine_adx_threshold', 25)})")
-                        if config.get('dual_engine_vol_filter'): filters.append(f"Vol")
-                        filters_str = "+".join(filters) if filters else "None"
-                        dynamic_logs.append(f"🧠 Dual Engine (CLASSIC): {filters_str}")
+                        if config.get('dual_engine_adx_filter'): filters.append(f"ADX({config.get('dual_engine_adx_length', 14)}, Th:{config.get('dual_engine_adx_threshold', 25)})")
+                        if config.get('dual_engine_vol_filter'): filters.append(f"Vol({config.get('dual_engine_vol_length', 20)})")
+                        filters_str = " + ".join(filters) if filters else "None"
+                        dynamic_logs.append(f"🧠 Dual Engine [{de_tf}] ({de_mode}): {filters_str}")
+                    elif de_mode == 'CONFLUENCE':
+                        dynamic_logs.append(f"🧠 Dual Engine [{de_tf}] ({de_mode}): Min Score {config.get('dual_engine_min_confluence', 3)}")
                     else:
-                        dynamic_logs.append(f"🧠 Dual Engine ({de_mode}): Overall Insight Score Strategy")
+                        dynamic_logs.append(f"🧠 Dual Engine [{de_tf}] ({de_mode}): Overall Insight Score Strategy")
 
                 # UT Bot Sub-Settings (Logical details - only Dynamic TSL remains separate if any)
                 if has_ut and config.get('enable_ut_trailing_sl'):
@@ -393,77 +401,98 @@ class BotManager:
                 for idx, log_item in enumerate(dynamic_logs, 1):
                     logger.info(f"{idx}. {log_item}")
                     msg_lines.append(f"{idx}. {log_item}")
+                from app.models.notification import NotificationSettings
+                owner_notification_settings = local_db.query(NotificationSettings).filter(NotificationSettings.user_id == bot.owner_id).first() if bot.owner_id else None
+                dump_active_config = owner_notification_settings.alert_active_config_dump if owner_notification_settings else True
+
+                if dump_active_config:
+                    # ⚙️ ACTIVE CONFIG (Compact Dump - No Falsy/Zeros + Parent-Child Filter)
+                    logger.info("⚙️ ACTIVE CONFIG:")
+                    msg_lines.append("\n⚙️ *Active Config:*")
+                    skip_keys = ['symbol', 'exchange', 'is_paper_trading', 'name', 'description']
                     
-                # ⚙️ ACTIVE CONFIG (Compact Dump - No Falsy/Zeros + Parent-Child Filter)
-                logger.info("⚙️ ACTIVE CONFIG:")
-                msg_lines.append("\n⚙️ *Active Config:*")
-                skip_keys = ['symbol', 'exchange', 'is_paper_trading', 'name', 'description']
-                
-                # Evaluate Parent-Child Relationships to hide inactive module configs
-                disabled_prefixes = []
-                if not config.get('enable_dual_engine'):
+                    # Evaluate Parent-Child Relationships to hide inactive module configs
+                    disabled_prefixes = []
+                    
+                    # 1. Trading Mode / Futures specific settings
+                    if config.get('trading_mode') == 'spot':
+                        disabled_prefixes.extend(['margin_mode', 'leverage', 'position_direction', 'reduce_only'])
+                    
+                    # 2. TSL logic
+                    if not config.get('trailing_stop') or config.get('trailing_stop') == 0.0:
+                        disabled_prefixes.append('tsl_activation_pct')
+                    
+                    # 2.5 Limit Buffer logic
+                    buy_type_str = config.get('buy_order_type', '').lower()
+                    sell_type_str = config.get('sell_order_type', '').lower()
+                    if buy_type_str != 'marketable_limit' and sell_type_str != 'marketable_limit':
+                        disabled_prefixes.append('limit_buffer')
+                        
+                    # 2.6 SL Order Type logic
+                    if not config.get('stop_loss') or config.get('stop_loss') == 0.0:
+                        disabled_prefixes.append('sl_order_type')
+                    
+                    # 3. Dual Engine logic
+                    # Dual Engine is comprehensively summarized in a single smart line in the main logs.
+                    # We can safely hide the raw variables from the Active Config dump to reduce clutter.
                     disabled_prefixes.append('dual_engine_')
-                else:
-                    if not config.get('dual_engine_ema_filter') and not config.get('dual_engine_triple_ema_filter'):
-                        disabled_prefixes.extend(['dual_engine_ema_length', 'dual_engine_ema_fast', 'dual_engine_ema_med', 'dual_engine_ema_slow'])
-                    if not config.get('dual_engine_rsi_filter'):
-                        disabled_prefixes.extend(['dual_engine_rsi_length', 'dual_engine_rsi_ob', 'dual_engine_rsi_os'])
-                    if not config.get('dual_engine_macd_filter'):
-                        disabled_prefixes.extend(['dual_engine_macd_fast', 'dual_engine_macd_slow', 'dual_engine_macd_signal'])
-                    if not config.get('dual_engine_squeeze_filter'):
-                        disabled_prefixes.extend(['dual_engine_squeeze_length', 'dual_engine_squeeze_bb_mult', 'dual_engine_squeeze_kc_mult'])
-                    if not config.get('dual_engine_adx_filter'):
-                        disabled_prefixes.extend(['dual_engine_adx_length', 'dual_engine_adx_threshold'])
-                    if not config.get('dual_engine_vol_filter'):
-                        disabled_prefixes.extend(['dual_engine_vol_length', 'dual_engine_vol_multiplier'])
-                
-                if not config.get('enable_supertrend_bot'): disabled_prefixes.append('supertrend_')
-                if not config.get('enable_ut_bot'): disabled_prefixes.append('ut_bot_')
-                if not config.get('enable_wick_sr'): disabled_prefixes.append('wick_sr_')
-                if not config.get('enable_iceberg_trigger'): disabled_prefixes.append('iceberg_')
-                if not config.get('enable_absorption'): disabled_prefixes.append('absorption_')
-                if not config.get('enable_btc_correlation'): disabled_prefixes.append('btc_')
-                if not config.get('enable_auto_fibo_tp'): disabled_prefixes.extend(['auto_fibo_', 'enable_auto_fibo_tp'])
-                if not config.get('enable_trend_filter'): disabled_prefixes.append('trend_filter_')
-                if not config.get('enable_wall_trigger') and not config.get('enable_micro_scalp'):
-                    disabled_prefixes.extend(['max_wall_distance_pct', 'micro_scalp_'])
-                if not config.get('enable_liq_trigger'): disabled_prefixes.extend(['liq_threshold', 'liq_target_side'])
-                if not config.get('enable_proxy_wall'): disabled_prefixes.extend(['proxy_exchange', 'proxy_symbol'])
-                
-                for k, v in sorted(config.items()):
-                    if k in skip_keys: continue
                     
-                    # Parent-Child check
-                    if any(k.startswith(prefix) for prefix in disabled_prefixes):
-                        continue
+                    if not config.get('enable_supertrend_bot'): disabled_prefixes.append('supertrend_')
+                    if not config.get('enable_ut_bot'): disabled_prefixes.append('ut_bot_')
+                    if not config.get('enable_wick_sr'): disabled_prefixes.append('wick_sr_')
+                    if not config.get('enable_iceberg_trigger'): disabled_prefixes.append('iceberg_')
+                    if not config.get('enable_absorption'): disabled_prefixes.append('absorption_')
+                    if not config.get('enable_btc_correlation'): disabled_prefixes.append('btc_')
+                    if not config.get('enable_auto_fibo_tp'): disabled_prefixes.extend(['auto_fibo_', 'enable_auto_fibo_tp'])
+                    if not config.get('enable_trend_filter'): disabled_prefixes.append('trend_filter_')
+                    if not config.get('enable_wall_trigger'):
+                        disabled_prefixes.extend(['max_wall_distance_pct', 'min_wall_lifetime'])
+                    if not config.get('enable_micro_scalp'):
+                        disabled_prefixes.extend(['micro_scalp_'])
+                    if not config.get('enable_liq_trigger'): 
+                        disabled_prefixes.extend(['liq_threshold', 'liq_target_side', 'liquidation_safety_pct'])
+                    if not config.get('enable_proxy_wall'): disabled_prefixes.extend(['proxy_exchange', 'proxy_symbol'])
+                    if not config.get('enable_dynamic_liq'): disabled_prefixes.append('dynamic_liq_multiplier')
+                    if not config.get('enable_liq_cascade'): disabled_prefixes.append('liq_cascade_window')
+                    if not config.get('enable_vol_filter'): disabled_prefixes.append('vol_threshold')
+                    if not config.get('vpvr_enabled'): disabled_prefixes.append('vpvr_tolerance')
+                    if not config.get('enable_oib_filter'): disabled_prefixes.extend(['min_oib_threshold', 'ob_imbalance_ratio'])
+                    if not config.get('atr_sl_enabled'): disabled_prefixes.extend(['atr_period', 'atr_multiplier'])
                     
-                    # Skip disabled, 0, None, empty, or False values
-                    if not v or v == [] or v == ['None'] or v == 0.0: continue
-                    if str(v).lower() in ['none', 'false', '', '0', '0.0']: continue
+                    for k, v in sorted(config.items()):
+                        if k in skip_keys: continue
                         
-                    # Smart Emoji Mapping
-                    kl = k.lower()
-                    if 'dual_engine' in kl: emoji = "🧠"
-                    elif 'supertrend' in kl: emoji = "🌊"
-                    elif 'ut_bot' in kl: emoji = "🎯"
-                    elif 'vol' in kl or 'amount' in kl: emoji = "📊"
-                    elif 'liq' in kl: emoji = "💥"
-                    elif 'risk' in kl or 'sl' in kl or 'stop' in kl: emoji = "🛡️"
-                    elif 'tp' in kl or 'profit' in kl: emoji = "💰"
-                    elif 'atr' in kl: emoji = "📏"
-                    elif 'wall' in kl: emoji = "🧱"
-                    elif 'iceberg' in kl: emoji = "🧊"
-                    elif 'spread' in kl: emoji = "🎯"
-                    elif 'timeframe' in kl or 'time' in kl or 'period' in kl: emoji = "⏱️"
-                    elif 'btc' in kl: emoji = "📉"
-                    elif 'wick' in kl: emoji = "🔥"
-                    elif 'buy' in kl or 'sell' in kl: emoji = "🛒"
-                    elif 'mode' in kl: emoji = "⚙️"
-                    else: emoji = "🔸"
+                        # Parent-Child check
+                        if any(k.startswith(prefix) for prefix in disabled_prefixes):
+                            continue
                         
-                    pretty_key = k.replace('_', ' ').title()
-                    logger.info(f"  {emoji} {pretty_key}: {v}")
-                    msg_lines.append(f"  {emoji} {pretty_key}: {v}")
+                        # Skip disabled, 0, None, empty, or False values
+                        if not v or v == [] or v == ['None'] or v == 0.0: continue
+                        if str(v).lower() in ['none', 'false', '', '0', '0.0']: continue
+                            
+                        # Smart Emoji Mapping
+                        kl = k.lower()
+                        if 'dual_engine' in kl: emoji = "🧠"
+                        elif 'supertrend' in kl: emoji = "🌊"
+                        elif 'ut_bot' in kl: emoji = "🎯"
+                        elif 'vol' in kl or 'amount' in kl: emoji = "📊"
+                        elif 'liq' in kl: emoji = "💥"
+                        elif 'risk' in kl or 'sl' in kl or 'stop' in kl: emoji = "🛡️"
+                        elif 'tp' in kl or 'profit' in kl: emoji = "💰"
+                        elif 'atr' in kl: emoji = "📏"
+                        elif 'wall' in kl: emoji = "🧱"
+                        elif 'iceberg' in kl: emoji = "🧊"
+                        elif 'spread' in kl: emoji = "🎯"
+                        elif 'timeframe' in kl or 'time' in kl or 'period' in kl: emoji = "⏱️"
+                        elif 'btc' in kl: emoji = "📉"
+                        elif 'wick' in kl: emoji = "🔥"
+                        elif 'buy' in kl or 'sell' in kl: emoji = "🛒"
+                        elif 'mode' in kl: emoji = "⚙️"
+                        else: emoji = "🔸"
+                            
+                        pretty_key = k.replace('_', ' ').title()
+                        logger.info(f"  {emoji} {pretty_key}: {v}")
+                        msg_lines.append(f"  {emoji} {pretty_key}: {v}")
 
             else:
                 logger.info(f"📈 Strategy: {bot.strategy} | Timeframe: {bot.timeframe}")
