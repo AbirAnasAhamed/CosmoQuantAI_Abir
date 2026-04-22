@@ -767,36 +767,68 @@ class WallHunterFuturesStrategy:
 
             # ৩. ডাইনামিক পজিশন মোড ডিটেকশন (Binance Hedge vs One-Way)
             if self.exchange_id in ['binance', 'binanceusdm']:
-                try:
-                    self.logger.info(f"🔍 [{self.bot_id}] Fetching Binance Position Mode...")
-                    # Linear Futures (USDT-M / USDC-M)
-                    # CCXT implicit naming: endpoint starts with fapi, its private, uses GET, path is positionSide/dual
-                    try:
-                        response = await self.private_exchange.fapiPrivateGetPositionSideDual()
-                    except (AttributeError, Exception):
-                        # Fallback for different CCXT implicit generator naming
-                        response = await self.private_exchange.fapi_private_get_positionside_dual()
-                        
-                    self.is_hedge_mode = response.get('dualSidePosition', False)
-                    mode_name = "Hedge Mode" if self.is_hedge_mode else "One-Way Mode"
-                    self.logger.info(f"✅ [{self.bot_id}] [Binance] Detected Position Mode: {mode_name}")
-                except Exception as e:
-                    logger.warning(f"⚠️ [{self.bot_id}] Could not detect Binance position mode (defaulting to One-Way): {e}")
+                # Paper trading-এ API key নেই, private call skip করো
+                if self.is_paper_trading:
                     self.is_hedge_mode = False
+                    self.logger.info(f"ℹ️ [{self.bot_id}] Paper Trading — skipping position mode detection (defaulting to One-Way).")
+                else:
+                    try:
+                        self.logger.info(f"🔍 [{self.bot_id}] Fetching Binance Position Mode...")
+                        # CCXT CamelCase method is the primary (confirmed working)
+                        # Fallback chain: CamelCase → snake_case → fapiprivate variant
+                        response = None
+                        for method_name in [
+                            'fapiPrivateGetPositionSideDual',
+                            'fapiprivateGetPositionsideDual',
+                            'fapiprivate_get_positionside_dual',
+                        ]:
+                            method = getattr(self.private_exchange, method_name, None)
+                            if method and callable(method):
+                                try:
+                                    response = await method()
+                                    break
+                                except Exception:
+                                    continue
+
+                        if response is not None:
+                            self.is_hedge_mode = response.get('dualSidePosition', False)
+                            mode_name = "Hedge Mode" if self.is_hedge_mode else "One-Way Mode"
+                            self.logger.info(f"✅ [{self.bot_id}] [Binance] Detected Position Mode: {mode_name}")
+                        else:
+                            raise RuntimeError("All FAPI position mode methods failed or unavailable.")
+                    except Exception as e:
+                        logger.warning(f"⚠️ [{self.bot_id}] Could not detect Binance position mode (defaulting to One-Way): {e}")
+                        self.is_hedge_mode = False
             elif self.exchange_id == 'binancecoinm':
-                try:
-                    # Inverse Futures (COIN-M)
-                    try:
-                        response = await self.private_exchange.dapiPrivateGetPositionSideDual()
-                    except (AttributeError, Exception):
-                        response = await self.private_exchange.dapi_private_get_positionside_dual()
-                        
-                    self.is_hedge_mode = response.get('dualSidePosition', False)
-                    mode_name = "Hedge Mode" if self.is_hedge_mode else "One-Way Mode"
-                    logger.info(f"✅ [{self.bot_id}] [Binance COIN-M] Detected Position Mode: {mode_name}")
-                except Exception as e:
-                    logger.warning(f"⚠️ [{self.bot_id}] Could not detect Binance COIN-M position mode: {e}")
+                if self.is_paper_trading:
                     self.is_hedge_mode = False
+                    self.logger.info(f"ℹ️ [{self.bot_id}] Paper Trading — skipping COIN-M position mode detection (defaulting to One-Way).")
+                else:
+                    try:
+                        # Inverse Futures (COIN-M) — same fallback chain pattern
+                        response = None
+                        for method_name in [
+                            'dapiPrivateGetPositionSideDual',
+                            'dapiprivateGetPositionsideDual',
+                            'dapiprivate_get_positionside_dual',
+                        ]:
+                            method = getattr(self.private_exchange, method_name, None)
+                            if method and callable(method):
+                                try:
+                                    response = await method()
+                                    break
+                                except Exception:
+                                    continue
+
+                        if response is not None:
+                            self.is_hedge_mode = response.get('dualSidePosition', False)
+                            mode_name = "Hedge Mode" if self.is_hedge_mode else "One-Way Mode"
+                            logger.info(f"✅ [{self.bot_id}] [Binance COIN-M] Detected Position Mode: {mode_name}")
+                        else:
+                            raise RuntimeError("All DAPI position mode methods failed or unavailable.")
+                    except Exception as e:
+                        logger.warning(f"⚠️ [{self.bot_id}] Could not detect Binance COIN-M position mode: {e}")
+                        self.is_hedge_mode = False
                 
         except Exception as e:
             logger.error(f"Futures Settings initialization error: {e}")
@@ -932,7 +964,11 @@ class WallHunterFuturesStrategy:
                     self.last_debug_log_time = current_time
                     max_bid = max([level[1] for level in orderbook['bids']]) if orderbook['bids'] else 0
                     max_ask = max([level[1] for level in orderbook['asks']]) if orderbook['asks'] else 0
-                    logger.info(f"🔍 [Debug {self.bot_id}] {self.symbol} Mid: {mid_price:.6f} | Max Bid: {max_bid:,.0f} | Max Ask: {max_ask:,.0f} | Threshold: {self.vol_threshold:,.0f}")
+                    # Only show Threshold when Wall Trigger is actually enabled — avoids confusion
+                    if getattr(self, 'enable_wall_trigger', False):
+                        logger.info(f"🔍 [Debug {self.bot_id}] {self.symbol} Mid: {mid_price:.6f} | Max Bid: {max_bid:,.0f} | Max Ask: {max_ask:,.0f} | Threshold: {self.vol_threshold:,.0f}")
+                    else:
+                        logger.info(f"🔍 [Debug {self.bot_id}] {self.symbol} Mid: {mid_price:.6f} | Max Bid: {max_bid:,.0f} | Max Ask: {max_ask:,.0f}")
 
                 if not self.active_pos:
                     # --- Session Checks ---
