@@ -368,7 +368,17 @@ async def fetch_market_data_background():
 
 @app.on_event("startup")
 async def startup_event():
-    # 0. Initialize Redis Pool
+    # 0. Schema Auto-Patch
+    try:
+        from app.db.session import engine
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE notification_settings ADD COLUMN IF NOT EXISTS alert_active_config_dump BOOLEAN DEFAULT TRUE;"))
+        print("✅ Database schema auto-patched successfully.")
+    except Exception as e:
+        print(f"⚠️ Database schema patch failed (safe to ignore if exists): {e}")
+
+    # 1. Initialize Redis Pool
     await redis_manager.init_redis()
     app.state.redis = redis_manager.get_redis() # ✅ Store in app.state for easy access
     
