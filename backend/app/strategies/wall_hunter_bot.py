@@ -412,7 +412,18 @@ class WallHunterBot:
             status = "Enabled" if new_config["vpvr_enabled"] else "Disabled"
             updates.append(f"VPVR Confirmation: {status}")
             self.vpvr_enabled = new_config.get("vpvr_enabled")
-            
+            # Manage task lifecycle on toggle
+            if self.vpvr_enabled:
+                if getattr(self, '_vpvr_task', None) and not self._vpvr_task.done():
+                    self._vpvr_task.cancel()
+                self._vpvr_task = asyncio.create_task(self._vpvr_updater_loop())
+                self.logger.info(f"📊 [VPVR] Live-enabled: VPVR updater task started.")
+            else:
+                if getattr(self, '_vpvr_task', None) and not self._vpvr_task.done():
+                    self._vpvr_task.cancel()
+                self.top_hvns = []
+                self.logger.info(f"📊 [VPVR] Live-disabled: VPVR task stopped, HVNs cleared.")
+
         if "vpvr_tolerance" in new_config and new_config["vpvr_tolerance"] != self.vpvr_tolerance:
             updates.append(f"VPVR Tolerance: {self.vpvr_tolerance}% -> {new_config['vpvr_tolerance']}%")
             self.vpvr_tolerance = new_config.get("vpvr_tolerance")
@@ -537,7 +548,7 @@ class WallHunterBot:
             updates.append(f"Adaptive Trend Filter: {status}")
             self.enable_trend_filter = new_config.get("enable_trend_filter")
             if self.enable_trend_filter and not self.trend_finder:
-                self.trend_finder = AdaptiveTrendFinder(mode=self.trend_filter_mode, threshold=self.trend_filter_threshold)
+                self.trend_finder = AdaptiveTrendFinder(lookback=self.trend_filter_lookback, threshold=self.trend_filter_threshold)
             elif not self.enable_trend_filter:
                 self.trend_finder = None
                 
@@ -2030,7 +2041,13 @@ class WallHunterBot:
                 if getattr(self, 'enable_dynamic_atr_scalp', False) and getattr(self, 'current_atr', 0) > 0:
                     sl_distance = self.current_atr * getattr(self, 'atr_multiplier', 1.0)
                     sl_pct = sl_distance / actual_entry if actual_entry > 0 else 0
-                    sl_price = actual_entry * (1 + sl_pct) if getattr(self, 'strategy_mode', 'long') == 'short' else actual_entry * (1 - sl_pct)
+                    atr_sl = actual_entry * (1 + sl_pct) if getattr(self, 'strategy_mode', 'long') == 'short' else actual_entry * (1 - sl_pct)
+                    # Guard: ATR SL should never degrade protection vs initial_risk_pct SL
+                    if self.initial_risk_pct > 0:
+                        base_sl = actual_entry * (1 + (self.initial_risk_pct / 100)) if getattr(self, 'strategy_mode', 'long') == 'short' else actual_entry * (1 - (self.initial_risk_pct / 100))
+                        sl_price = min(atr_sl, base_sl) if getattr(self, 'strategy_mode', 'long') == 'short' else max(atr_sl, base_sl)
+                    else:
+                        sl_price = atr_sl
                 else:
                     if self.initial_risk_pct > 0:
                         sl_price = actual_entry * (1 + (self.initial_risk_pct / 100)) if getattr(self, 'strategy_mode', 'long') == 'short' else actual_entry * (1 - (self.initial_risk_pct / 100))
