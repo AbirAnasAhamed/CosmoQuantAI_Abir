@@ -4,13 +4,19 @@ import logging
 logger = logging.getLogger(__name__)
 
 class AdaptiveTrendFinder:
-    def __init__(self, lookback=200, threshold='Strong'):
+    def __init__(self, lookback=200, threshold='Strong', dev_threshold=2.0, enable_volume_filter=False, volume_multiplier=1.5):
         """
         lookback: amount of candles to look back
         threshold: minimum confidence level required to allow trades
+        dev_threshold: maximum allowed deviation
+        enable_volume_filter: whether to require volume confirmation
+        volume_multiplier: how much volume should spike vs average
         """
         self.lookback = lookback
         self.threshold = threshold
+        self.dev_threshold = dev_threshold
+        self.enable_volume_filter = enable_volume_filter
+        self.volume_multiplier = volume_multiplier
         
         # Confidence mapping for numerical comparison
         self.confidence_levels = {
@@ -29,12 +35,18 @@ class AdaptiveTrendFinder:
             'Ultra Strong': 0.98
         }
         
-    def update_params(self, lookback=None, threshold=None):
-        """Live-update lookback or threshold without recreating the object."""
+    def update_params(self, lookback=None, threshold=None, dev_threshold=None, enable_volume_filter=None, volume_multiplier=None):
+        """Live-update parameters without recreating the object."""
         if lookback is not None:
             self.lookback = lookback
         if threshold is not None:
             self.threshold = threshold
+        if dev_threshold is not None:
+            self.dev_threshold = dev_threshold
+        if enable_volume_filter is not None:
+            self.enable_volume_filter = enable_volume_filter
+        if volume_multiplier is not None:
+            self.volume_multiplier = volume_multiplier
 
     def _get_periods(self):
         return [self.lookback]
@@ -138,6 +150,14 @@ class AdaptiveTrendFinder:
                 best_period = length
                 detected_slope = slope
                 
+                # Deviation calc for latest candle
+                std_dev = np.sqrt(sumDev / length) if length > 0 else 0
+                if std_dev > 0:
+                    current_dev = abs(reversed_log[0] - intercept) / std_dev
+                else:
+                    current_dev = 0
+                best_dev = current_dev
+                
         if best_pearson_r == -1:
             return None
             
@@ -153,7 +173,8 @@ class AdaptiveTrendFinder:
             'abs_pearson_r': best_pearson_r,
             'slope': detected_slope,
             'confidence': confidence,
-            'direction': trend_direction
+            'direction': trend_direction,
+            'deviation': best_dev
         }
         
     def is_trend_acceptable(self, trend_result, trade_side):
@@ -186,6 +207,10 @@ class AdaptiveTrendFinder:
                     return False, f"Rejected: Strong opposing {trend_result['direction']} trend ({trend_result['confidence']})"
                 else:
                     return True, "Accepted (Weak opposing trend allowed)"
+                    
+            # Check Deviation Limit
+            if trend_result.get('deviation', 0) > self.dev_threshold:
+                return False, f"Rejected: Trend deviation too high ({trend_result['deviation']:.2f} > {self.dev_threshold})"
         
             # If the trend aligns with us, check if it meets the minimum threshold
             if curr_level >= req_level:

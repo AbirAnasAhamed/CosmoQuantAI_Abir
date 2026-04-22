@@ -110,6 +110,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         enableTrendFilter: false,
         trendFilterLookback: 200,
         trendFilterThreshold: 'Strong',
+        trendFilterDev: 2.0,
+        enableTrendVolume: false,
+        trendVolumeMultiplier: 1.5,
 
         // --- NEW: Dual Engine Command Center ---
         enableDualEngine: false,
@@ -338,6 +341,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             enableTrendFilter: c.enable_trend_filter !== undefined ? c.enable_trend_filter : false,
                             trendFilterLookback: c.trend_filter_lookback || 200,
                             trendFilterThreshold: c.trend_filter_threshold || 'Strong',
+                            trendFilterDev: c.trend_filter_dev || 2.0,
+                            enableTrendVolume: c.enable_trend_volume !== undefined ? c.enable_trend_volume : false,
+                            trendVolumeMultiplier: c.trend_volume_multiplier || 1.5,
                             
                             enableUtBot: !!(c.enable_ut_trend_filter || c.enable_ut_entry_trigger || c.enable_ut_trailing_sl),
                             enableUtTrendFilter: c.enable_ut_trend_filter !== undefined ? c.enable_ut_trend_filter : false,
@@ -674,6 +680,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     enable_trend_filter: form.enableTrendFilter,
                     trend_filter_lookback: form.trendFilterLookback,
                     trend_filter_threshold: form.trendFilterThreshold,
+                    trend_filter_dev: form.trendFilterDev,
+                    enable_trend_volume: form.enableTrendVolume,
+                    trend_volume_multiplier: form.trendVolumeMultiplier,
                     
                     // Dual Engine Command Center
                     enable_dual_engine: form.enableDualEngine,
@@ -2546,6 +2555,40 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 <option className="bg-[#0B1120]" value="Ultra Strong">Ultra Strong (0.98+)</option>
                                             </select>
                                         </div>
+                                        <div className="col-span-2">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Deviation Threshold</label>
+                                            <div className="flex gap-3 items-center">
+                                                <input type="range" min="0.1" max="5.0" step="0.1" className="flex-1 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-indigo-500" value={form.trendFilterDev} onChange={(e) => handleFormChange('trendFilterDev', parseFloat(e.target.value))} />
+                                                <input type="number" step="0.1" className="w-20 bg-black/40 border border-white/10 rounded-xl p-1.5 text-white text-center font-mono text-sm" value={form.trendFilterDev} onChange={(e) => handleFormChange('trendFilterDev', parseFloat(e.target.value))} />
+                                            </div>
+                                            <p className="text-[8px] text-gray-500 mt-1 italic">Maximum allowed deviation from the regression line. Higher values allow more volatility.</p>
+                                        </div>
+                                        
+                                        <div className={`col-span-2 p-3 rounded-lg border transition-all cursor-pointer ${form.enableTrendVolume ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-black/40 border-white/5 hover:border-white/20'}`} onClick={(e) => { e.stopPropagation(); handleFormChange('enableTrendVolume', !form.enableTrendVolume); }}>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-8 h-4 rounded-full p-0.5 transition-colors flex items-center ${form.enableTrendVolume ? 'bg-indigo-500' : 'bg-gray-700'}`}>
+                                                        <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${form.enableTrendVolume ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                                    </div>
+                                                    <span className="text-[10px] font-black text-white uppercase tracking-wider flex items-center gap-1">
+                                                        Volume Confirmation
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {form.enableTrendVolume && (
+                                                <div className="mt-3 animate-fadeIn border-t border-white/5 pt-3 !cursor-auto" onClick={(e) => e.stopPropagation()}>
+                                                    <div className="flex justify-between items-end mb-1">
+                                                        <label className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Volume Spike Multiplier</label>
+                                                        <span className="text-xs font-mono font-bold text-indigo-400">{form.trendVolumeMultiplier}x</span>
+                                                    </div>
+                                                    <input type="range" min="1.0" max="5.0" step="0.1" className="w-full h-1.5 accent-indigo-500 bg-white/10 rounded-lg appearance-none cursor-pointer" value={form.trendVolumeMultiplier} onChange={(e) => handleFormChange('trendVolumeMultiplier', parseFloat(e.target.value))} />
+                                                    <p className="text-[8px] text-gray-500 mt-2 italic leading-tight">
+                                                        Requires recent volume to be at least {form.trendVolumeMultiplier}x the average volume for the trend to be considered valid.
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        
                                         <p className="col-span-2 text-[9px] text-gray-500 mt-1 italic">Only enter trades if log-scaled linear regression trend supports the trade direction.</p>
                                     </div>
                                 )}

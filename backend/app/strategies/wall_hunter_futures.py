@@ -177,9 +177,16 @@ class WallHunterFuturesStrategy:
         self.enable_trend_filter = self.config.get("enable_trend_filter", False)
         self.trend_filter_lookback = self.config.get("trend_filter_lookback", 200)
         self.trend_filter_threshold = self.config.get("trend_filter_threshold", "Strong")
+        self.trend_filter_dev = self.config.get("trend_filter_dev", 2.0)
+        self.enable_trend_volume = self.config.get("enable_trend_volume", False)
+        self.trend_volume_multiplier = self.config.get("trend_volume_multiplier", 1.5)
+        
         self.trend_finder = AdaptiveTrendFinder(
             lookback=self.trend_filter_lookback, 
-            threshold=self.trend_filter_threshold
+            threshold=self.trend_filter_threshold,
+            dev_threshold=self.trend_filter_dev,
+            enable_volume_filter=self.enable_trend_volume,
+            volume_multiplier=self.trend_volume_multiplier
         ) if self.enable_trend_filter else None
         
         # --- NEW: Modular UT Bot Alerts ---
@@ -1223,8 +1230,22 @@ class WallHunterFuturesStrategy:
                                     klines = await market_depth_service.fetch_ohlcv(self.symbol, self.exchange_id, '1m', 1200)
                                     if klines:
                                         close_prices = [float(k['close']) for k in klines]
+                                        volumes = [float(k.get('volume', 0)) for k in klines]
                                         trend_analysis = self.trend_finder.analyze_trend(close_prices)
                                         is_acceptable, tb_reason = self.trend_finder.is_trend_acceptable(trend_analysis, target_side)
+                                        
+                                        if is_acceptable and getattr(self, 'enable_trend_volume', False):
+                                            lookback = self.trend_filter_lookback
+                                            recent_vols = volumes[-lookback:] if len(volumes) >= lookback else volumes
+                                            if recent_vols:
+                                                avg_vol = sum(recent_vols) / len(recent_vols)
+                                                current_vol = volumes[-1]
+                                                if current_vol < avg_vol * getattr(self, 'trend_volume_multiplier', 1.5):
+                                                    is_acceptable = False
+                                                    tb_reason = f"Rejected: Volume too low ({current_vol:.2f} < {avg_vol * self.trend_volume_multiplier:.2f})"
+                                                else:
+                                                    tb_reason += f" | Vol OK ({current_vol:.2f})"
+
                                         if not is_acceptable:
                                             if should_log_alert:
                                                 self.logger.info(f"🚫 [Trend Filter] Wall at {best_wall['price']} rejected! {tb_reason}")
@@ -2779,7 +2800,10 @@ class WallHunterFuturesStrategy:
                     # Lazy-init if toggled ON without a restart
                     self.trend_finder = AdaptiveTrendFinder(
                         lookback=self.trend_filter_lookback,
-                        threshold=self.trend_filter_threshold
+                        threshold=self.trend_filter_threshold,
+                        dev_threshold=getattr(self, 'trend_filter_dev', 2.0),
+                        enable_volume_filter=getattr(self, 'enable_trend_volume', False),
+                        volume_multiplier=getattr(self, 'trend_volume_multiplier', 1.5)
                     )
                 elif not self.enable_trend_filter:
                     self.trend_finder = None
@@ -2795,6 +2819,24 @@ class WallHunterFuturesStrategy:
                 updates.append(f"Trend Min Confidence: {self.trend_filter_threshold}")
                 if self.trend_finder:
                     self.trend_finder.update_params(threshold=self.trend_filter_threshold)
+                    
+            if "trend_filter_dev" in new_config:
+                self.trend_filter_dev = new_config["trend_filter_dev"]
+                updates.append(f"Trend Deviation: {self.trend_filter_dev}")
+                if self.trend_finder:
+                    self.trend_finder.update_params(dev_threshold=self.trend_filter_dev)
+                    
+            if "enable_trend_volume" in new_config:
+                self.enable_trend_volume = new_config["enable_trend_volume"]
+                updates.append(f"Trend Volume Filter: {'ON' if self.enable_trend_volume else 'OFF'}")
+                if self.trend_finder:
+                    self.trend_finder.update_params(enable_volume_filter=self.enable_trend_volume)
+                    
+            if "trend_volume_multiplier" in new_config:
+                self.trend_volume_multiplier = new_config["trend_volume_multiplier"]
+                updates.append(f"Trend Volume Multiplier: {self.trend_volume_multiplier}")
+                if self.trend_finder:
+                    self.trend_finder.update_params(volume_multiplier=self.trend_volume_multiplier)
 
             # --- UT Bot Alerts Live Sync ---
             if "enable_ut_trend_filter" in new_config:
@@ -3088,8 +3130,22 @@ class WallHunterFuturesStrategy:
                     klines = await market_depth_service.fetch_ohlcv(self.symbol, self.exchange_id, '1m', 1200)
                     if klines:
                         close_prices = [float(k['close']) for k in klines]
+                        volumes = [float(k.get('volume', 0)) for k in klines]
                         trend_analysis = self.trend_finder.analyze_trend(close_prices)
                         is_acceptable, tf_reason = self.trend_finder.is_trend_acceptable(trend_analysis, side)
+                        
+                        if is_acceptable and getattr(self, 'enable_trend_volume', False):
+                            lookback = self.trend_filter_lookback
+                            recent_vols = volumes[-lookback:] if len(volumes) >= lookback else volumes
+                            if recent_vols:
+                                avg_vol = sum(recent_vols) / len(recent_vols)
+                                current_vol = volumes[-1]
+                                if current_vol < avg_vol * getattr(self, 'trend_volume_multiplier', 1.5):
+                                    is_acceptable = False
+                                    tf_reason = f"Rejected: Volume too low ({current_vol:.2f} < {avg_vol * self.trend_volume_multiplier:.2f})"
+                                else:
+                                    tf_reason += f" | Vol OK ({current_vol:.2f})"
+
                         if not is_acceptable:
                             self.logger.info(f"🚫 [LIQ][Trend Filter] Liq entry rejected! {tf_reason}")
                             return
