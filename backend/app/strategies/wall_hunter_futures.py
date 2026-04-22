@@ -1332,6 +1332,18 @@ class WallHunterFuturesStrategy:
                     
             entry_price = override_limit_price if override_limit_price else base_limit_price
 
+            # --- LIQUIDATION SAFETY GUARD ---
+            liq_safety_pct = getattr(self, 'liquidation_safety_pct', 0.0)
+            if liq_safety_pct > 0 and self.leverage > 1:
+                # Estimate liquidation distance: long liq ≈ entry*(1 - 1/lev), short liq ≈ entry*(1 + 1/lev)
+                liq_distance_pct = (1.0 / self.leverage) * 100.0
+                if liq_distance_pct < liq_safety_pct:
+                    self.logger.info(
+                        f"🚫 [Liq Safety] Entry BLOCKED! Estimated liq distance {liq_distance_pct:.1f}% "
+                        f"< safety threshold {liq_safety_pct:.1f}% at {self.leverage}x leverage."
+                    )
+                    return
+
             # Total Position Size = Amount * Leverage
             total_notional = self.amount_per_trade * self.leverage
             base_amount_tokens = total_notional / entry_price
@@ -1493,18 +1505,27 @@ class WallHunterFuturesStrategy:
                         tick_profit_pct = self.micro_scalp_profit_ticks * 0.0001
                         tp_price = actual_entry * (1 + tick_profit_pct) if side == "buy" else actual_entry * (1 - tick_profit_pct)
                         
+                    # BUG FIX: ATR dynamic SL — use max/min guard so SL never moves against protection
                     if getattr(self, 'enable_dynamic_atr_scalp', False) and getattr(self, 'current_atr', 0) > 0:
                         sl_distance = self.current_atr * getattr(self, 'atr_multiplier', 1.0)
                         sl_pct = (sl_distance / actual_entry) if actual_entry > 0 else 0
-                        sl_price = actual_entry * (1 - sl_pct) if side == "buy" else actual_entry * (1 + sl_pct)
-                        self.active_pos['sl'] = sl_price
+                        atr_sl_price = actual_entry * (1 - sl_pct) if side == "buy" else actual_entry * (1 + sl_pct)
+                        current_sl = self.active_pos.get('sl', 0)
+                        if side == "buy":
+                            # For LONG: SL should be as HIGH as possible (closest to entry but still below)
+                            self.active_pos['sl'] = max(current_sl, atr_sl_price) if current_sl > 0 else atr_sl_price
+                        else:
+                            # For SHORT: SL should be as LOW as possible (closest to entry but still above)
+                            self.active_pos['sl'] = min(current_sl, atr_sl_price) if current_sl > 0 else atr_sl_price
                         
+                    # BUG FIX: include sl_order_id: None to prevent ghost order ID from previous positions
                     self.active_pos.update({
                         "tp": tp_price,
                         "tp1": tp_price, 
                         "tp1_hit": True,
                         "breakeven_hit": False,
-                        "limit_order_id": None
+                        "limit_order_id": None,
+                        "sl_order_id": None  # Clear any stale SL order reference
                     })
                 else:
                     if getattr(self, 'partial_tp_trigger_pct', 0.0) > 0:
@@ -1533,13 +1554,12 @@ class WallHunterFuturesStrategy:
                     sl_type = getattr(self, 'sl_order_type', 'market')
                     try:
                         sl_params = {'reduceOnly': True, 'stopPrice': self.active_pos['sl']}
-                        if sl_type == 'limit':
-                            # Native Stop-Limit
+                        if sl_type in ('limit', 'stop_limit'):
+                            # Native Stop-Limit — price-bounded stop order
                             sl_params['price'] = self.active_pos['sl']
-                            # CCXT unified stop order
                             sl_res = await self.engine.execute_trade(exit_side, base_amount, self.active_pos['sl'], order_type="STOP", params=sl_params)
                         else:
-                            # CCXT unified stop order
+                            # market / soft_limit / default → stop_market (safest native fallback)
                             sl_res = await self.engine.execute_trade(exit_side, base_amount, self.active_pos['sl'], order_type="stop_market", params=sl_params)
                             
                         if sl_res and 'id' in sl_res:
@@ -1775,8 +1795,12 @@ class WallHunterFuturesStrategy:
                             state_changed = True
                             try:
                                 await self.engine.cancel_order(self.active_pos['sl_order_id'])
+                                _tsl_sl_type = getattr(self, 'sl_order_type', 'market')
+                                _tsl_order_type = "STOP" if _tsl_sl_type in ('limit', 'stop_limit') else "stop_market"
                                 sl_params = {'reduceOnly': True, 'stopPrice': self.active_pos['sl']}
-                                sl_res = await self.engine.execute_trade("sell", self.active_pos['amount'], self.active_pos['sl'], order_type="stop_market", params=sl_params)
+                                if _tsl_sl_type in ('limit', 'stop_limit'):
+                                    sl_params['price'] = self.active_pos['sl']
+                                sl_res = await self.engine.execute_trade("sell", self.active_pos['amount'], self.active_pos['sl'], order_type=_tsl_order_type, params=sl_params)
                                 if sl_res and 'id' in sl_res:
                                     self.active_pos['sl_order_id'] = sl_res['id']
                                     logger.info(f"🔄 Native TSL Exchange Update: LONG SL moved to {self.active_pos['sl']:.6f}")
@@ -1822,8 +1846,12 @@ class WallHunterFuturesStrategy:
                             state_changed = True
                             try:
                                 await self.engine.cancel_order(self.active_pos['sl_order_id'])
+                                _tsl_sl_type = getattr(self, 'sl_order_type', 'market')
+                                _tsl_order_type = "STOP" if _tsl_sl_type in ('limit', 'stop_limit') else "stop_market"
                                 sl_params = {'reduceOnly': True, 'stopPrice': self.active_pos['sl']}
-                                sl_res = await self.engine.execute_trade("buy", self.active_pos['amount'], self.active_pos['sl'], order_type="stop_market", params=sl_params)
+                                if _tsl_sl_type in ('limit', 'stop_limit'):
+                                    sl_params['price'] = self.active_pos['sl']
+                                sl_res = await self.engine.execute_trade("buy", self.active_pos['amount'], self.active_pos['sl'], order_type=_tsl_order_type, params=sl_params)
                                 if sl_res and 'id' in sl_res:
                                     self.active_pos['sl_order_id'] = sl_res['id']
                                     logger.info(f"🔄 Native TSL Exchange Update: SHORT SL moved to {self.active_pos['sl']:.6f}")
@@ -1845,8 +1873,12 @@ class WallHunterFuturesStrategy:
                         if self.active_pos.get('sl_order_id'):
                             try:
                                 await self.engine.cancel_order(self.active_pos['sl_order_id'])
+                                _be_sl_type = getattr(self, 'sl_order_type', 'market')
+                                _be_order_type = "STOP" if _be_sl_type in ('limit', 'stop_limit') else "stop_market"
                                 sl_params = {'reduceOnly': True, 'stopPrice': new_breakeven_sl}
-                                sl_res = await self.engine.execute_trade("sell", self.active_pos['amount'], new_breakeven_sl, order_type="stop_market", params=sl_params)
+                                if _be_sl_type in ('limit', 'stop_limit'):
+                                    sl_params['price'] = new_breakeven_sl
+                                sl_res = await self.engine.execute_trade("sell", self.active_pos['amount'], new_breakeven_sl, order_type=_be_order_type, params=sl_params)
                                 if sl_res and 'id' in sl_res:
                                     self.active_pos['sl_order_id'] = sl_res['id']
                             except Exception as e: pass
@@ -1865,8 +1897,12 @@ class WallHunterFuturesStrategy:
                         if self.active_pos.get('sl_order_id'):
                             try:
                                 await self.engine.cancel_order(self.active_pos['sl_order_id'])
+                                _be_sl_type = getattr(self, 'sl_order_type', 'market')
+                                _be_order_type = "STOP" if _be_sl_type in ('limit', 'stop_limit') else "stop_market"
                                 sl_params = {'reduceOnly': True, 'stopPrice': new_breakeven_sl}
-                                sl_res = await self.engine.execute_trade("buy", self.active_pos['amount'], new_breakeven_sl, order_type="stop_market", params=sl_params)
+                                if _be_sl_type in ('limit', 'stop_limit'):
+                                    sl_params['price'] = new_breakeven_sl
+                                sl_res = await self.engine.execute_trade("buy", self.active_pos['amount'], new_breakeven_sl, order_type=_be_order_type, params=sl_params)
                                 if sl_res and 'id' in sl_res:
                                     self.active_pos['sl_order_id'] = sl_res['id']
                             except Exception as e: pass
@@ -2637,6 +2673,10 @@ class WallHunterFuturesStrategy:
             if "enable_dynamic_liq" in new_config: self.enable_dynamic_liq = new_config["enable_dynamic_liq"]
             if "dynamic_liq_multiplier" in new_config: self.dynamic_liq_multiplier = new_config["dynamic_liq_multiplier"]
             if "micro_scalp_min_wall" in new_config: self.micro_scalp_min_wall = new_config["micro_scalp_min_wall"]
+            if "enable_micro_scalp" in new_config: self.enable_micro_scalp = new_config["enable_micro_scalp"]
+            if "micro_scalp_profit_ticks" in new_config: self.micro_scalp_profit_ticks = new_config["micro_scalp_profit_ticks"]
+            if "enable_dynamic_atr_scalp" in new_config: self.enable_dynamic_atr_scalp = new_config["enable_dynamic_atr_scalp"]
+            if "micro_scalp_atr_multiplier" in new_config: self.micro_scalp_atr_multiplier = new_config["micro_scalp_atr_multiplier"]
             if "enable_btc_correlation" in new_config: self.enable_btc_correlation = new_config["enable_btc_correlation"]
             if "btc_correlation_threshold" in new_config: self.btc_correlation_threshold = new_config["btc_correlation_threshold"]
             if "btc_time_window" in new_config: self.btc_time_window = new_config["btc_time_window"]

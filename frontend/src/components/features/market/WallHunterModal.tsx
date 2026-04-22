@@ -2416,6 +2416,10 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Static Target (Ticks)</label>
                                                 <input type="number" disabled={form.enableDynamicAtrScalp} className={`w-full border rounded-xl p-2.5 text-center transition-all outline-none ${form.enableDynamicAtrScalp ? 'bg-black/20 border-white/5 text-gray-600' : 'bg-black/40 border-white/10 text-white focus:border-cyan-500'}`} value={form.microScalpProfitTicks} onChange={(e) => handleFormChange('microScalpProfitTicks', parseInt(e.target.value))} />
                                             </div>
+                                            <div className="flex-1">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Min Wall Size ($)</label>
+                                                <input type="number" step="10000" min="10000" className="w-full border rounded-xl p-2.5 text-center transition-all outline-none bg-black/40 border-white/10 text-white focus:border-cyan-500" value={form.microScalpMinWall} onChange={(e) => handleFormChange('microScalpMinWall', parseInt(e.target.value))} />
+                                            </div>
                                         </div>
                                         
                                         <div className={`p-3 rounded-lg border transition-all ${form.enableDynamicAtrScalp ? 'bg-cyan-500/10 border-cyan-500/50' : 'bg-black/40 border-white/5 hover:border-white/20'}`}>
@@ -2448,7 +2452,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
 
                             <div className="grid grid-cols-2 gap-4">
                                 <InputField label="Spoof Detect Time (Seconds)" value={form.spoofTime} onChange={(v: number) => setForm({ ...form, spoofTime: v })} step={0.5} />
-                                <InputField label="Trailing SL Step (%)" value={form.tsl} onChange={(v: number) => setForm({ ...form, tsl: v })} step={0.1} />
+                                {/* TSL Step is configured in the Risk tab — removed duplicate here to prevent ghost state */}
                             </div>
 
                             {/* --- BTC CORRELATION FILTER SECTION --- */}
