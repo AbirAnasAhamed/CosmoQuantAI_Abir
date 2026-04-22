@@ -127,6 +127,7 @@ class StrategyConfig(BaseModel):
     dual_engine_adx_threshold: Optional[int] = 25
     dual_engine_vol_length: Optional[int] = 20
     dual_engine_vol_multiplier: Optional[float] = 1.5
+    dual_engine_timeframe: Optional[str] = "1m"
 
     # --- UT Bot Alerts ---
     enable_ut_trend_filter: Optional[bool] = False

@@ -18,6 +18,7 @@ export interface NotificationSettings {
     alert_server_errors: boolean;
     broadcast_live_logs: boolean;
     alert_market_news: boolean;
+    alert_active_config_dump: boolean;
     updated_at?: string;
 }
 

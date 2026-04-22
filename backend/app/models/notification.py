@@ -24,6 +24,7 @@ class NotificationSettings(Base):
     alert_server_errors = Column(Boolean, default=True)   # System alert monitoring for docker logs
     broadcast_live_logs = Column(Boolean, default=True)   # Whether to broadcast live container logs via Redis to the frontend
     alert_market_news = Column(Boolean, default=True)     # Receive sentiment AI news updates
+    alert_active_config_dump = Column(Boolean, default=True) # Whether to dump bot active config to Telegram
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
