@@ -393,6 +393,42 @@ class BotManager:
                 for idx, log_item in enumerate(dynamic_logs, 1):
                     logger.info(f"{idx}. {log_item}")
                     msg_lines.append(f"{idx}. {log_item}")
+                    
+                # ⚙️ ACTIVE CONFIG (Compact Dump - No Falsy/Zeros)
+                logger.info("⚙️ ACTIVE CONFIG:")
+                msg_lines.append("\n⚙️ *Active Config:*")
+                skip_keys = ['symbol', 'exchange', 'is_paper_trading']
+                
+                for k, v in sorted(config.items()):
+                    if k in skip_keys: continue
+                    
+                    # Skip disabled, 0, None, empty, or False values
+                    if not v or v == [] or v == ['None'] or v == 0.0: continue
+                    if str(v).lower() in ['none', 'false', '', '0', '0.0']: continue
+                        
+                    # Smart Emoji Mapping
+                    kl = k.lower()
+                    if 'dual_engine' in kl: emoji = "🧠"
+                    elif 'supertrend' in kl: emoji = "🌊"
+                    elif 'ut_bot' in kl: emoji = "🎯"
+                    elif 'vol' in kl or 'amount' in kl: emoji = "📊"
+                    elif 'liq' in kl: emoji = "💥"
+                    elif 'risk' in kl or 'sl' in kl or 'stop' in kl: emoji = "🛡️"
+                    elif 'tp' in kl or 'profit' in kl: emoji = "💰"
+                    elif 'atr' in kl: emoji = "📏"
+                    elif 'wall' in kl: emoji = "🧱"
+                    elif 'iceberg' in kl: emoji = "🧊"
+                    elif 'spread' in kl: emoji = "🎯"
+                    elif 'timeframe' in kl or 'time' in kl or 'period' in kl: emoji = "⏱️"
+                    elif 'btc' in kl: emoji = "📉"
+                    elif 'wick' in kl: emoji = "🔥"
+                    elif 'buy' in kl or 'sell' in kl: emoji = "🛒"
+                    elif 'mode' in kl: emoji = "⚙️"
+                    else: emoji = "🔸"
+                        
+                    pretty_key = k.replace('_', ' ').title()
+                    logger.info(f"  {emoji} {pretty_key}: {v}")
+                    msg_lines.append(f"  {emoji} {pretty_key}: {v}")
 
             else:
                 logger.info(f"📈 Strategy: {bot.strategy} | Timeframe: {bot.timeframe}")
