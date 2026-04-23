@@ -250,7 +250,7 @@ class NewsService:
                             bn_title = await asyncio.to_thread(translator.translate, r.title)
                             safe_title = html.escape(bn_title)
                         except Exception as e:
-                            logger.error(f"Translation error: {e}")
+                            logger.warning(f"⚠️ Translation skipped (network): {e} — using original title.")
                             safe_title = html.escape(r.title)
                             
                         voice_path = None

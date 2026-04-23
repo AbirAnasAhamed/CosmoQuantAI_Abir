@@ -1396,6 +1396,41 @@ class WallHunterFuturesStrategy:
                     
             entry_price = override_limit_price if override_limit_price else base_limit_price
 
+            # ── Maker-Price Guard (postOnly only) ────────────────────────────────────
+            # Binance rejects a postOnly order that would immediately cross the spread
+            # (error: "Order would immediately match and take").
+            # This guard nudges the price by 1 tick so the order always rests in the book.
+            if snipe_order_type == "limit" and not override_limit_price and best_bid and best_ask:
+                tick = None
+                try:
+                    if self.public_exchange and getattr(self.public_exchange, 'markets', None):
+                        mkt = self.public_exchange.markets.get(self.symbol, {})
+                        precision = mkt.get('precision', {}).get('price')
+                        if precision:
+                            tick = float(precision) if float(precision) > 0 else None
+                except Exception:
+                    tick = None
+                if not tick:
+                    tick = round(best_bid * 1e-5, 10) if best_bid else 1e-5
+
+                if side == "sell":
+                    if entry_price <= best_bid:
+                        adjusted = best_ask + tick
+                        self.logger.warning(
+                            f"⚠️ [Maker Guard] SELL entry {entry_price} ≤ best_bid {best_bid}! "
+                            f"Nudging to {adjusted:.8g} (best_ask + 1 tick) to stay postOnly."
+                        )
+                        entry_price = adjusted
+                elif side == "buy":
+                    if entry_price >= best_ask:
+                        adjusted = best_bid - tick
+                        self.logger.warning(
+                            f"⚠️ [Maker Guard] BUY entry {entry_price} ≥ best_ask {best_ask}! "
+                            f"Nudging to {adjusted:.8g} (best_bid - 1 tick) to stay postOnly."
+                        )
+                        entry_price = adjusted
+            # ─────────────────────────────────────────────────────────────────────────
+
             # --- LIQUIDATION SAFETY GUARD ---
             liq_safety_pct = getattr(self, 'liquidation_safety_pct', 0.0)
             if liq_safety_pct > 0 and self.leverage > 1:

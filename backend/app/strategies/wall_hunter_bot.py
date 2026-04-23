@@ -1939,6 +1939,46 @@ class WallHunterBot:
             
         entry_price = override_limit_price if override_limit_price else base_limit_price
         
+        # ── Maker-Price Guard (postOnly only) ────────────────────────────────────
+        # Binance rejects a postOnly order that would immediately cross the spread
+        # (error: "Order would immediately match and take").
+        # This guard nudges the price by 1 tick so the order always rests in the book.
+        if snipe_order_type == "limit" and not override_limit_price and best_bid and best_ask:
+            tick = None
+            try:
+                # Derive minimum tick size from exchange market info if available
+                if hasattr(self, 'engine') and hasattr(self.engine, 'exchange') and self.engine.exchange:
+                    mkt = self.engine.exchange.markets.get(self.symbol, {})
+                    precision = mkt.get('precision', {}).get('price')
+                    if precision:
+                        tick = float(precision) if precision > 0 else None
+            except Exception:
+                tick = None
+            if not tick:
+                # Fallback: derive tick from best_bid significant digits (e.g. 0.09297 → 0.00001)
+                import math
+                tick = round(best_bid * 1e-5, 10) if best_bid else 1e-5  # 5 sig-fig fallback
+
+            if side == "sell":
+                # postOnly SELL must be strictly ABOVE best_bid to avoid crossing
+                if entry_price <= best_bid:
+                    adjusted = best_ask + tick
+                    self.logger.warning(
+                        f"⚠️ [Maker Guard] SELL price {entry_price} ≤ best_bid {best_bid}! "
+                        f"Nudging to {adjusted:.8g} (best_ask + 1 tick) to stay postOnly."
+                    )
+                    entry_price = adjusted
+            elif side == "buy":
+                # postOnly BUY must be strictly BELOW best_ask to avoid crossing
+                if entry_price >= best_ask:
+                    adjusted = best_bid - tick
+                    self.logger.warning(
+                        f"⚠️ [Maker Guard] BUY price {entry_price} ≥ best_ask {best_ask}! "
+                        f"Nudging to {adjusted:.8g} (best_bid - 1 tick) to stay postOnly."
+                    )
+                    entry_price = adjusted
+        # ─────────────────────────────────────────────────────────────────────────
+
         # Calculate base asset amount
         input_amount = self.config.get("amount_per_trade", 10.0)
         if getattr(self, 'strategy_mode', 'long') == 'short':

@@ -300,6 +300,59 @@ class OrderBlockExecutionEngine:
             )
             return order
         except Exception as e:
+            err_str = str(e)
+            # ── postOnly Maker-Price Retry ────────────────────────────────────────
+            # Binance error: "Order would immediately match and take" means our
+            # postOnly limit price crossed the spread at the moment of submission.
+            # We fetch the live book, compute a safe maker price, and retry once.
+            if order_params.get('postOnly') and 'immediately match' in err_str.lower():
+                self.logger.warning(
+                    f"[REAL] postOnly {side.upper()} at {final_price} was rejected (spread crossed). "
+                    f"Fetching live book and retrying with adjusted maker price..."
+                )
+                try:
+                    retry_book = await self.exchange.fetch_order_book(self.pair, limit=5)
+                    best_bid_r = retry_book['bids'][0][0] if retry_book.get('bids') else final_price
+                    best_ask_r = retry_book['asks'][0][0] if retry_book.get('asks') else final_price
+                    # Derive tick from precision or fallback
+                    tick_r = 0.0
+                    try:
+                        mkt_r = self.exchange.markets.get(self.pair, {})
+                        p_r = mkt_r.get('precision', {}).get('price')
+                        if p_r and float(p_r) > 0:
+                            tick_r = float(p_r)
+                    except Exception:
+                        pass
+                    if not tick_r:
+                        tick_r = round(best_bid_r * 1e-5, 10)
+
+                    if side.lower() == 'sell':
+                        retry_price = best_ask_r + tick_r   # safely above best_bid
+                    else:
+                        retry_price = best_bid_r - tick_r   # safely below best_ask
+
+                    if hasattr(self.exchange, 'price_to_precision'):
+                        retry_price = float(self.exchange.price_to_precision(self.pair, retry_price))
+
+                    self.logger.info(
+                        f"[REAL] Maker retry: {side.upper()} {amount} {self.pair} at {retry_price} "
+                        f"(bid={best_bid_r}, ask={best_ask_r})"
+                    )
+                    retry_order = await self.exchange.create_order(
+                        symbol=self.pair,
+                        type=final_order_type,
+                        side=side.lower(),
+                        amount=amount,
+                        price=retry_price,
+                        params=order_params
+                    )
+                    return retry_order
+                except Exception as retry_e:
+                    self.logger.error(
+                        f"[REAL] Maker retry also failed for {side} {amount} {self.pair}: {retry_e}"
+                    )
+                    return None
+            # ─────────────────────────────────────────────────────────────────────
             self.logger.error(f"[REAL] Order execution failed for {side} {amount} {self.pair} at {price}: {e}")
             return None
 
