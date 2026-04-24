@@ -98,6 +98,7 @@ class WallHunterFuturesStrategy:
         self.buy_order_type = self.config.get("buy_order_type", "market")
         self.sell_order_type = self.config.get("sell_order_type", "market")
         self.sl_order_type = self.config.get("sl_order_type", "market")
+        self.limit_buffer = self.config.get("limit_buffer", 0.05)  # % buffer for maker limit orders
         self.tsl_activation_pct = self.config.get("tsl_activation_pct", 0.0)
         
         # --- NEW FEATURES: Partial TP & Triggers ---
@@ -1799,7 +1800,11 @@ class WallHunterFuturesStrategy:
                 return
         # -----------------------------------------------------------------
 
-        side = self.active_pos['side']
+        # BUG FIX: Use .get() with a safe default to prevent KeyError on recovered/adopted positions
+        side = self.active_pos.get('side', 'long')
+        if side not in ('long', 'short'):
+            self.logger.warning(f"⚠️ [manage_risk] Unknown side '{side}' in active_pos. Defaulting to 'long'.")
+            side = 'long'
         exit_order_type = self.sell_order_type if side == "long" else self.buy_order_type
 
         # --- NEW: Supertrend Maker-to-Taker Fallback Dual-Exit ---
@@ -2656,6 +2661,17 @@ class WallHunterFuturesStrategy:
         if "sell_order_type" in new_config:
             updates.append(f"Order Type: {self.sell_order_type} -> {new_config['sell_order_type']}")
             self.sell_order_type = new_config["sell_order_type"]
+
+        if "buy_order_type" in new_config and new_config["buy_order_type"] != self.buy_order_type:
+            updates.append(f"Buy Order Type: {self.buy_order_type} -> {new_config['buy_order_type']}")
+            self.buy_order_type = new_config["buy_order_type"]
+
+        if "limit_buffer" in new_config and new_config["limit_buffer"] != self.limit_buffer:
+            updates.append(f"Limit Buffer: {self.limit_buffer}% -> {new_config['limit_buffer']}%")
+            self.limit_buffer = new_config["limit_buffer"]
+            # Propagate immediately to the execution engine so new orders use the updated buffer
+            if getattr(self, 'engine', None) and self.engine:
+                self.engine.config["limit_buffer"] = self.limit_buffer
 
         if "sl_order_type" in new_config and new_config["sl_order_type"] != getattr(self, "sl_order_type", "market"):
             updates.append(f"SL Order Type: {getattr(self, 'sl_order_type', 'market')} -> {new_config['sl_order_type']}")

@@ -734,7 +734,7 @@ class WallHunterBot:
             status = "ON" if new_config["enable_dual_engine"] else "OFF"
             updates.append(f"Dual Engine Tracker: {status}")
             
-        if hasattr(self, 'dual_engine_tracker'):
+        if getattr(self, 'dual_engine_tracker', None) is not None:
             self.dual_engine_tracker.update_params(
                 is_enabled=new_config.get("enable_dual_engine", self.dual_engine_tracker.is_enabled),
                 use_ema_filter=new_config.get("dual_engine_ema_filter", getattr(self.dual_engine_tracker, 'use_ema_filter', False)),
@@ -751,7 +751,15 @@ class WallHunterBot:
                 macd_signal=new_config.get("dual_engine_macd_signal", getattr(self.dual_engine_tracker, 'macd_signal', 9)),
                 squeeze_length=new_config.get("dual_engine_squeeze_length", getattr(self.dual_engine_tracker, 'squeeze_length', 20)),
                 squeeze_bb_mult=new_config.get("dual_engine_squeeze_bb_mult", getattr(self.dual_engine_tracker, 'squeeze_bb_mult', 2.0)),
-                squeeze_kc_mult=new_config.get("dual_engine_squeeze_kc_mult", getattr(self.dual_engine_tracker, 'squeeze_kc_mult', 1.5))
+                squeeze_kc_mult=new_config.get("dual_engine_squeeze_kc_mult", getattr(self.dual_engine_tracker, 'squeeze_kc_mult', 1.5)),
+                timeframe=new_config.get("dual_engine_timeframe", getattr(self.dual_engine_tracker, 'timeframe', '1m')),
+                use_triple_ema_filter=new_config.get("dual_engine_triple_ema_filter", getattr(self.dual_engine_tracker, 'use_triple_ema_filter', False)),
+                use_adx_filter=new_config.get("dual_engine_adx_filter", getattr(self.dual_engine_tracker, 'use_adx_filter', False)),
+                use_vol_filter=new_config.get("dual_engine_vol_filter", getattr(self.dual_engine_tracker, 'use_vol_filter', False)),
+                adx_length=new_config.get("dual_engine_adx_length", getattr(self.dual_engine_tracker, 'adx_length', 14)),
+                adx_threshold=new_config.get("dual_engine_adx_threshold", getattr(self.dual_engine_tracker, 'adx_threshold', 25)),
+                vol_length=new_config.get("dual_engine_vol_length", getattr(self.dual_engine_tracker, 'vol_length', 20)),
+                vol_multiplier=new_config.get("dual_engine_vol_multiplier", getattr(self.dual_engine_tracker, 'vol_multiplier', 1.5)),
             )
 
         # --- Smart Wick SR Live Updates ---
