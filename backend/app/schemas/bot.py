@@ -96,6 +96,9 @@ class StrategyConfig(BaseModel):
     enable_trend_filter: Optional[bool] = False
     trend_filter_lookback: Optional[int] = 200
     trend_filter_threshold: Optional[str] = "Strong"
+    trend_filter_dev: Optional[float] = 2.0
+    enable_trend_volume: Optional[bool] = False
+    trend_volume_multiplier: Optional[float] = 1.5
 
     # --- Dual Engine Command Center ---
     enable_dual_engine: Optional[bool] = False

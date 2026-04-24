@@ -243,14 +243,27 @@ class NewsService:
                         NotificationSettings.alert_market_news == True
                     ).all()
                     
-                    for r in new_resources:
-                        # Translate title to Bengali
+                    # Batch translate titles to Bengali to avoid rate limits
+                    bn_titles_map = {}
+                    if new_resources:
                         try:
                             translator = GoogleTranslator(source='auto', target='bn')
-                            bn_title = await asyncio.to_thread(translator.translate, r.title)
-                            safe_title = html.escape(bn_title)
+                            titles_to_translate = [r.title for r in new_resources]
+                            
+                            # Use translate_batch as suggested by the error message
+                            bn_titles_list = await asyncio.to_thread(translator.translate_batch, titles_to_translate)
+                            
+                            if bn_titles_list and len(bn_titles_list) == len(titles_to_translate):
+                                bn_titles_map = dict(zip(titles_to_translate, bn_titles_list))
                         except Exception as e:
-                            logger.warning(f"⚠️ Translation skipped (network): {e} — using original title.")
+                            logger.warning(f"⚠️ Batch translation skipped (network): {e} — will use original titles.")
+
+                    for r in new_resources:
+                        # Translate title to Bengali
+                        bn_title = bn_titles_map.get(r.title)
+                        if bn_title:
+                            safe_title = html.escape(bn_title)
+                        else:
                             safe_title = html.escape(r.title)
                             
                         voice_path = None

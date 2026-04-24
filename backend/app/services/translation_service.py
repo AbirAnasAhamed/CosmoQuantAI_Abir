@@ -38,6 +38,8 @@ class TranslationService:
         attempt = 0
         while attempt < retries:
             try:
+                # Add a small delay to avoid Google Translate rate limits (5 req/sec)
+                time.sleep(0.3)
                 return self.translator.translate(text)
             except Exception as e:
                 attempt += 1
