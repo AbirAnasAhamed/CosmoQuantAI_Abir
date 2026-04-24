@@ -1,6 +1,6 @@
 import asyncio
 import logging
-import ccxt.async_support as ccxt
+import ccxt.pro as ccxt
 from typing import Dict, List, Set
 from app.services.websocket_manager import manager
 from datetime import datetime
@@ -68,8 +68,8 @@ class PortfolioPriceService:
                         if not valid_symbols:
                             continue
 
-                        # Some exchanges don't support fetch_tickers(symbols) but CCXT handles it
-                        tickers = await client.fetch_tickers(valid_symbols)
+                        # Use WebSocket instead of REST API to avoid IP Bans
+                        tickers = await client.watch_tickers(valid_symbols)
                         
                         updates = {}
                         for sym, t in tickers.items():
@@ -89,8 +89,8 @@ class PortfolioPriceService:
                     except Exception as e:
                         logger.error(f"Error fetching prices for {exchange_id}: {e}")
                 
-                # Wait 5 seconds to be safe and avoid rate limits
-                await asyncio.sleep(5)
+                # Small delay to yield loop context, watch_tickers blocks until new data anyway
+                await asyncio.sleep(1)
             except asyncio.CancelledError:
                 break
             except Exception as e:

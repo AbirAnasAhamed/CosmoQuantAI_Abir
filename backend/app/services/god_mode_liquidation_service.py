@@ -147,9 +147,25 @@ class GodModeService:
         """Scans the entire market for highly volatile/vulnerable coins"""
         exchange = await self._init_exchange('binance')
         
+        # Start a background task to continuously update the websocket ticker stream
+        async def _keep_tickers_updated():
+            while self._running:
+                try:
+                    await exchange.watch_tickers()
+                except Exception as e:
+                    await asyncio.sleep(5)
+        
+        ticker_task = asyncio.create_task(_keep_tickers_updated())
+        self._active_tasks.append(ticker_task)
+
         while self._running:
             try:
-                tickers = await exchange.fetch_tickers()
+                # Use the continuously updated websocket cache instead of REST calls
+                tickers = exchange.tickers
+                
+                if not tickers:
+                    await asyncio.sleep(5)
+                    continue
                 
                 candidates = []
                 for sym, data in tickers.items():
