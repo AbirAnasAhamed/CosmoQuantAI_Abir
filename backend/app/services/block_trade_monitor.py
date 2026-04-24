@@ -18,6 +18,8 @@ class BlockTradeMonitor:
         self.config = self._load_config()
         self.exchanges = {}
         self.error_counts = {}
+        # Per-exchange market symbol sets (populated lazily, cached for lifetime of process)
+        self._markets_cache: Dict[str, set] = {}
         # Exchanges initialization will happen on first fetch or worker start
 
     def _load_config(self) -> Dict:
@@ -54,6 +56,8 @@ class BlockTradeMonitor:
         await self.close_exchanges()
         
         self.exchanges = {}
+        # Cache of symbol sets per exchange — populated lazily in _exchange_has_symbol()
+        self._markets_cache: Dict[str, set] = {}
         for exchange_id in self.config.get("active_exchanges", []):
             try:
                 if hasattr(ccxt, exchange_id):
@@ -71,6 +75,22 @@ class BlockTradeMonitor:
                     logger.warning(f"Exchange {exchange_id} not found in ccxt.")
             except Exception as e:
                 logger.error(f"Failed to initialize {exchange_id}: {e}")
+
+    async def _exchange_has_symbol(self, exchange_id: str, exchange, symbol: str) -> bool:
+        """
+        Returns True if the exchange lists the given symbol.
+        Markets are loaded once per exchange and cached in memory for the
+        lifetime of this monitor instance — they rarely change.
+        """
+        if exchange_id not in self._markets_cache:
+            try:
+                markets = await exchange.load_markets()
+                self._markets_cache[exchange_id] = set(markets.keys())
+            except Exception as e:
+                logger.warning(f"[BlockTrade] Could not load markets for {exchange_id}: {e}")
+                # Optimistic: let the fetch proceed; it will error if truly missing
+                return True
+        return symbol in self._markets_cache[exchange_id]
 
     async def close_exchanges(self):
         """Closes all exchange connections."""
@@ -111,12 +131,21 @@ class BlockTradeMonitor:
     async def fetch_recent_trades(self, symbol: str, limit: int = 100) -> Dict[str, List[Dict]]:
         """
         Fetches recent trades from all active exchanges for a given symbol in parallel.
+        Exchanges that do not list the symbol (e.g. FDUSD pairs on Bybit/OKX) are
+        silently skipped — no WARNING is logged for expected symbol-not-found cases.
         Filters trades based on min_block_value.
         """
         if not self.exchanges:
             await self.initialize_exchanges()
 
         async def fetch_from_exchange(exchange_id, exchange):
+            # ── Symbol availability check (silent skip) ──────────────────────
+            # Exchange-specific stablecoins (FDUSD, TUSD, …) only exist on their
+            # home exchange.  Checking the market list before calling fetch_trades
+            # avoids a BadSymbol exception and the noisy WARNING log it produces.
+            if not await self._exchange_has_symbol(exchange_id, exchange, symbol):
+                return exchange_id, []
+
             try:
                 trades = await exchange.fetch_trades(symbol, limit=limit)
                 self.error_counts[exchange_id] = 0
