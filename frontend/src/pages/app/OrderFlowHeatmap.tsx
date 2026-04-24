@@ -2491,6 +2491,7 @@ const OrderFlowHeatmap: React.FC = () => {
                 isOpen={isWallHunterOpen}
                 onClose={() => setIsWallHunterOpen(false)}
                 symbol={symbol}
+                exchange={exchange}
                 bids={bids}
                 asks={asks}
                 onDeploySuccess={(botId) => {

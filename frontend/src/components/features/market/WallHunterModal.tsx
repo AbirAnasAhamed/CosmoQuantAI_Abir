@@ -7,7 +7,7 @@ import { portfolioService } from '../../../services/portfolioService';
 import { calculateATR } from '../../../utils/indicators';
 import { HeatmapSymbolSelector } from './HeatmapSymbolSelector';
 
-export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol: string; bids?: any[]; asks?: any[]; onDeploySuccess?: (botId: number) => void }> = ({ isOpen, onClose, symbol, bids = [], asks = [], onDeploySuccess }) => {
+export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol: string; exchange?: string; bids?: any[]; asks?: any[]; onDeploySuccess?: (botId: number) => void }> = ({ isOpen, onClose, symbol, exchange = 'binance', bids = [], asks = [], onDeploySuccess }) => {
     const [savedKeys, setSavedKeys] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
@@ -24,7 +24,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
     const [form, setForm] = useState({
         botName: '',
         symbol: symbol,
-        exchange: 'binance',
+        exchange: exchange,
         isPaper: true,
         apiKeyId: '',
         vol: 500000,
@@ -200,8 +200,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
     const [lastInitializedSymbol, setLastInitializedSymbol] = useState('');
 
     useEffect(() => {
-        setForm(prev => ({ ...prev, symbol }));
-    }, [symbol]);
+        setForm(prev => ({ ...prev, symbol, exchange }));
+    }, [symbol, exchange]);
 
     // Smart default calculation on first load
     useEffect(() => {
