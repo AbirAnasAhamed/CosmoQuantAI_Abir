@@ -159,7 +159,10 @@ class StrategyConfig(BaseModel):
     wick_sr_modes: Optional[List[str]] = ["bounce"]
     wick_sr_timeframe: Optional[str] = "15m"
     wick_sr_sweep_threshold: Optional[int] = 3
+    wick_sr_lookback: Optional[int] = 300
     wick_sr_min_touches: Optional[int] = 25
+    wick_sr_atr_period: Optional[int] = 14
+    wick_sr_atr_multiplier: Optional[float] = 0.5
     enable_wick_sr_oib: Optional[bool] = False
     enable_dynamic_wick_tp: Optional[bool] = False
     dynamic_tp_frontrun_pct: Optional[float] = 0.0
