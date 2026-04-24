@@ -19,6 +19,7 @@ from app.services.binance_liq_stream import liquidation_stream # ✅ Import Bina
 from app.services.portfolio_price_service import portfolio_price_service # ✅ Import Portfolio Price Service
 from app.services.god_mode_liquidation_service import god_mode_service # ✅ Import God Mode Liquidation Service
 from app.services import exchange_pool # ✅ Import Exchange Pool (ManualTradeModal fast-path)
+from app.services.market_depth_service import market_depth_service # ✅ Import Market Depth Service (CCXT pool cleanup)
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
@@ -557,6 +558,12 @@ async def shutdown_event():
 
     # Close all cached Exchange Connections (ManualTradeModal pool)
     await exchange_pool.close_all()
+
+    # Close all cached CCXT connections from Market Depth Service
+    try:
+        await market_depth_service.close_all_exchanges()
+    except Exception as e:
+        logger.warning(f"[Shutdown] market_depth_service.close_all_exchanges() failed (non-fatal): {e}")
 
     print("✅ All background tasks stopped.")
 

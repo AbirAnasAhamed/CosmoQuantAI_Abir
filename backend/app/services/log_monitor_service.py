@@ -183,6 +183,17 @@ IGNORE_PATTERNS = [
     re.compile(r'Failed to parse JSON:.*using heuristics', re.IGNORECASE),
     re.compile(r'AI JSON Parse issue', re.IGNORECASE),
     re.compile(r'Invalid control character at: line \d+ column \d+', re.IGNORECASE),
+    # ── asyncio / aiohttp graceful-shutdown artifacts ─────────────────────────
+    # These two messages appear ONLY when the uvicorn process is shutting down
+    # (SIGTERM from Docker).  They are produced by Python's asyncio finalizer
+    # warning that open aiohttp sessions/connectors were garbage-collected
+    # rather than explicitly closed.  The app is already stopping — no action
+    # is possible or required.  Without these ignores they produce a spurious
+    # ERROR alert every time the backend container restarts.
+    re.compile(r'Unclosed\s+client\s+session', re.IGNORECASE),
+    re.compile(r'Unclosed\s+connector', re.IGNORECASE),
+    re.compile(r'aiohttp\.client\.ClientSession', re.IGNORECASE),
+    re.compile(r'aiohttp\.connector\.TCPConnector', re.IGNORECASE),
 ]
 
 # Patterns that look like errors but should be downgraded to WARNING
