@@ -1240,7 +1240,7 @@ class WallHunterBot:
             modes_display = ", ".join([mode_labels.get(m, m.title()) for m in active_modes])
             oib_str = "ON" if getattr(self, 'enable_wick_sr_oib', False) else "OFF"
             trigger_logs_console.append(f"- Smart Wick S/R: ACTIVE")
-            trigger_logs_console.append(f"  Modes: {modes_display} | TF: {getattr(self, 'wick_sr_timeframe', '1m')} | Touches: {getattr(self, 'wick_sr_min_touches', 10)} | OIB: {oib_str}")
+            trigger_logs_console.append(f"  Modes: {modes_display} | TF: {getattr(self, 'wick_sr_timeframe', '1m')} | LB: {getattr(self, 'wick_sr_lookback', 300)} | Touches: {getattr(self, 'wick_sr_min_touches', 10)} | ATRx: {getattr(self, 'wick_sr_atr_multiplier', 0.5)} | OIB: {oib_str}")
 
         trigger_console_str = "\n".join(trigger_logs_console)
 
