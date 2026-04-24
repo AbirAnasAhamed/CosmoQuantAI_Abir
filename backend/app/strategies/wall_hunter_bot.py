@@ -260,6 +260,9 @@ class WallHunterBot:
         self.wick_sr_timeframe = config.get("wick_sr_timeframe", "1m")
         self.wick_sr_sweep_threshold = config.get("wick_sr_sweep_threshold", 3)
         self.wick_sr_min_touches = config.get("wick_sr_min_touches", 10)
+        self.wick_sr_lookback = config.get("wick_sr_lookback", 300)
+        self.wick_sr_atr_period = config.get("wick_sr_atr_period", 14)
+        self.wick_sr_atr_multiplier = config.get("wick_sr_atr_multiplier", 0.5)
         self.enable_wick_sr_oib = config.get("enable_wick_sr_oib", False)
         self.enable_dynamic_wick_tp = config.get("enable_dynamic_wick_tp", False)
         self.dynamic_tp_frontrun_pct = config.get("dynamic_tp_frontrun_pct", 0.0)
@@ -273,7 +276,9 @@ class WallHunterBot:
         self.wick_sr_tracker = WickSRTracker(
             timeframe=self.wick_sr_timeframe,
             sweep_threshold_candles=self.wick_sr_sweep_threshold,
-            min_touches=self.wick_sr_min_touches
+            min_touches=self.wick_sr_min_touches,
+            atr_period=self.wick_sr_atr_period,
+            atr_multiplier=self.wick_sr_atr_multiplier
         ) if self.enable_wick_sr else None
         
         self.wick_sr_listener = WickSRStandaloneListener(self)
@@ -759,7 +764,9 @@ class WallHunterBot:
                     self.wick_sr_tracker = WickSRTracker(
                         timeframe=self.wick_sr_timeframe,
                         sweep_threshold_candles=self.wick_sr_sweep_threshold,
-                        min_touches=self.wick_sr_min_touches
+                        min_touches=self.wick_sr_min_touches,
+                        atr_period=self.wick_sr_atr_period,
+                        atr_multiplier=self.wick_sr_atr_multiplier
                     )
                 if hasattr(self, '_wick_sr_task') and not self._wick_sr_task:
                     self.wick_sr_listener.tracker = self.wick_sr_tracker
@@ -783,10 +790,23 @@ class WallHunterBot:
             if getattr(self, "wick_sr_tracker", None):
                 self.wick_sr_tracker.sweep_threshold_candles = self.wick_sr_sweep_threshold
 
-        if "wick_sr_min_touches" in new_config and new_config["wick_sr_min_touches"] != self.wick_sr_min_touches:
+        if "wick_sr_min_touches" in new_config and new_config["wick_sr_min_touches"] != getattr(self, "wick_sr_min_touches", 10):
             self.wick_sr_min_touches = new_config.get("wick_sr_min_touches")
             if getattr(self, "wick_sr_tracker", None):
                 self.wick_sr_tracker.min_touches = self.wick_sr_min_touches
+
+        if "wick_sr_lookback" in new_config and new_config["wick_sr_lookback"] != getattr(self, "wick_sr_lookback", 300):
+            self.wick_sr_lookback = new_config.get("wick_sr_lookback")
+
+        if "wick_sr_atr_period" in new_config and new_config["wick_sr_atr_period"] != getattr(self, "wick_sr_atr_period", 14):
+            self.wick_sr_atr_period = new_config.get("wick_sr_atr_period")
+            if getattr(self, "wick_sr_tracker", None):
+                self.wick_sr_tracker.atr_period = self.wick_sr_atr_period
+
+        if "wick_sr_atr_multiplier" in new_config and new_config["wick_sr_atr_multiplier"] != getattr(self, "wick_sr_atr_multiplier", 0.5):
+            self.wick_sr_atr_multiplier = new_config.get("wick_sr_atr_multiplier")
+            if getattr(self, "wick_sr_tracker", None):
+                self.wick_sr_tracker.atr_multiplier = self.wick_sr_atr_multiplier
 
         if "enable_wick_sr_oib" in new_config and new_config["enable_wick_sr_oib"] != getattr(self, "enable_wick_sr_oib", False):
             self.enable_wick_sr_oib = new_config.get("enable_wick_sr_oib", False)

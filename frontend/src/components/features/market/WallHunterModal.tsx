@@ -184,7 +184,10 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         wickSrModes: ['bounce'],
         wickSrTimeframe: '15m',
         wickSrSweepThreshold: 3,
+        wickSrLookback: 300,
         wickSrMinTouches: 25,
+        wickSrAtrPeriod: 14,
+        wickSrAtrMultiplier: 0.5,
         enableWickSrOib: false,
         enableDynamicWickTp: false,
         dynamicTpFrontrunPct: 0.0,
@@ -1929,15 +1932,23 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 </div>
                                             )}
 
-                                            <div className="col-span-2 flex items-center justify-between mt-2 pt-2 border-t border-white/10">
-                                                <label className="text-[10px] font-bold text-gray-400 uppercase">Min Touches (Strength)</label>
-                                                <input 
-                                                    type="number"
-                                                    className="w-20 bg-[#0B1120] border border-white/10 rounded-lg p-1.5 text-white outline-none focus:border-emerald-500 text-sm font-bold text-center font-mono" 
-                                                    value={form.wickSrMinTouches} 
-                                                    onChange={(e) => handleFormChange('wickSrMinTouches', parseInt(e.target.value))}
-                                                    min={3} step={1}
-                                                />
+                                            <div className="col-span-2 grid grid-cols-2 gap-3 mt-2 pt-2 border-t border-white/10">
+                                                <div className="bg-black/20 border border-white/10 rounded-lg p-2 flex items-center justify-between">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">LB</label>
+                                                    <input type="number" className="w-16 bg-transparent text-right text-white font-mono text-xs outline-none focus:text-emerald-400" value={form.wickSrLookback} onChange={(e) => handleFormChange('wickSrLookback', parseInt(e.target.value))} min={50} max={1000} step={10} />
+                                                </div>
+                                                <div className="bg-black/20 border border-white/10 rounded-lg p-2 flex items-center justify-between">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Min</label>
+                                                    <input type="number" className="w-16 bg-transparent text-right text-white font-mono text-xs outline-none focus:text-emerald-400" value={form.wickSrMinTouches} onChange={(e) => handleFormChange('wickSrMinTouches', parseInt(e.target.value))} min={3} step={1} />
+                                                </div>
+                                                <div className="bg-black/20 border border-white/10 rounded-lg p-2 flex items-center justify-between">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">ATR P</label>
+                                                    <input type="number" className="w-16 bg-transparent text-right text-white font-mono text-xs outline-none focus:text-emerald-400" value={form.wickSrAtrPeriod} onChange={(e) => handleFormChange('wickSrAtrPeriod', parseInt(e.target.value))} min={1} step={1} />
+                                                </div>
+                                                <div className="bg-black/20 border border-white/10 rounded-lg p-2 flex items-center justify-between">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">ATRx</label>
+                                                    <input type="number" step="0.1" className="w-16 bg-transparent text-right text-white font-mono text-xs outline-none focus:text-emerald-400" value={form.wickSrAtrMultiplier} onChange={(e) => handleFormChange('wickSrAtrMultiplier', parseFloat(e.target.value))} min={0.1} />
+                                                </div>
                                             </div>
 
                                             {/* OIB Confluence integration */}

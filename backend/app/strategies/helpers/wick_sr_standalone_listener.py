@@ -23,7 +23,7 @@ class WickSRStandaloneListener:
                     symbol=self.symbol,
                     exchange_id=self.exchange_id,
                     timeframe=self.tracker.timeframe,
-                    limit=200
+                    limit=getattr(self.bot, 'wick_sr_lookback', 300)
                 )
 
                 if klines and len(klines) > 0:
