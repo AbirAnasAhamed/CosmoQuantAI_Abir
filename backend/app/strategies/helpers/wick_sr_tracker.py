@@ -14,6 +14,8 @@ class WickSRTracker:
         self.min_touches = min_touches
         
         self.levels = []
+        self.last_live_price = None
+        self._is_first_evaluation = True
         
     def _calculate_rma(self, data: np.ndarray, period: int) -> np.ndarray:
         rma = np.zeros_like(data)
@@ -160,7 +162,9 @@ class WickSRTracker:
                     'top_band': top_zone,
                     'bottom_band': bottom_zone,
                     'status': status,
-                    'candles_since_break': 0
+                    'candles_since_break': 0,
+                    'last_price_state': None, # tracks if price was above, below, or inside
+                    'is_valid_resting': False # allows continuous 5m triggers if already validated
                 })
 
         self.levels = new_levels
@@ -173,24 +177,64 @@ class WickSRTracker:
     def get_signals(self, latest_close: float) -> List[Dict[str, Any]]:
         """
         Evaluate live execution signals against the actively tracked zones.
+        Uses stateful tracking to ensure price approaches from the correct direction.
         """
         signals = []
         
+        if self._is_first_evaluation:
+            self._is_first_evaluation = False
+            self.last_live_price = latest_close
+            # Skip evaluation on the very first tick to prevent blind startup triggers
+            for level in self.levels:
+                if latest_close > level['top_band']:
+                    level['last_price_state'] = 'above'
+                elif latest_close < level['bottom_band']:
+                    level['last_price_state'] = 'below'
+                else:
+                    level['last_price_state'] = 'inside'
+            return signals
+
+        self.last_live_price = latest_close
+        
         for level in self.levels:
+            # Determine current state
+            current_state = 'inside'
+            if latest_close > level['top_band']:
+                current_state = 'above'
+            elif latest_close < level['bottom_band']:
+                current_state = 'below'
+                
+            last_state = level.get('last_price_state')
+            level['last_price_state'] = current_state
+            
+            if last_state is None:
+                continue # Safety skip if state wasn't initialized
+                
             if level['status'] == 'ACTIVE':
-                if level['bottom_band'] <= latest_close <= level['top_band']:
-                    now = time.time()
-                    # 5-minute cooldown to prevent endless entries while resting in the same S/R zone
-                    if now - level.get('last_trigger_time', 0) > 300:
-                        signals.append({
-                            'mode': 'bounce',
-                            'side': 'short' if level['type'] == 'resistance' else 'long',
-                            'price': level['price']
-                        })
-                        level['last_trigger_time'] = now
+                if current_state == 'inside':
+                    # Validate directional entry
+                    valid_entry = False
+                    if level['type'] == 'resistance' and last_state == 'below':
+                        valid_entry = True
+                    elif level['type'] == 'support' and last_state == 'above':
+                        valid_entry = True
+                        
+                    if valid_entry or level.get('is_valid_resting'):
+                        now = time.time()
+                        # 5-minute cooldown to prevent endless entries while resting in the same S/R zone
+                        if now - level.get('last_trigger_time', 0) > 300:
+                            signals.append({
+                                'mode': 'bounce',
+                                'side': 'short' if level['type'] == 'resistance' else 'long',
+                                'price': level['price']
+                            })
+                            level['last_trigger_time'] = now
+                            level['is_valid_resting'] = True
+                else:
+                    level['is_valid_resting'] = False # Reset resting status once it leaves the zone
                 
                 # Check for live breakout
-                if level['type'] == 'resistance' and latest_close > level['top_band']:
+                if level['type'] == 'resistance' and current_state == 'above' and last_state in ['inside', 'below']:
                     now = time.time()
                     if now - level.get('last_trigger_time', 0) > 300:
                         signals.append({
@@ -201,7 +245,8 @@ class WickSRTracker:
                         level['last_trigger_time'] = now
                     level['status'] = 'BROKEN_SWEEP_WATCH'
                     level['candles_since_break'] = 0
-                elif level['type'] == 'support' and latest_close < level['bottom_band']:
+                    level['is_valid_resting'] = False
+                elif level['type'] == 'support' and current_state == 'below' and last_state in ['inside', 'above']:
                     now = time.time()
                     if now - level.get('last_trigger_time', 0) > 300:
                         signals.append({
@@ -212,14 +257,15 @@ class WickSRTracker:
                         level['last_trigger_time'] = now
                     level['status'] = 'BROKEN_SWEEP_WATCH'
                     level['candles_since_break'] = 0
+                    level['is_valid_resting'] = False
                     
             elif level['status'] == 'BROKEN_SWEEP_WATCH':
                 level['candles_since_break'] += 1
                 
                 recovered = False
-                if level['original_type'] == 'resistance' and latest_close <= level['top_band']:
+                if level['original_type'] == 'resistance' and current_state == 'inside' and last_state == 'above':
                     recovered = True
-                elif level['original_type'] == 'support' and latest_close >= level['bottom_band']:
+                elif level['original_type'] == 'support' and current_state == 'inside' and last_state == 'below':
                     recovered = True
                     
                 if recovered:
@@ -233,20 +279,31 @@ class WickSRTracker:
                         level['last_trigger_time'] = now
                     level['status'] = 'ACTIVE'
                     level['candles_since_break'] = 0
+                    level['is_valid_resting'] = True
                 elif level['candles_since_break'] >= self.sweep_threshold_candles:
                     level['status'] = 'BROKEN_RETEST'
                     level['type'] = 'support' if level['original_type'] == 'resistance' else 'resistance'
                     
             elif level['status'] == 'BROKEN_RETEST':
-                if level['bottom_band'] <= latest_close <= level['top_band']:
-                    now = time.time()
-                    if now - level.get('last_trigger_time', 0) > 300:
-                        signals.append({
-                            'mode': 'retest',
-                            'side': 'short' if level['type'] == 'resistance' else 'long',
-                            'price': level['price']
-                        })
-                        level['last_trigger_time'] = now
+                if current_state == 'inside':
+                    valid_retest = False
+                    if level['type'] == 'resistance' and last_state == 'below':
+                        valid_retest = True
+                    elif level['type'] == 'support' and last_state == 'above':
+                        valid_retest = True
+                        
+                    if valid_retest or level.get('is_valid_resting'):
+                        now = time.time()
+                        if now - level.get('last_trigger_time', 0) > 300:
+                            signals.append({
+                                'mode': 'retest',
+                                'side': 'short' if level['type'] == 'resistance' else 'long',
+                                'price': level['price']
+                            })
+                            level['last_trigger_time'] = now
+                            level['is_valid_resting'] = True
+                else:
+                    level['is_valid_resting'] = False
                     
         return signals
 
