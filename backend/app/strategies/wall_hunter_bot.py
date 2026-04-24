@@ -339,10 +339,15 @@ class WallHunterBot:
         """Update strategy parameters dynamically without stopping the bot."""
         self.logger.info(f"🔄 [WallHunter {self.bot_id}] Live config update requested: {new_config}")
         
-        if "trading_mode" in new_config:
+        # Keep track of old values for logging
+        updates = []
+        
+        if "trading_mode" in new_config and new_config["trading_mode"].lower() != getattr(self, "trading_mode", "spot"):
+            updates.append(f"Trading Mode: {getattr(self, 'trading_mode', 'spot').upper()} -> {new_config['trading_mode'].upper()}")
             self.trading_mode = new_config["trading_mode"].lower()
             
-        if "strategy_mode" in new_config:
+        if "strategy_mode" in new_config and new_config["strategy_mode"].lower() != getattr(self, "strategy_mode", "long"):
+            updates.append(f"Strategy Mode: {getattr(self, 'strategy_mode', 'long').upper()} -> {new_config['strategy_mode'].upper()}")
             self.strategy_mode = new_config["strategy_mode"].lower()
             
         # --- Trading Session Live Update ---
@@ -360,9 +365,6 @@ class WallHunterBot:
                 on_session_end=self._on_trading_session_end
             )
             asyncio.create_task(self.session_tracker.start_monitor())
-        
-        # Keep track of old values for logging
-        updates = []
         
         if "vol_threshold" in new_config and new_config["vol_threshold"] != self.vol_threshold:
             updates.append(f"Volume Threshold: {self.vol_threshold} -> {new_config['vol_threshold']}")
@@ -2828,6 +2830,8 @@ class WallHunterBot:
                 if limit_sl_res and limit_sl_res.get('id'):
                     self.active_pos['sl_limit_order_id'] = limit_sl_res.get('id')
                     # Do not set res here, we want to wait. The Guard logic at top of manage_risk will handle it.
+                    if self.is_paper_trading:
+                        res = limit_sl_res
                 else:
                     self.logger.warning("SL Limit Maker order rejected by exchange! Will auto-retry on next tick.")
                     
@@ -2836,33 +2840,36 @@ class WallHunterBot:
                 limit_sl_res = await self.engine.execute_trade(close_side, sell_amount, current_price, order_type="limit", params={"postOnly": True})
                 
                 if limit_sl_res and limit_sl_res.get('id'):
-                    # Wait 3 seconds inside this block 
-                    self.logger.info(f"⏳ Waiting 3 seconds for Soft Limit SL {limit_sl_res['id']} to fill...")
-                    for _ in range(8):  # 8 * 0.4s = 3.2s
-                        await asyncio.sleep(0.4)
-                        try:
-                            check = await self.engine.exchange.fetch_order(limit_sl_res['id'], self.symbol)
-                            if check and check.get('status') != 'open':
-                                break
-                        except Exception: pass
-                        
-                    # Re-check status after wait
-                    final_check = await self.engine.exchange.fetch_order(limit_sl_res['id'], self.symbol)
-                    if final_check and final_check.get('status') == 'open':
-                        self.logger.warning("Soft Limit SL did not fill in time! Fallback to Market.")
-                        await self.engine.cancel_order(limit_sl_res['id'])
-                        await asyncio.sleep(0.5)
-                        
-                        # Find remaining unfilled portion
-                        cancelled_check = await self.engine.exchange.fetch_order(limit_sl_res['id'], self.symbol)
-                        rem_filled = cancelled_check.get('filled', 0.0)
-                        rem_amount_raw = sell_amount_raw - rem_filled
-                        if rem_amount_raw > 0:
-                            sweep_amt = float(self.engine.exchange.amount_to_precision(self.symbol, rem_amount_raw)) if hasattr(self.engine.exchange, 'amount_to_precision') else rem_amount_raw
-                            res = await self.engine.execute_trade(close_side, sweep_amt, current_price, order_type="market")
+                    if self.is_paper_trading:
+                        res = limit_sl_res
                     else:
-                        # Filled or cancelled externally
-                        res = final_check
+                        # Wait 3 seconds inside this block 
+                        self.logger.info(f"⏳ Waiting 3 seconds for Soft Limit SL {limit_sl_res['id']} to fill...")
+                        for _ in range(8):  # 8 * 0.4s = 3.2s
+                            await asyncio.sleep(0.4)
+                            try:
+                                check = await self.engine.exchange.fetch_order(limit_sl_res['id'], self.symbol)
+                                if check and check.get('status') != 'open':
+                                    break
+                            except Exception: pass
+                            
+                        # Re-check status after wait
+                        final_check = await self.engine.exchange.fetch_order(limit_sl_res['id'], self.symbol)
+                        if final_check and final_check.get('status') == 'open':
+                            self.logger.warning("Soft Limit SL did not fill in time! Fallback to Market.")
+                            await self.engine.cancel_order(limit_sl_res['id'])
+                            await asyncio.sleep(0.5)
+                            
+                            # Find remaining unfilled portion
+                            cancelled_check = await self.engine.exchange.fetch_order(limit_sl_res['id'], self.symbol)
+                            rem_filled = cancelled_check.get('filled', 0.0)
+                            rem_amount_raw = sell_amount_raw - rem_filled
+                            if rem_amount_raw > 0:
+                                sweep_amt = float(self.engine.exchange.amount_to_precision(self.symbol, rem_amount_raw)) if hasattr(self.engine.exchange, 'amount_to_precision') else rem_amount_raw
+                                res = await self.engine.execute_trade(close_side, sweep_amt, current_price, order_type="market")
+                        else:
+                            # Filled or cancelled externally
+                            res = final_check
                 else:
                     self.logger.warning("Soft Limit placement failed. Fallback to Market.")
                     res = await self.engine.execute_trade(close_side, sell_amount, current_price, order_type="market")

@@ -2446,25 +2446,39 @@ const OrderFlowHeatmap: React.FC = () => {
             {/* WALLHUNTER FLOATING ACTION BUTTON */}
             {
                 activeWallHunterId ? (
-                    <button
-                        onClick={async () => {
-                            try {
-                                await botService.controlBot(activeWallHunterId, 'stop');
-                                setActiveWallHunterId(null);
-                            } catch (err) {
-                                console.error("Failed to stop WallHunter bot", err);
-                            }
-                        }}
-                        className="fixed bottom-8 right-8 z-[100] group"
-                        title="Abort WallHunter"
-                    >
-                        <div className="absolute inset-0 bg-red-500 rounded-full blur-xl opacity-40 group-hover:opacity-100 transition-opacity animate-pulse" />
-                        <div className="relative w-16 h-16 bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center border-4 border-white/20 shadow-[0_0_30px_rgba(239,68,68,0.5)] group-hover:scale-110 transition-transform cursor-pointer">
-                            <svg className="w-8 h-8 text-white group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </div>
-                    </button>
+                    <div className="fixed bottom-8 right-8 z-[100] flex flex-row gap-4 items-center">
+                        <button
+                            onClick={() => setIsWallHunterOpen(true)}
+                            className="group relative w-12 h-12"
+                            title="Update WallHunter Config"
+                        >
+                            <div className="absolute inset-0 bg-indigo-500 rounded-full blur-xl opacity-40 group-hover:opacity-100 transition-opacity animate-pulse" />
+                            <div className="relative w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center border-2 border-white/20 shadow-[0_0_30px_rgba(99,102,241,0.5)] group-hover:scale-110 transition-transform cursor-pointer">
+                                <svg className="w-5 h-5 text-white group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                            </div>
+                        </button>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    await botService.controlBot(activeWallHunterId, 'stop');
+                                    setActiveWallHunterId(null);
+                                } catch (err) {
+                                    console.error("Failed to stop WallHunter bot", err);
+                                }
+                            }}
+                            className="group relative w-16 h-16"
+                            title="Abort WallHunter"
+                        >
+                            <div className="absolute inset-0 bg-red-500 rounded-full blur-xl opacity-40 group-hover:opacity-100 transition-opacity animate-pulse" />
+                            <div className="relative w-16 h-16 bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center border-4 border-white/20 shadow-[0_0_30px_rgba(239,68,68,0.5)] group-hover:scale-110 transition-transform cursor-pointer">
+                                <svg className="w-8 h-8 text-white group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </div>
+                        </button>
+                    </div>
                 ) : (
                     <button
                         onClick={() => setIsWallHunterOpen(true)}

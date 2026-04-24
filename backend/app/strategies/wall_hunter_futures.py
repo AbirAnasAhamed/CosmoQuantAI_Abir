@@ -2155,34 +2155,39 @@ class WallHunterFuturesStrategy:
                     limit_sl_res = await self.engine.execute_trade(exit_side, sell_amount_raw, target_maker_price, order_type="limit", params={'reduceOnly': True, 'postOnly': True})
                     if limit_sl_res and limit_sl_res.get('id'):
                         self.active_pos['sl_limit_order_id'] = limit_sl_res.get('id')
+                        if self.is_paper_trading:
+                            res = limit_sl_res
                     else:
                         logger.warning("SL Limit Maker order rejected by exchange! Will auto-retry on next tick.")
                 elif sl_exec_type == 'soft_limit':
                     logger.info(f"🛡️ Executing Futures SL with Soft Limit Maker at {current_price}")
                     limit_sl_res = await self.engine.execute_trade(exit_side, sell_amount_raw, current_price, order_type="limit", params={'reduceOnly': True, 'postOnly': True})
                     if limit_sl_res and limit_sl_res.get('id'):
-                        logger.info(f"⏳ Waiting 3 seconds for Soft Limit SL {limit_sl_res['id']} to fill...")
-                        for _ in range(8):
-                            await asyncio.sleep(0.4)
-                            try:
-                                check = await self.engine.exchange.fetch_order(limit_sl_res['id'], self.symbol)
-                                if check and check.get('status') != 'open': break
-                            except Exception: pass
-                        
-                        final_check = await self.engine.exchange.fetch_order(limit_sl_res['id'], self.symbol)
-                        if final_check and final_check.get('status') == 'open':
-                            logger.warning("Futures Soft Limit SL did not fill in time! Fallback to Market.")
-                            await self.engine.cancel_order(limit_sl_res['id'])
-                            await asyncio.sleep(0.5)
-                            
-                            cancelled_check = await self.engine.exchange.fetch_order(limit_sl_res['id'], self.symbol)
-                            rem_filled = cancelled_check.get('filled', 0.0)
-                            rem_amount_raw = sell_amount_raw - rem_filled
-                            if rem_amount_raw > 0:
-                                sweep_amt = float(self.engine.exchange.amount_to_precision(self.symbol, rem_amount_raw)) if hasattr(self.engine.exchange, 'amount_to_precision') else rem_amount_raw
-                                res = await self.engine.execute_trade(exit_side, sweep_amt, current_price, order_type="market", params={'reduceOnly': True})
+                        if self.is_paper_trading:
+                            res = limit_sl_res
                         else:
-                            res = final_check
+                            logger.info(f"⏳ Waiting 3 seconds for Soft Limit SL {limit_sl_res['id']} to fill...")
+                            for _ in range(8):
+                                await asyncio.sleep(0.4)
+                                try:
+                                    check = await self.engine.exchange.fetch_order(limit_sl_res['id'], self.symbol)
+                                    if check and check.get('status') != 'open': break
+                                except Exception: pass
+                            
+                            final_check = await self.engine.exchange.fetch_order(limit_sl_res['id'], self.symbol)
+                            if final_check and final_check.get('status') == 'open':
+                                logger.warning("Futures Soft Limit SL did not fill in time! Fallback to Market.")
+                                await self.engine.cancel_order(limit_sl_res['id'])
+                                await asyncio.sleep(0.5)
+                                
+                                cancelled_check = await self.engine.exchange.fetch_order(limit_sl_res['id'], self.symbol)
+                                rem_filled = cancelled_check.get('filled', 0.0)
+                                rem_amount_raw = sell_amount_raw - rem_filled
+                                if rem_amount_raw > 0:
+                                    sweep_amt = float(self.engine.exchange.amount_to_precision(self.symbol, rem_amount_raw)) if hasattr(self.engine.exchange, 'amount_to_precision') else rem_amount_raw
+                                    res = await self.engine.execute_trade(exit_side, sweep_amt, current_price, order_type="market", params={'reduceOnly': True})
+                            else:
+                                res = final_check
                     else:
                         logger.warning("Soft Limit placement failed. Fallback to Market.")
                         res = await self.engine.execute_trade(exit_side, sell_amount_raw, current_price, order_type="market", params={'reduceOnly': True})
@@ -2609,6 +2614,10 @@ class WallHunterFuturesStrategy:
             asyncio.create_task(self.session_tracker.start_monitor())
         
         updates = []
+        
+        if "strategy_mode" in new_config and new_config["strategy_mode"].lower() != getattr(self, "strategy_mode", "long"):
+            updates.append(f"Strategy Mode: {getattr(self, 'strategy_mode', 'long').upper()} -> {new_config['strategy_mode'].upper()}")
+            self.strategy_mode = new_config["strategy_mode"].lower()
         if "partial_tp_pct" in new_config and new_config["partial_tp_pct"] != getattr(self, "partial_tp_pct", 50.0):
             updates.append(f"Partial TP: {getattr(self, 'partial_tp_pct', 50.0)}% -> {new_config['partial_tp_pct']}%")
             self.partial_tp_pct = new_config.get("partial_tp_pct")
