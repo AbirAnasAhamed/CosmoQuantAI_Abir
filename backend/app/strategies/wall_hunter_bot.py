@@ -1069,7 +1069,8 @@ class WallHunterBot:
                                         "tsl_activated": False,
                                         "entry_order_id": order['id'],
                                         "limit_order_id": None,
-                                        "micro_scalp": getattr(self, 'enable_micro_scalp', False)
+                                        "micro_scalp": getattr(self, 'enable_micro_scalp', False),
+                                        "side": "long" if order_side == "buy" else "short"
                                     }
                                 else:
                                     self.logger.info(f"🌟 Adopting dangling {order_side.upper()} order {order['id']} as pending EXIT (Take Profit)!")
@@ -1086,7 +1087,8 @@ class WallHunterBot:
                                         "tsl_activated": False,
                                         "entry_order_id": None,
                                         "limit_order_id": order['id'],
-                                        "micro_scalp": getattr(self, 'enable_micro_scalp', False)
+                                        "micro_scalp": getattr(self, 'enable_micro_scalp', False),
+                                        "side": "short" if order_side == "buy" else "long"
                                     }
                                 
                                 recovered_pos = self.active_pos
