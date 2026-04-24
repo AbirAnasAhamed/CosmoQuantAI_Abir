@@ -367,8 +367,10 @@ class BotManager:
                     oib_str = "ON" if config.get('enable_wick_sr_oib', False) else "OFF"
                     tf = config.get('wick_sr_timeframe', '1m')
                     touches = config.get('wick_sr_min_touches', 10)
+                    lb = config.get('wick_sr_lookback', 300)
+                    atrx = config.get('wick_sr_atr_multiplier', 0.5)
                     dynamic_logs.append(
-                        f"\U0001f525 Smart S/R: {modes_display} | TF:{tf} | Touch:{touches} | OIB:{oib_str}"
+                        f"\U0001f525 Smart S/R: {modes_display} | TF:{tf} | LB:{lb} | Touch:{touches} | ATRx:{atrx} | OIB:{oib_str}"
                     )
                 
                 # Risk Pct | TSL
