@@ -1446,9 +1446,13 @@ class WallHunterBot:
                                 raw_side = w_sig['side']
                                 target_side = 'buy' if raw_side == 'long' else 'sell'
                                 
-                                # Option: Spot limit to long only unless futures or margin
-                                if target_side == "sell" and self.trading_mode != "futures" and getattr(self, 'strategy_mode', 'long') != "short":
-                                    continue # Spot bot cannot short unless strategy_mode is short
+                                # Strict Entry Direction Guard: 
+                                # A Short bot must only open positions with SELL. A Long bot must only open positions with BUY.
+                                if not self.active_pos:
+                                    expected_entry_side = 'sell' if getattr(self, 'strategy_mode', 'long') == 'short' else 'buy'
+                                    if target_side != expected_entry_side:
+                                        self.logger.info(f"🚫 Wick SR Snipe ({w_sig['mode'].upper()}) rejected! Strategy Mode ({getattr(self, 'strategy_mode', 'long').upper()}) only allows {expected_entry_side.upper()} entries.")
+                                        continue
                                 
                                 # Evaluate Wick SR OIB Confluence
                                 is_confluence_valid = True
