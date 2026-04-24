@@ -8,7 +8,7 @@ from app.core.config import settings
 from app.api.v1.api import api_router
 from app.services.websocket_manager import manager
 from app.utils import RedisLogHandler
-import ccxt.async_support as ccxt
+import ccxt.pro as ccxtpro
 from datetime import datetime
 from app.core.redis import redis_manager # ✅ Import RedisManager
 from app.services.liquidation_service import liquidation_service # ✅ Import Liquidation Service
@@ -208,10 +208,23 @@ async def fetch_market_data_background():
     print("🚀 Background Market Data Task Started")
     
     try:
-        local_exchange_client = ccxt.binance({'enableRateLimit': True, 'options': {'adjustForTimeDifference': True},})
+        local_exchange_client = ccxtpro.binance({'enableRateLimit': True, 'options': {'adjustForTimeDifference': True},})
         await local_exchange_client.load_markets()
     except Exception as e:
         print(f"⚠️ Failed to initialize exchange client: {e}")
+
+    # WebSocket Background Updater for Tickers
+    async def _keep_tickers_updated():
+        while True:
+            try:
+                if local_exchange_client:
+                    await local_exchange_client.watch_tickers()
+                else:
+                    await asyncio.sleep(5)
+            except Exception:
+                await asyncio.sleep(5)
+
+    asyncio.create_task(_keep_tickers_updated())
 
     # Rate limiting control
     last_depth_update = {}
@@ -227,7 +240,7 @@ async def fetch_market_data_background():
             # Ensure we have a client
             if not local_exchange_client:
                  try:
-                    local_exchange_client = ccxt.binance({'enableRateLimit': True, 'options': {'adjustForTimeDifference': True},})
+                    local_exchange_client = ccxtpro.binance({'enableRateLimit': True, 'options': {'adjustForTimeDifference': True},})
                     await local_exchange_client.load_markets()
                  except Exception as e:
                     print(f"⚠️ Re-init client failed: {e}")
@@ -258,7 +271,10 @@ async def fetch_market_data_background():
                                 break
                     
                     try:
-                        ticker = await local_exchange_client.fetch_ticker(target_symbol)
+                        # Use websocket cache instead of REST
+                        ticker = local_exchange_client.tickers.get(target_symbol)
+                        if not ticker:
+                            continue
                         
                         def safe_float(val):
                             try: return float(val) if val is not None else 0.0
@@ -313,8 +329,11 @@ async def fetch_market_data_background():
             now = asyncio.get_event_loop().time()
             if now - last_overview_update > 5:
                 try:
-                    # Fetch ALL tickers
-                    all_tickers = await local_exchange_client.fetch_tickers()
+                    # Use WebSocket cached tickers instead of REST
+                    all_tickers = local_exchange_client.tickers
+                    if not all_tickers:
+                        await asyncio.sleep(1)
+                        continue
                     
                     # Process: Filter USDT pairs, Sort by Volume, Pick Top 50
                     processed_tickers = []
