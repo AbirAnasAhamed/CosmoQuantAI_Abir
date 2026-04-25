@@ -489,17 +489,84 @@ class WallHunterBot:
             updates.append(f"Liq Target Side: {getattr(self, 'liq_target_side', 'auto')} -> {new_config['liq_target_side']}")
             self.liq_target_side = new_config.get("liq_target_side").lower()
             
+        if "enable_oib_filter" in new_config and new_config["enable_oib_filter"] != getattr(self, "enable_oib_filter", False):
+            status = "ON" if new_config["enable_oib_filter"] else "OFF"
+            updates.append(f"OIB Filter: {status}")
+            self.enable_oib_filter = new_config.get("enable_oib_filter")
+            
+        if "min_oib_threshold" in new_config and new_config["min_oib_threshold"] != getattr(self, "min_oib_threshold", 0.4):
+            if new_config.get("enable_oib_filter", getattr(self, "enable_oib_filter", False)):
+                updates.append(f"Min OIB Threshold: {getattr(self, 'min_oib_threshold', 0.4)} -> {new_config['min_oib_threshold']}")
+            self.min_oib_threshold = new_config.get("min_oib_threshold")
+            
+        if "enable_dynamic_atr_scalp" in new_config and new_config["enable_dynamic_atr_scalp"] != getattr(self, "enable_dynamic_atr_scalp", False):
+            status = "ON" if new_config["enable_dynamic_atr_scalp"] else "OFF"
+            updates.append(f"Dynamic ATR Scalp: {status}")
+            self.enable_dynamic_atr_scalp = new_config.get("enable_dynamic_atr_scalp")
+            
+        if "micro_scalp_atr_multiplier" in new_config and new_config["micro_scalp_atr_multiplier"] != getattr(self, "micro_scalp_atr_multiplier", 0.5):
+            if new_config.get("enable_dynamic_atr_scalp", getattr(self, "enable_dynamic_atr_scalp", False)):
+                updates.append(f"Scalp ATR Multiplier: {getattr(self, 'micro_scalp_atr_multiplier', 0.5)} -> {new_config['micro_scalp_atr_multiplier']}")
+            self.micro_scalp_atr_multiplier = new_config.get("micro_scalp_atr_multiplier")
+
+        if "enable_liq_cascade" in new_config and new_config["enable_liq_cascade"] != getattr(self, "enable_liq_cascade", False):
+            status = "ON" if new_config["enable_liq_cascade"] else "OFF"
+            updates.append(f"Liq Cascade: {status}")
+            self.enable_liq_cascade = new_config.get("enable_liq_cascade")
+            
+        if "liq_cascade_window" in new_config and new_config["liq_cascade_window"] != getattr(self, "liq_cascade_window", 5):
+            if new_config.get("enable_liq_cascade", getattr(self, "enable_liq_cascade", False)):
+                updates.append(f"Liq Cascade Window: {getattr(self, 'liq_cascade_window', 5)}s -> {new_config['liq_cascade_window']}s")
+            self.liq_cascade_window = new_config.get("liq_cascade_window")
+            
+        if "enable_dynamic_liq" in new_config and new_config["enable_dynamic_liq"] != getattr(self, "enable_dynamic_liq", False):
+            status = "ON" if new_config["enable_dynamic_liq"] else "OFF"
+            updates.append(f"Dynamic Liq: {status}")
+            self.enable_dynamic_liq = new_config.get("enable_dynamic_liq")
+            
+        if "dynamic_liq_multiplier" in new_config and new_config["dynamic_liq_multiplier"] != getattr(self, "dynamic_liq_multiplier", 1.0):
+            if new_config.get("enable_dynamic_liq", getattr(self, "enable_dynamic_liq", False)):
+                updates.append(f"Dynamic Liq Multiplier: {getattr(self, 'dynamic_liq_multiplier', 1.0)}x -> {new_config['dynamic_liq_multiplier']}x")
+            self.dynamic_liq_multiplier = new_config.get("dynamic_liq_multiplier")
+            
+        if "enable_ob_imbalance" in new_config and new_config["enable_ob_imbalance"] != getattr(self, "enable_ob_imbalance", False):
+            status = "ON" if new_config["enable_ob_imbalance"] else "OFF"
+            updates.append(f"OB Imbalance Filter: {status}")
+            self.enable_ob_imbalance = new_config.get("enable_ob_imbalance")
+            
+        if "ob_imbalance_ratio" in new_config and new_config["ob_imbalance_ratio"] != getattr(self, "ob_imbalance_ratio", 1.5):
+            if new_config.get("enable_ob_imbalance", getattr(self, "enable_ob_imbalance", False)):
+                updates.append(f"OB Imbalance Ratio: {getattr(self, 'ob_imbalance_ratio', 1.5)} -> {new_config['ob_imbalance_ratio']}")
+            self.ob_imbalance_ratio = new_config.get("ob_imbalance_ratio")
+
+        if "enable_proxy_wall" in new_config and new_config["enable_proxy_wall"] != getattr(self, "enable_proxy_wall", False):
+            status = "ON" if new_config["enable_proxy_wall"] else "OFF"
+            updates.append(f"Proxy Orderbook: {status}")
+            self.enable_proxy_wall = new_config.get("enable_proxy_wall")
+            
+        if "proxy_exchange" in new_config and new_config["proxy_exchange"] != getattr(self, "proxy_exchange", "binance"):
+            if new_config.get("enable_proxy_wall", getattr(self, "enable_proxy_wall", False)):
+                updates.append(f"Proxy Exchange: {getattr(self, 'proxy_exchange', 'binance')} -> {new_config['proxy_exchange']}")
+            self.proxy_exchange = new_config.get("proxy_exchange")
+            
+        if "proxy_symbol" in new_config and new_config["proxy_symbol"] != getattr(self, "proxy_symbol", ""):
+            if new_config.get("enable_proxy_wall", getattr(self, "enable_proxy_wall", False)):
+                updates.append(f"Proxy Symbol: {getattr(self, 'proxy_symbol', '')} -> {new_config['proxy_symbol']}")
+            self.proxy_symbol = new_config.get("proxy_symbol")
+            
         if "enable_micro_scalp" in new_config and new_config["enable_micro_scalp"] != self.enable_micro_scalp:
             status = "ON" if new_config["enable_micro_scalp"] else "OFF"
             updates.append(f"Micro-Scalp: {status}")
             self.enable_micro_scalp = new_config.get("enable_micro_scalp")
             
         if "micro_scalp_profit_ticks" in new_config and new_config["micro_scalp_profit_ticks"] != self.micro_scalp_profit_ticks:
-            updates.append(f"Micro-Scalp Ticks: {self.micro_scalp_profit_ticks} -> {new_config['micro_scalp_profit_ticks']}")
+            if new_config.get("enable_micro_scalp", getattr(self, "enable_micro_scalp", False)):
+                updates.append(f"Micro-Scalp Ticks: {self.micro_scalp_profit_ticks} -> {new_config['micro_scalp_profit_ticks']}")
             self.micro_scalp_profit_ticks = new_config.get("micro_scalp_profit_ticks")
             
         if "micro_scalp_min_wall" in new_config and new_config["micro_scalp_min_wall"] != self.micro_scalp_min_wall:
-            updates.append(f"Micro-Scalp Min Wall: {self.micro_scalp_min_wall} -> {new_config['micro_scalp_min_wall']}")
+            if new_config.get("enable_micro_scalp", getattr(self, "enable_micro_scalp", False)):
+                updates.append(f"Micro-Scalp Min Wall: {self.micro_scalp_min_wall} -> {new_config['micro_scalp_min_wall']}")
             self.micro_scalp_min_wall = new_config.get("micro_scalp_min_wall")
             
         if "follow_btc_liq" in new_config and new_config["follow_btc_liq"] != self.follow_btc_liq:
@@ -508,7 +575,8 @@ class WallHunterBot:
             self.follow_btc_liq = new_config.get("follow_btc_liq")
             
         if "btc_liq_threshold" in new_config and new_config["btc_liq_threshold"] != self.btc_liq_threshold:
-            updates.append(f"BTC Liq Threshold: {self.btc_liq_threshold} -> {new_config['btc_liq_threshold']}")
+            if new_config.get("follow_btc_liq", getattr(self, "follow_btc_liq", False)):
+                updates.append(f"BTC Liq Threshold: {self.btc_liq_threshold} -> {new_config['btc_liq_threshold']}")
             self.btc_liq_threshold = new_config.get("btc_liq_threshold")
 
         if "enable_absorption" in new_config and new_config["enable_absorption"] != self.enable_absorption:
@@ -517,12 +585,14 @@ class WallHunterBot:
             self.enable_absorption = new_config.get("enable_absorption")
 
         if "absorption_threshold" in new_config and new_config["absorption_threshold"] != self.absorption_threshold:
-            updates.append(f"Absorption Threshold: ${self.absorption_threshold} -> ${new_config['absorption_threshold']}")
+            if new_config.get("enable_absorption", getattr(self, "enable_absorption", False)):
+                updates.append(f"Absorption Threshold: ${self.absorption_threshold} -> ${new_config['absorption_threshold']}")
             self.absorption_threshold = new_config.get("absorption_threshold")
             self.absorption_tracker.update_params(threshold=self.absorption_threshold)
 
         if "absorption_window" in new_config and new_config["absorption_window"] != self.absorption_window:
-            updates.append(f"Absorption Window: {self.absorption_window}s -> {new_config['absorption_window']}s")
+            if new_config.get("enable_absorption", getattr(self, "enable_absorption", False)):
+                updates.append(f"Absorption Window: {self.absorption_window}s -> {new_config['absorption_window']}s")
             self.absorption_window = new_config.get("absorption_window")
             self.absorption_tracker.update_params(window_seconds=self.absorption_window)
 
@@ -532,12 +602,14 @@ class WallHunterBot:
             self.enable_iceberg_trigger = new_config.get("enable_iceberg_trigger")
 
         if "iceberg_time_window_secs" in new_config and new_config["iceberg_time_window_secs"] != self.iceberg_time_window_secs:
-            updates.append(f"Iceberg Window: {self.iceberg_time_window_secs}s -> {new_config['iceberg_time_window_secs']}s")
+            if new_config.get("enable_iceberg_trigger", getattr(self, "enable_iceberg_trigger", False)):
+                updates.append(f"Iceberg Window: {self.iceberg_time_window_secs}s -> {new_config['iceberg_time_window_secs']}s")
             self.iceberg_time_window_secs = new_config.get("iceberg_time_window_secs")
             self.iceberg_tracker.update_params(window_seconds=self.iceberg_time_window_secs)
 
         if "iceberg_min_absorbed_vol" in new_config and new_config["iceberg_min_absorbed_vol"] != self.iceberg_min_absorbed_vol:
-            updates.append(f"Iceberg Min Vol: {self.iceberg_min_absorbed_vol} -> {new_config['iceberg_min_absorbed_vol']}")
+            if new_config.get("enable_iceberg_trigger", getattr(self, "enable_iceberg_trigger", False)):
+                updates.append(f"Iceberg Min Vol: {self.iceberg_min_absorbed_vol} -> {new_config['iceberg_min_absorbed_vol']}")
             self.iceberg_min_absorbed_vol = new_config.get("iceberg_min_absorbed_vol")
             self.iceberg_tracker.update_params(min_absorbed_vol=self.iceberg_min_absorbed_vol)
             
@@ -552,19 +624,22 @@ class WallHunterBot:
                 asyncio.create_task(self.btc_correlation_tracker.stop())
 
         if "btc_correlation_threshold" in new_config and new_config["btc_correlation_threshold"] != self.btc_correlation_threshold:
-            updates.append(f"BTC Corr Threshold: {self.btc_correlation_threshold} -> {new_config['btc_correlation_threshold']}")
+            if new_config.get("enable_btc_correlation", getattr(self, "enable_btc_correlation", False)):
+                updates.append(f"BTC Corr Threshold: {self.btc_correlation_threshold} -> {new_config['btc_correlation_threshold']}")
             self.btc_correlation_threshold = new_config.get("btc_correlation_threshold")
             if self.btc_correlation_tracker:
                 self.btc_correlation_tracker.update_params(threshold=self.btc_correlation_threshold)
 
         if "btc_time_window" in new_config and new_config["btc_time_window"] != self.btc_time_window:
-            updates.append(f"BTC Time Window: {self.btc_time_window}m -> {new_config['btc_time_window']}m")
+            if new_config.get("enable_btc_correlation", getattr(self, "enable_btc_correlation", False)):
+                updates.append(f"BTC Time Window: {self.btc_time_window}m -> {new_config['btc_time_window']}m")
             self.btc_time_window = new_config.get("btc_time_window")
             if self.btc_correlation_tracker:
                 self.btc_correlation_tracker.update_params(window_minutes=self.btc_time_window)
 
         if "btc_min_move_pct" in new_config and new_config["btc_min_move_pct"] != self.btc_min_move_pct:
-            updates.append(f"BTC Min Move %: {self.btc_min_move_pct}% -> {new_config['btc_min_move_pct']}%")
+            if new_config.get("enable_btc_correlation", getattr(self, "enable_btc_correlation", False)):
+                updates.append(f"BTC Min Move %: {self.btc_min_move_pct}% -> {new_config['btc_min_move_pct']}%")
             self.btc_min_move_pct = new_config.get("btc_min_move_pct")
             if self.btc_correlation_tracker:
                 self.btc_correlation_tracker.update_params(min_move_pct=self.btc_min_move_pct)
@@ -585,19 +660,22 @@ class WallHunterBot:
                 self.trend_finder = None
                 
         if "trend_filter_lookback" in new_config and new_config["trend_filter_lookback"] != self.trend_filter_lookback:
-            updates.append(f"Trend Lookback: {self.trend_filter_lookback} -> {new_config['trend_filter_lookback']}")
+            if new_config.get("enable_trend_filter", getattr(self, "enable_trend_filter", False)):
+                updates.append(f"Trend Lookback: {self.trend_filter_lookback} -> {new_config['trend_filter_lookback']}")
             self.trend_filter_lookback = new_config.get("trend_filter_lookback")
             if self.trend_finder:
                 self.trend_finder.update_params(lookback=self.trend_filter_lookback)
                 
         if "trend_filter_threshold" in new_config and new_config["trend_filter_threshold"] != self.trend_filter_threshold:
-            updates.append(f"Trend Threshold: {self.trend_filter_threshold} -> {new_config['trend_filter_threshold']}")
+            if new_config.get("enable_trend_filter", getattr(self, "enable_trend_filter", False)):
+                updates.append(f"Trend Threshold: {self.trend_filter_threshold} -> {new_config['trend_filter_threshold']}")
             self.trend_filter_threshold = new_config.get("trend_filter_threshold")
             if self.trend_finder:
                 self.trend_finder.update_params(threshold=self.trend_filter_threshold)
                 
         if "trend_filter_dev" in new_config and new_config.get("trend_filter_dev") != getattr(self, "trend_filter_dev", 2.0):
-            updates.append(f"Trend Deviation: {getattr(self, 'trend_filter_dev', 2.0)} -> {new_config['trend_filter_dev']}")
+            if new_config.get("enable_trend_filter", getattr(self, "enable_trend_filter", False)):
+                updates.append(f"Trend Deviation: {getattr(self, 'trend_filter_dev', 2.0)} -> {new_config['trend_filter_dev']}")
             self.trend_filter_dev = new_config["trend_filter_dev"]
             if self.trend_finder:
                 self.trend_finder.update_params(dev_threshold=self.trend_filter_dev)
@@ -609,7 +687,8 @@ class WallHunterBot:
                 self.trend_finder.update_params(enable_volume_filter=self.enable_trend_volume)
                 
         if "trend_volume_multiplier" in new_config and new_config.get("trend_volume_multiplier") != getattr(self, "trend_volume_multiplier", 1.5):
-            updates.append(f"Trend Volume Multiplier: {getattr(self, 'trend_volume_multiplier', 1.5)} -> {new_config['trend_volume_multiplier']}")
+            if new_config.get("enable_trend_volume", getattr(self, "enable_trend_volume", False)):
+                updates.append(f"Trend Volume Multiplier: {getattr(self, 'trend_volume_multiplier', 1.5)} -> {new_config['trend_volume_multiplier']}")
             self.trend_volume_multiplier = new_config["trend_volume_multiplier"]
             if self.trend_finder:
                 self.trend_finder.update_params(volume_multiplier=self.trend_volume_multiplier)
