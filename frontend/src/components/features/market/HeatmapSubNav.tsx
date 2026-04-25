@@ -26,9 +26,8 @@ export const HeatmapSubNav: React.FC<HeatmapSubNavProps> = ({
     onAdvancedMetricsChange
 }) => {
     return (
-        <div className="flex bg-white dark:bg-[#0B1120] border-b border-gray-200 dark:border-white/10 px-4 py-2 items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-                <div className="flex space-x-1 bg-gray-100 dark:bg-black/30 p-1 rounded-lg">
+        <div className="flex bg-white dark:bg-[#0B1120] border-b border-gray-200 dark:border-white/10 px-4 py-2 items-center gap-4">
+            <div className="flex space-x-1 bg-gray-100 dark:bg-black/30 p-1 rounded-lg">
                 <button
                     onClick={() => onChange('heatmap')}
                     className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'heatmap'
@@ -40,18 +39,19 @@ export const HeatmapSubNav: React.FC<HeatmapSubNavProps> = ({
                     <span>Heatmap View</span>
                 </button>
             </div>
-            </div>
 
-            <div className="flex items-center gap-4">
-                <AdvancedMetricsDropdown settings={advancedMetrics} onSettingsChange={onAdvancedMetricsChange} />
-                <div className="w-px h-6 bg-gray-200 dark:bg-white/10"></div>
-                <VolumeFilterControl 
-                    threshold={volumeThreshold} 
-                    onThresholdChange={setVolumeThreshold} 
-                    mode={volumeMode} 
-                    onModeChange={setVolumeMode} 
-                />
-            </div>
+            <div className="w-px h-6 bg-gray-200 dark:bg-white/10"></div>
+
+            <AdvancedMetricsDropdown settings={advancedMetrics} onSettingsChange={onAdvancedMetricsChange} />
+
+            <div className="w-px h-6 bg-gray-200 dark:bg-white/10"></div>
+
+            <VolumeFilterControl 
+                threshold={volumeThreshold} 
+                onThresholdChange={setVolumeThreshold} 
+                mode={volumeMode} 
+                onModeChange={setVolumeMode} 
+            />
         </div>
     );
 };
