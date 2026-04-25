@@ -1450,9 +1450,16 @@ class WallHunterBot:
                 else:
                     session_tag = ""
                 
+                pos_status = ""
+                if self.active_pos:
+                    if self.active_pos.get('entry_order_id'):
+                        pos_status = " | ⏳ Waiting for pending entry order to fill"
+                    else:
+                        pos_status = " | 🛡️ Managing Open Position"
+
                 self.logger.info(
                     f"\U0001f493 [WallHunter {self.bot_id}] active and monitoring Level 2 data on "
-                    f"{self.symbol}{extra_str}{de_status}{wick_sr_status}{session_tag}..."
+                    f"{self.symbol}{extra_str}{de_status}{wick_sr_status}{session_tag}{pos_status}..."
                 )
                 await asyncio.sleep(5)
             except Exception as e:
