@@ -2693,19 +2693,77 @@ class WallHunterFuturesStrategy:
         if "liq_threshold" in new_config:
             updates.append(f"Liq Threshold: {self.liq_threshold} -> {new_config['liq_threshold']}")
             self.liq_threshold = new_config["liq_threshold"]
+            
+        if "enable_oib_filter" in new_config and new_config["enable_oib_filter"] != getattr(self, "enable_oib_filter", False):
+            status = "ON" if new_config["enable_oib_filter"] else "OFF"
+            updates.append(f"OIB Filter: {status}")
+            self.enable_oib_filter = new_config.get("enable_oib_filter")
+            
+        if "min_oib_threshold" in new_config and new_config["min_oib_threshold"] != getattr(self, "min_oib_threshold", 0.4):
+            if new_config.get("enable_oib_filter", getattr(self, "enable_oib_filter", False)):
+                updates.append(f"Min OIB Threshold: {getattr(self, 'min_oib_threshold', 0.4)} -> {new_config['min_oib_threshold']}")
+            self.min_oib_threshold = new_config.get("min_oib_threshold")
+            
+        if "enable_dynamic_atr_scalp" in new_config and new_config["enable_dynamic_atr_scalp"] != getattr(self, "enable_dynamic_atr_scalp", False):
+            status = "ON" if new_config["enable_dynamic_atr_scalp"] else "OFF"
+            updates.append(f"Dynamic ATR Scalp: {status}")
+            self.enable_dynamic_atr_scalp = new_config.get("enable_dynamic_atr_scalp")
+            
+        if "micro_scalp_atr_multiplier" in new_config and new_config["micro_scalp_atr_multiplier"] != getattr(self, "micro_scalp_atr_multiplier", 0.5):
+            if new_config.get("enable_dynamic_atr_scalp", getattr(self, "enable_dynamic_atr_scalp", False)):
+                updates.append(f"Scalp ATR Multiplier: {getattr(self, 'micro_scalp_atr_multiplier', 0.5)} -> {new_config['micro_scalp_atr_multiplier']}")
+            self.micro_scalp_atr_multiplier = new_config.get("micro_scalp_atr_multiplier")
+
+        if "enable_liq_cascade" in new_config and new_config["enable_liq_cascade"] != getattr(self, "enable_liq_cascade", False):
+            status = "ON" if new_config["enable_liq_cascade"] else "OFF"
+            updates.append(f"Liq Cascade: {status}")
+            self.enable_liq_cascade = new_config.get("enable_liq_cascade")
+            
+        if "liq_cascade_window" in new_config and new_config["liq_cascade_window"] != getattr(self, "liq_cascade_window", 5):
+            if new_config.get("enable_liq_cascade", getattr(self, "enable_liq_cascade", False)):
+                updates.append(f"Liq Cascade Window: {getattr(self, 'liq_cascade_window', 5)}s -> {new_config['liq_cascade_window']}s")
+            self.liq_cascade_window = new_config.get("liq_cascade_window")
+            
+        if "enable_dynamic_liq" in new_config and new_config["enable_dynamic_liq"] != getattr(self, "enable_dynamic_liq", False):
+            status = "ON" if new_config["enable_dynamic_liq"] else "OFF"
+            updates.append(f"Dynamic Liq: {status}")
+            self.enable_dynamic_liq = new_config.get("enable_dynamic_liq")
+            
+        if "dynamic_liq_multiplier" in new_config and new_config["dynamic_liq_multiplier"] != getattr(self, "dynamic_liq_multiplier", 1.0):
+            if new_config.get("enable_dynamic_liq", getattr(self, "enable_dynamic_liq", False)):
+                updates.append(f"Dynamic Liq Multiplier: {getattr(self, 'dynamic_liq_multiplier', 1.0)}x -> {new_config['dynamic_liq_multiplier']}x")
+            self.dynamic_liq_multiplier = new_config.get("dynamic_liq_multiplier")
+
+        if "enable_proxy_wall" in new_config and new_config["enable_proxy_wall"] != getattr(self, "enable_proxy_wall", False):
+            status = "ON" if new_config["enable_proxy_wall"] else "OFF"
+            updates.append(f"Proxy Orderbook: {status}")
+            self.enable_proxy_wall = new_config.get("enable_proxy_wall")
+            
+        if "proxy_exchange" in new_config and new_config["proxy_exchange"] != getattr(self, "proxy_exchange", "binance"):
+            if new_config.get("enable_proxy_wall", getattr(self, "enable_proxy_wall", False)):
+                updates.append(f"Proxy Exchange: {getattr(self, 'proxy_exchange', 'binance')} -> {new_config['proxy_exchange']}")
+            self.proxy_exchange = new_config.get("proxy_exchange")
+            
+        if "proxy_symbol" in new_config and new_config["proxy_symbol"] != getattr(self, "proxy_symbol", ""):
+            if new_config.get("enable_proxy_wall", getattr(self, "enable_proxy_wall", False)):
+                updates.append(f"Proxy Symbol: {getattr(self, 'proxy_symbol', '')} -> {new_config['proxy_symbol']}")
+            self.proxy_symbol = new_config.get("proxy_symbol")
 
         if "btc_correlation_threshold" in new_config:
-            updates.append(f"BTC Corr Threshold: {self.btc_correlation_threshold} -> {new_config['btc_correlation_threshold']}")
+            if new_config.get("enable_btc_correlation", getattr(self, "enable_btc_correlation", False)):
+                updates.append(f"BTC Corr Threshold: {self.btc_correlation_threshold} -> {new_config['btc_correlation_threshold']}")
             self.btc_correlation_threshold = new_config.get("btc_correlation_threshold")
             if self.btc_correlation_tracker: self.btc_correlation_tracker.update_params(threshold=self.btc_correlation_threshold)
 
         if "btc_time_window" in new_config:
-            updates.append(f"BTC Time Window: {self.btc_time_window}m -> {new_config['btc_time_window']}m")
+            if new_config.get("enable_btc_correlation", getattr(self, "enable_btc_correlation", False)):
+                updates.append(f"BTC Time Window: {self.btc_time_window}m -> {new_config['btc_time_window']}m")
             self.btc_time_window = new_config.get("btc_time_window")
             if self.btc_correlation_tracker: self.btc_correlation_tracker.update_params(window_minutes=self.btc_time_window)
 
         if "btc_min_move_pct" in new_config:
-            updates.append(f"BTC Min Move %: {self.btc_min_move_pct}% -> {new_config['btc_min_move_pct']}%")
+            if new_config.get("enable_btc_correlation", getattr(self, "enable_btc_correlation", False)):
+                updates.append(f"BTC Min Move %: {self.btc_min_move_pct}% -> {new_config['btc_min_move_pct']}%")
             self.btc_min_move_pct = new_config.get("btc_min_move_pct")
             if self.btc_correlation_tracker: self.btc_correlation_tracker.update_params(min_move_pct=self.btc_min_move_pct)
         
