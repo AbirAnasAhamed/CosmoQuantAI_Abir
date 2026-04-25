@@ -44,6 +44,14 @@ import { ManualTradeModal } from '../../components/features/market/ManualTradeMo
 import { FloatingTVChartButton } from '../../components/features/market/FloatingTVChartButton';
 import { DualEngineDashboard } from '../../components/features/market/DualEngineDashboard';
 import { WatchlistScanner } from '../../components/features/market/WatchlistScanner';
+import { DeltaProfileRenderer } from '../../components/features/market/AdvancedMetrics/DeltaProfileRenderer';
+import { FootprintImbalanceRenderer } from '../../components/features/market/AdvancedMetrics/FootprintImbalanceRenderer';
+import { TradeBubbleChartRenderer } from '../../components/features/market/AdvancedMetrics/TradeBubbleChartRenderer';
+import { SpoofingDetectionRenderer } from '../../components/features/market/AdvancedMetrics/SpoofingDetectionRenderer';
+import { AnchoredVWAPRenderer } from '../../components/features/market/AdvancedMetrics/AnchoredVWAPRenderer';
+import { OIBOscillatorRenderer } from '../../components/features/market/AdvancedMetrics/OIBOscillatorRenderer';
+import { TPOProfileRenderer } from '../../components/features/market/AdvancedMetrics/TPOProfileRenderer';
+import { DeltaDivergenceRenderer } from '../../components/features/market/AdvancedMetrics/DeltaDivergenceRenderer';
 import { botService } from '../../services/botService';
 import { useWallHunterStatus } from '@/hooks/useWallHunterStatus';
 import { toast } from 'react-hot-toast';
@@ -51,7 +59,8 @@ import { useMarketStore } from '@/store/marketStore';
 import { useBotStore } from '@/store/botStore';
 import { useUIStore } from '@/store/uiStore';
 import { useOpenOrders, OpenLimitOrder } from '../../hooks/useOpenOrders';
-
+import { useAdvancedMetricsSettings, AdvancedMetricsSettings } from '../../hooks/useAdvancedMetricsSettings';
+import { useAdvancedMetrics } from '../../hooks/useAdvancedMetrics';
 
 // Helper to convert interval string to ms
 const parseIntervalToMs = (interval: string): number => {
@@ -68,7 +77,7 @@ const parseIntervalToMs = (interval: string): number => {
 };
 
 // Chart Component
-const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: string; walls: { price: number, type: 'buy' | 'sell', size?: number }[]; currentPrice: number; showFootprint: boolean; showCVD: boolean; indicatorSettings: IndicatorSettings; tradeEvent: any; botStatus: any; openOrders: OpenLimitOrder[] }> = ({ exchange, symbol, interval, walls, currentPrice, showFootprint, showCVD, indicatorSettings, tradeEvent, botStatus, openOrders }) => {
+const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: string; walls: { price: number, type: 'buy' | 'sell', size?: number }[]; currentPrice: number; showFootprint: boolean; showCVD: boolean; indicatorSettings: IndicatorSettings; tradeEvent: any; botStatus: any; openOrders: OpenLimitOrder[]; advancedMetrics: AdvancedMetricsSettings; advancedMetricsData: any }> = ({ exchange, symbol, interval, walls, currentPrice, showFootprint, showCVD, indicatorSettings, tradeEvent, botStatus, openOrders, advancedMetrics, advancedMetricsData }) => {
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<any>(null);
     const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
@@ -1462,6 +1471,16 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
                     <GodModeHUD data={godModeData} visible={indicatorSettings.showLiquidationHeatmap} />
                     <DualEngineDashboard settings={indicatorSettings} candles={allCandlesRef.current} currentPrice={currentPrice} />
                     <WatchlistScanner settings={indicatorSettings} exchange={exchange} interval={interval} />
+                    {/* ── Advanced Metrics ── */}
+                    <DeltaProfileRenderer chart={chartRef.current} series={candlestickSeriesRef.current} visible={advancedMetrics.showDeltaProfile} data={advancedMetricsData?.deltaProfile} />
+                    <FootprintImbalanceRenderer chart={chartRef.current} series={candlestickSeriesRef.current} visible={advancedMetrics.showFootprintImbalance} data={advancedMetricsData?.footprintData} />
+                    <TradeBubbleChartRenderer chart={chartRef.current} series={candlestickSeriesRef.current} visible={advancedMetrics.showTradeBubbles} data={advancedMetricsData?.tradeBubbles} />
+                    <SpoofingDetectionRenderer chart={chartRef.current} series={candlestickSeriesRef.current} visible={advancedMetrics.showSpoofingDetection} data={advancedMetricsData?.spoofingData} />
+                    <AnchoredVWAPRenderer chart={chartRef.current} series={candlestickSeriesRef.current} visible={advancedMetrics.showAnchoredVWAP} data={advancedMetricsData?.vwapData} />
+                    <OIBOscillatorRenderer chart={chartRef.current} series={candlestickSeriesRef.current} visible={advancedMetrics.showOIBOscillator} data={advancedMetricsData?.oibData} />
+                    <TPOProfileRenderer chart={chartRef.current} series={candlestickSeriesRef.current} visible={advancedMetrics.showTPOProfile} data={advancedMetricsData?.tpoData} />
+                    <DeltaDivergenceRenderer chart={chartRef.current} series={candlestickSeriesRef.current} visible={advancedMetrics.showDeltaDivergence} data={advancedMetricsData?.divergenceData} />
+
                     <LiquidityHeatmapRenderer chart={chartRef.current} series={candlestickSeriesRef.current} data={realHeatmapData} />
                     <FibonacciCloudRenderer chart={chartRef.current} series={candlestickSeriesRef.current} data={fiboData} />
                     <BollingerBandsRenderer chart={chartRef.current} series={candlestickSeriesRef.current} data={bbData} visible={indicatorSettings.showBB} />
@@ -2171,6 +2190,8 @@ const OrderFlowHeatmap: React.FC = () => {
     const { globalExchange: exchange, setGlobalExchange: setExchange, globalSymbol: symbol, setGlobalSymbol: setSymbol, globalInterval: interval, setGlobalInterval: setInterval } = useMarketStore();
     const { activeWallHunterId, setActiveWallHunterId, indicatorSettings, setIndicatorSettings } = useBotStore();
     const { orderFlowActiveTab: activeTab, setOrderFlowActiveTab: setActiveTab, orderFlowShowFootprint: showFootprint, setOrderFlowShowFootprint: setShowFootprint } = useUIStore();
+    const { settings: advancedMetrics, updateSettings: onAdvancedMetricsChange } = useAdvancedMetricsSettings();
+    const advancedMetricsData = useAdvancedMetrics(symbol, exchange, interval);
     
     const [isWallHunterOpen, setIsWallHunterOpen] = useState(false);
     const [isEmergencySelling, setIsEmergencySelling] = useState(false); // NEW STATE
@@ -2289,6 +2310,8 @@ const OrderFlowHeatmap: React.FC = () => {
                 setVolumeThreshold={setVolumeThreshold}
                 volumeMode={volumeMode}
                 setVolumeMode={setVolumeMode}
+                advancedMetrics={advancedMetrics}
+                onAdvancedMetricsChange={onAdvancedMetricsChange}
             />
 
             <div className={isFullscreen ? 'fixed inset-0 z-[200] bg-gray-50 dark:bg-[#050B14] p-4' : 'flex-1 p-4 overflow-hidden relative bg-gray-50 dark:bg-[#050B14]'}>
@@ -2309,7 +2332,7 @@ const OrderFlowHeatmap: React.FC = () => {
                             </button>
                         </div>
                         <div className="flex-1 relative">
-                            <OrderFlowChart exchange={exchange} symbol={symbol} interval={interval} walls={filteredWalls} currentPrice={currentPrice} showFootprint={showFootprint} showCVD={showCVD} indicatorSettings={indicatorSettings} tradeEvent={tradeEvent} botStatus={botStatus} openOrders={openOrders} />
+                            <OrderFlowChart exchange={exchange} symbol={symbol} interval={interval} walls={filteredWalls} currentPrice={currentPrice} showFootprint={showFootprint} showCVD={showCVD} indicatorSettings={indicatorSettings} tradeEvent={tradeEvent} botStatus={botStatus} openOrders={openOrders} advancedMetrics={advancedMetrics} advancedMetricsData={advancedMetricsData} />
                         </div>
                     </div>
                     {!isFullscreen && (

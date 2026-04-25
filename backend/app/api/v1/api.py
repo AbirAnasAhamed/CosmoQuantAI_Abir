@@ -61,3 +61,6 @@ api_router.include_router(analyst.router, prefix="/analyst", tags=["analyst"])
 
 from app.api.v1.endpoints import advanced_liquidation
 api_router.include_router(advanced_liquidation.router, prefix="/advanced_liquidation", tags=["advanced-liquidation"])
+
+from app.api.v1.endpoints import advanced_metrics
+api_router.include_router(advanced_metrics.router, prefix="/advanced-metrics", tags=["advanced-metrics"])
