@@ -51,7 +51,7 @@ class MarketDepthService:
                 }
                 
                 if cache_id == 'binance_futures':
-                    options['options'] = {'defaultType': 'future'}
+                    options['options'] = {'defaultType': 'swap'}  # 'swap' = USDⓈ-M (fapi.binance.com); 'future' = COIN-M (dapi.binance.com)
                     
                 exchange = exchange_class(options)
                 try:
