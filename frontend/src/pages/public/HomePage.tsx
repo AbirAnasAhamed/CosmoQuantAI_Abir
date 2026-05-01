@@ -33,9 +33,9 @@ const useScrollAnimation = (threshold = 0.1) => {
 };
 
 // ============================
-// Futuristic Animated Background
+// Cosmic Star Background (Warp Speed / Back Window View)
 // ============================
-const CyberBackground: React.FC = () => {
+const CosmicStarBackground: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
@@ -45,126 +45,114 @@ const CyberBackground: React.FC = () => {
         if (!ctx) return;
 
         let animId: number;
-        let particles: any[] = [];
-        const mouse = { x: -9999, y: -9999 };
+        const maxZ = 3000;
+        // Extreme amount of stars for a "trillions of stars" effect
+        const starCount = Math.min(8000, window.innerWidth * 5);
+        let stars: Star[] = [];
 
         const resize = () => {
             canvas.width = window.innerWidth;
             canvas.height = canvas.parentElement?.clientHeight || window.innerHeight;
         };
 
-        class Particle {
-            x: number; y: number; vx: number; vy: number; size: number; color: string; alpha: number;
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.vx = (Math.random() - 0.5) * 0.4;
-                this.vy = (Math.random() - 0.5) * 0.4;
-                this.size = Math.random() * 1.5 + 0.5;
-                const colors = ['rgba(6,182,212,', 'rgba(139,92,246,', 'rgba(59,130,246,', 'rgba(236,72,153,'];
+        class Star {
+            x: number; y: number; z: number; pz: number; color: string; sizeMultiplier: number;
+            constructor(spawnAnywhere: boolean = false) {
+                const angle = Math.random() * Math.PI * 2;
+                // Distribute distances to fill the view, concentrated more in center and edges randomly
+                const distance = Math.pow(Math.random(), 0.8) * (maxZ / 1.2) + 5;
+                this.x = Math.cos(angle) * distance;
+                this.y = Math.sin(angle) * distance;
+                this.z = spawnAnywhere ? Math.random() * maxZ : 10;
+                this.pz = this.z;
+                
+                // Trillions of stars effect: most stars are tiny dots, a few are larger
+                this.sizeMultiplier = Math.random() < 0.9 ? (Math.random() * 0.4 + 0.1) : (Math.random() * 1.2 + 0.6);
+
+                // Colors: mostly cyan, violet, and white for cosmic theme
+                const colors = ['#ffffff', '#e2e8f0', '#a5f3fc', '#67e8f9', '#8b5cf6', '#d946ef'];
                 this.color = colors[Math.floor(Math.random() * colors.length)];
-                this.alpha = Math.random() * 0.6 + 0.2;
             }
-            update() {
-                this.x += this.vx; this.y += this.vy;
-                if (this.x > canvas.width) this.x = 0;
-                if (this.x < 0) this.x = canvas.width;
-                if (this.y > canvas.height) this.y = 0;
-                if (this.y < 0) this.y = canvas.height;
-                // Mouse repulsion
-                const dx = this.x - mouse.x, dy = this.y - mouse.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < 100) {
-                    this.x += (dx / dist) * 1.5;
-                    this.y += (dy / dist) * 1.5;
+            update(speed: number) {
+                this.pz = this.z;
+                this.z += speed;
+                if (this.z > maxZ) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const distance = Math.pow(Math.random(), 0.8) * (maxZ / 1.2) + 5;
+                    this.x = Math.cos(angle) * distance;
+                    this.y = Math.sin(angle) * distance;
+                    this.z = 10;
+                    this.pz = 10;
                 }
             }
             draw() {
+                const fov = canvas.width * 0.8; // Field of view adjustment
+                const cx = canvas.width / 2;
+                const cy = canvas.height / 2;
+
+                const sx = (this.x / this.z) * fov + cx;
+                const sy = (this.y / this.z) * fov + cy;
+
+                const px = (this.x / this.pz) * fov + cx;
+                const py = (this.y / this.pz) * fov + cy;
+
+                // If the star's trail is entirely off screen, skip drawing to save performance
+                if (
+                    (sx < 0 || sx > canvas.width || sy < 0 || sy > canvas.height) &&
+                    (px < 0 || px > canvas.width || py < 0 || py > canvas.height)
+                ) {
+                    return;
+                }
+
+                // Opacity fades as it gets closer to maxZ (further away in the back window)
+                const opacity = Math.min(1, Math.max(0, (1 - (this.z / maxZ)) * (this.sizeMultiplier + 0.5)));
+                // Size shrinks as it goes further away
+                const size = Math.max(0.1, (1 - this.z / maxZ) * 2 * this.sizeMultiplier);
+
                 ctx!.beginPath();
-                ctx!.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx!.fillStyle = `${this.color}${this.alpha})`;
-                ctx!.fill();
-                // Glow
-                ctx!.shadowBlur = 8;
-                ctx!.shadowColor = `${this.color}0.8)`;
-                ctx!.fill();
-                ctx!.shadowBlur = 0;
+                ctx!.lineWidth = size;
+                ctx!.strokeStyle = this.color;
+                ctx!.globalAlpha = opacity;
+                ctx!.moveTo(px, py);
+                ctx!.lineTo(sx, sy);
+                ctx!.stroke();
+                ctx!.globalAlpha = 1;
             }
         }
 
         const init = () => {
-            particles = [];
-            const count = Math.min(120, window.innerWidth / 12);
-            for (let i = 0; i < count; i++) particles.push(new Particle());
-        };
-
-        const drawGrid = () => {
-            ctx!.strokeStyle = 'rgba(6,182,212,0.025)';
-            ctx!.lineWidth = 1;
-            const gridSize = 80;
-            for (let x = 0; x < canvas.width; x += gridSize) {
-                ctx!.beginPath();
-                ctx!.moveTo(x, 0);
-                ctx!.lineTo(x, canvas.height);
-                ctx!.stroke();
-            }
-            for (let y = 0; y < canvas.height; y += gridSize) {
-                ctx!.beginPath();
-                ctx!.moveTo(0, y);
-                ctx!.lineTo(canvas.width, y);
-                ctx!.stroke();
+            stars = [];
+            for (let i = 0; i < starCount; i++) {
+                stars.push(new Star(true));
             }
         };
 
         const animate = () => {
-            ctx!.clearRect(0, 0, canvas.width, canvas.height);
-            drawGrid();
-            particles.forEach(p => { p.update(); p.draw(); });
-            // Connect nearby particles
-            for (let i = 0; i < particles.length; i++) {
-                for (let j = i + 1; j < particles.length; j++) {
-                    const dx = particles[i].x - particles[j].x;
-                    const dy = particles[i].y - particles[j].y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < 100) {
-                        const opacity = (1 - dist / 100) * 0.15;
-                        ctx!.beginPath();
-                        ctx!.strokeStyle = `rgba(6,182,212,${opacity})`;
-                        ctx!.lineWidth = 0.5;
-                        ctx!.moveTo(particles[i].x, particles[i].y);
-                        ctx!.lineTo(particles[j].x, particles[j].y);
-                        ctx!.stroke();
-                    }
-                    // Mouse connections
-                    const mdx = particles[i].x - mouse.x;
-                    const mdy = particles[i].y - mouse.y;
-                    const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
-                    if (mdist < 150) {
-                        const op = (1 - mdist / 150) * 0.4;
-                        ctx!.beginPath();
-                        ctx!.strokeStyle = `rgba(139,92,246,${op})`;
-                        ctx!.lineWidth = 1;
-                        ctx!.moveTo(particles[i].x, particles[i].y);
-                        ctx!.lineTo(mouse.x, mouse.y);
-                        ctx!.stroke();
-                    }
-                }
-            }
-            animId = requestAnimationFrame(animate);
-        };
+            // Dark cosmic background with slight trail clear
+            ctx!.fillStyle = 'rgba(2, 6, 16, 0.3)';
+            ctx!.fillRect(0, 0, canvas.width, canvas.height);
 
-        const onMouseMove = (e: MouseEvent) => {
-            const rect = canvas.getBoundingClientRect();
-            mouse.x = e.clientX - rect.left;
-            mouse.y = e.clientY - rect.top;
+            // Draw a subtle nebula/glow at the vanishing point
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const gradient = ctx!.createRadialGradient(cx, cy, 0, cx, cy, canvas.width / 3);
+            gradient.addColorStop(0, 'rgba(139, 92, 246, 0.08)');
+            gradient.addColorStop(0.5, 'rgba(6, 182, 212, 0.03)');
+            gradient.addColorStop(1, 'rgba(2, 6, 16, 0)');
+            ctx!.fillStyle = gradient;
+            ctx!.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Warp speed (traveling fast)
+            const speed = 2;
+            stars.forEach(s => { s.update(speed); s.draw(); });
+
+            animId = requestAnimationFrame(animate);
         };
 
         resize(); init(); animate();
         window.addEventListener('resize', resize);
-        window.addEventListener('mousemove', onMouseMove);
         return () => {
             window.removeEventListener('resize', resize);
-            window.removeEventListener('mousemove', onMouseMove);
             cancelAnimationFrame(animId);
         };
     }, []);
@@ -386,7 +374,7 @@ const MarketIntelligenceSection: React.FC = () => {
                                 <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-500 ${idx === activeSignal
                                     ? 'bg-cyan-500/10 border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]'
                                     : 'bg-white/3 border-white/5 opacity-50'
-                                }`}>
+                                    }`}>
                                     <span className="font-mono font-bold text-sm text-white">{sig.pair}</span>
                                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${sig.type === 'long' ? 'bg-green-500/15 text-green-400 border border-green-500/20' : 'bg-red-500/15 text-red-400 border border-red-500/20'}`}>{sig.signal}</span>
                                     <span className="text-xs font-mono font-bold text-cyan-400">{sig.conf}%</span>
@@ -884,7 +872,7 @@ const HomePage: React.FC<{ onLogin: () => void; onSignUp: () => void; }> = ({ on
         <div className="overflow-hidden">
             {/* ========== HERO ========== */}
             <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#020610]">
-                <CyberBackground />
+                <CosmicStarBackground />
                 <FloatingOrbs />
 
                 {/* Radial gradient overlay */}
