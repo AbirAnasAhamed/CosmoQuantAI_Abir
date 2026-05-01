@@ -74,7 +74,7 @@ const NavItem: React.FC<{
     >
         {/* Active Background with Gradient */}
         {isActive && (
-            <div className="absolute inset-0 bg-gradient-to-r from-brand-primary to-indigo-600 opacity-100 transition-opacity duration-300"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-500 opacity-100 transition-opacity duration-300"></div>
         )}
 
         {/* Hover Background (Subtle) */}
@@ -84,7 +84,7 @@ const NavItem: React.FC<{
 
         {/* Icon Container */}
         <span className={`relative z-10 w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-lg transition-colors duration-300 
-            ${isActive ? 'bg-white/20 text-white' : 'bg-transparent text-slate-400 group-hover:text-brand-primary group-hover:bg-brand-primary/10'}`}>
+            ${isActive ? 'bg-white/20 text-white' : 'bg-transparent text-slate-400 group-hover:text-red-500 group-hover:bg-red-500/10'}`}>
             {icon}
         </span>
 
