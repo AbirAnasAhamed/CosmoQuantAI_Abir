@@ -46,8 +46,8 @@ const CosmicStarBackground: React.FC = () => {
 
         let animId: number;
         const maxZ = 3000;
-        // Extreme amount of stars for a "trillions of stars" effect (3x increased)
-        const starCount = Math.min(12000, window.innerWidth * 9);
+        // Extreme amount of stars for a "trillions of stars" effect (Increased to 24000)
+        const starCount = Math.min(24000, window.innerWidth * 18);
         let stars: Star[] = [];
 
         const resize = () => {
