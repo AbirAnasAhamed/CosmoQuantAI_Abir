@@ -35,7 +35,7 @@ const WhaleMovementWidget: React.FC<{ limit?: number }> = ({ limit = 5 }) => {
     }, [limit]);
 
     return (
-        <div className="rounded-2xl bg-white dark:bg-brand-dark border border-brand-border-light dark:border-brand-border-dark p-6 shadow-lg staggered-fade-in">
+        <div className="rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 shadow-lg staggered-fade-in">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                 <span className="text-2xl">🐋</span> Recent Whale Movements
             </h2>
@@ -47,7 +47,7 @@ const WhaleMovementWidget: React.FC<{ limit?: number }> = ({ limit = 5 }) => {
             ) : (
                 <div className="space-y-3">
                     {alerts.map((alert, index) => (
-                        <div key={index} className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-brand-darkest/50 border border-transparent hover:border-brand-primary/30 transition-all">
+                        <div key={index} className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-[#000000]/50 border border-transparent hover:border-brand-primary/30 transition-all">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400 font-bold text-xs">
                                     {alert.exchange.toUpperCase().substring(0, 3)}

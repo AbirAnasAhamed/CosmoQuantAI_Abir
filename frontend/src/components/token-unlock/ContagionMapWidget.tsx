@@ -72,7 +72,7 @@ const ContagionMapWidget: React.FC = () => {
                                 <XAxis dataKey="name" stroke="#6B7280" fontSize={9} tickLine={false} axisLine={false} />
                                 <YAxis stroke="#6B7280" fontSize={9} tickFormatter={v => `$${v}M`} tickLine={false} axisLine={false} />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px', fontSize: '11px' }}
+                                    contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #334155', borderRadius: '8px', fontSize: '11px' }}
                                     formatter={(v: number) => [`$${v.toFixed(0)}M`, 'Unlock']}
                                 />
                                 <Bar dataKey="value" radius={[4, 4, 0, 0]}>

@@ -80,7 +80,7 @@ const AssetSearchControl: React.FC<AssetSearchControlProps> = ({
                         setActivePair(''); // Reset pair when exchange changes
                     }}
                     disabled={loadingExchanges}
-                    className="w-full bg-white dark:bg-brand-dark/50 border border-brand-border-light dark:border-brand-border-dark rounded-md px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-primary outline-none appearance-none cursor-pointer"
+                    className="w-full bg-white dark:bg-[#0A0A0A]/50 border border-brand-border-light dark:border-[#1A1A1A] rounded-md px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-primary outline-none appearance-none cursor-pointer"
                 >
                     <option value="" disabled>Select Exchange</option>
                     {loadingExchanges ? (
@@ -124,7 +124,7 @@ import SearchableSelect from './SearchableSelect';
 const SearchableDropdown: React.FC<any> = ({ options, value, onChange, placeholder, disabled, isLoading }) => {
     if (isLoading) {
         return (
-            <div className="w-full bg-white dark:bg-brand-dark/50 border border-brand-border-light dark:border-brand-border-dark rounded-md px-3 py-2 text-sm text-gray-500">
+            <div className="w-full bg-white dark:bg-[#0A0A0A]/50 border border-brand-border-light dark:border-[#1A1A1A] rounded-md px-3 py-2 text-sm text-gray-500">
                 Loading markets...
             </div>
         )

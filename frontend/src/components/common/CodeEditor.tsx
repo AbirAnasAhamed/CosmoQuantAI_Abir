@@ -56,7 +56,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange }) => {
             <pre
                 ref={preRef}
                 aria-hidden="true"
-                className="absolute inset-0 w-full h-full bg-gray-900 text-gray-200 font-mono text-sm p-4 rounded-md border border-brand-border-dark resize-none overflow-auto pointer-events-none leading-relaxed tracking-wide"
+                className="absolute inset-0 w-full h-full bg-gray-900 text-gray-200 font-mono text-sm p-4 rounded-md border border-[#1A1A1A] resize-none overflow-auto pointer-events-none leading-relaxed tracking-wide"
             >
                 <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
             </pre>

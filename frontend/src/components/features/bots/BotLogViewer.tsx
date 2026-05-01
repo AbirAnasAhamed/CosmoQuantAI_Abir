@@ -146,7 +146,7 @@ const BotLogViewer: React.FC<BotLogViewerProps> = ({ botId, botName, className =
     };
 
     return (
-        <div className={`flex flex-col h-full bg-[#050B14] rounded-xl border border-slate-800 shadow-2xl overflow-hidden relative ${className}`}>
+        <div className={`flex flex-col h-full bg-[#000000] rounded-xl border border-slate-800 shadow-2xl overflow-hidden relative ${className}`}>
 
             {/* Cyberpunk Grid Background */}
             <div className="absolute inset-0 opacity-5 pointer-events-none z-0"
@@ -274,7 +274,7 @@ const BotLogViewer: React.FC<BotLogViewerProps> = ({ botId, botName, className =
             </div>
 
             {/* Status Bar / Footer */}
-            <div className="relative z-10 px-3 py-1.5 border-t border-slate-800 bg-[#050B14] flex justify-between items-center text-[10px] text-slate-600 font-mono uppercase tracking-wider">
+            <div className="relative z-10 px-3 py-1.5 border-t border-slate-800 bg-[#000000] flex justify-between items-center text-[10px] text-slate-600 font-mono uppercase tracking-wider">
                 <span>Mem: OK</span>
                 <div className="flex gap-4">
                     <span>Buffer: {logs.length} entries</span>

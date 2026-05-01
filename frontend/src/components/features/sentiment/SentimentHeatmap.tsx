@@ -127,7 +127,7 @@ export const SentimentHeatmap: React.FC<SentimentHeatmapProps> = ({ heatmapData,
                                     if (active && payload && payload.length) {
                                         const data = payload[0].payload;
                                         return (
-                                            <div className="bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-xl p-4 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-700 min-w-[200px]">
+                                            <div className="bg-white/95 dark:bg-[#0A0A0A]/95 backdrop-blur-xl p-4 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-700 min-w-[200px]">
                                                 <h4 className="text-lg font-black text-slate-800 dark:text-white">{data.name}</h4>
                                                 <p>{data.sentimentScore}</p>
                                             </div>

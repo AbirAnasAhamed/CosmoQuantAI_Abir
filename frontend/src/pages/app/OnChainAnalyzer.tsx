@@ -44,7 +44,7 @@ const SignalGauge: React.FC<{ score: number }> = ({ score }) => {
             {/* Gauge SVG */}
             <svg viewBox="0 0 200 100" className="w-48 h-24 overflow-visible">
                 {/* Track */}
-                <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#1e293b" strokeWidth="12" strokeLinecap="round" />
+                <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#141414" strokeWidth="12" strokeLinecap="round" />
                 {/* Active Arc (Dynamic) */}
                 <path
                     d="M 20 100 A 80 80 0 0 1 180 100"
@@ -71,7 +71,7 @@ const SignalGauge: React.FC<{ score: number }> = ({ score }) => {
 };
 
 const StatBlock: React.FC<{ label: string; value: string; trend?: 'up' | 'down' | 'neutral'; subtext?: string }> = ({ label, value, trend, subtext }) => (
-    <div className="bg-gray-50 dark:bg-brand-darkest/40 border border-gray-200 dark:border-white/5 p-4 rounded-xl flex flex-col justify-center relative overflow-hidden group">
+    <div className="bg-gray-50 dark:bg-[#000000]/40 border border-gray-200 dark:border-white/5 p-4 rounded-xl flex flex-col justify-center relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
             {trend === 'up' ? (
                 <svg className="w-8 h-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
@@ -88,7 +88,7 @@ const StatBlock: React.FC<{ label: string; value: string; trend?: 'up' | 'down' 
 const CustomTooltipContent = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="p-3 bg-[#0B1120]/90 backdrop-blur-md rounded-lg shadow-xl border border-brand-border-dark text-xs">
+            <div className="p-3 bg-[#000000]/90 backdrop-blur-md rounded-lg shadow-xl border border-[#1A1A1A] text-xs">
                 <p className="font-bold text-gray-300 mb-2 border-b border-white/10 pb-1">{new Date(label).toLocaleString()}</p>
                 {payload.map((p: any, i: number) => (
                     <div key={i} className="flex justify-between gap-4 mb-1">
@@ -139,7 +139,7 @@ const OnChainAnalyzer: React.FC = () => {
             {/* Control Deck */}
             <div className="flex flex-col md:flex-row gap-6 staggered-fade-in">
                 {/* Asset Selector */}
-                <Card className="md:w-1/3 !p-0 bg-gradient-to-br from-white to-gray-50 dark:from-[#1E293B] dark:to-[#0F172A] overflow-hidden relative border-brand-primary/20">
+                <Card className="md:w-1/3 !p-0 bg-gradient-to-br from-white to-gray-50 dark:from-[#141414] dark:to-[#0A0A0A] overflow-hidden relative border-brand-primary/20">
                     <div className="absolute top-0 left-0 w-1 h-full bg-brand-primary"></div>
                     <div className="p-6">
                         <div className="flex justify-between items-start mb-4">
@@ -193,7 +193,7 @@ const OnChainAnalyzer: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
 
                 {/* Exchange Netflow Chart */}
-                <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-[#0B1120] border-gray-200 dark:border-brand-border-dark shadow-lg staggered-fade-in" style={{ animationDelay: '100ms' }}>
+                <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-[#000000] border-gray-200 dark:border-[#1A1A1A] shadow-lg staggered-fade-in" style={{ animationDelay: '100ms' }}>
                     <div className="absolute top-0 right-0 p-4 pointer-events-none opacity-20">
                         <svg className="w-24 h-24 text-gray-500" viewBox="0 0 24 24" fill="currentColor"><path d="M16 17v-7h-2v7h-8v2h8v7h2v-7h8v-2zM8 7V0H6v7H0v2h6v7h2V9h8V7z" /></svg>
                     </div>

@@ -72,8 +72,8 @@ const AddFilingModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-backdrop-fade-in" onClick={onClose}>
-            <div className="bg-white dark:bg-brand-dark w-full max-w-2xl rounded-2xl shadow-2xl border border-brand-border-light dark:border-brand-border-dark flex flex-col overflow-hidden animate-modal-content-slide-down" onClick={e => e.stopPropagation()}>
-                <div className="p-6 border-b border-brand-border-light dark:border-brand-border-dark flex justify-between items-center bg-gray-50 dark:bg-brand-darkest/50">
+            <div className="bg-white dark:bg-[#0A0A0A] w-full max-w-2xl rounded-2xl shadow-2xl border border-brand-border-light dark:border-[#1A1A1A] flex flex-col overflow-hidden animate-modal-content-slide-down" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b border-brand-border-light dark:border-[#1A1A1A] flex justify-between items-center bg-gray-50 dark:bg-[#000000]/50">
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <BriefcaseIcon className="text-brand-primary" />
                         Manual Filing Entry
@@ -116,7 +116,7 @@ const AddFilingModal: React.FC<{
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Estimated Value</label>
-                                <div className="w-full bg-gray-100 dark:bg-brand-darkest/50 rounded-xl p-3 text-slate-900 dark:text-white font-mono font-bold border border-transparent focus-within:border-brand-primary">
+                                <div className="w-full bg-gray-100 dark:bg-[#000000]/50 rounded-xl p-3 text-slate-900 dark:text-white font-mono font-bold border border-transparent focus-within:border-brand-primary">
                                     ${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
                             </div>
@@ -274,11 +274,11 @@ const CorporateFilings: React.FC = () => {
                 </Card>
 
                 <div className="flex flex-col gap-3">
-                    <div className="flex-1 bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark rounded-xl p-4 flex items-center justify-between">
+                    <div className="flex-1 bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] rounded-xl p-4 flex items-center justify-between">
                         <span className="text-sm font-bold text-slate-700 dark:text-gray-300">Manual Entry</span>
                         <Button size="sm" onClick={() => setIsModalOpen(true)} className="text-xs h-8">Add Filing</Button>
                     </div>
-                    <div className="flex-1 bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark rounded-xl p-1 flex">
+                    <div className="flex-1 bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] rounded-xl p-1 flex">
                         {(['All', 'Buy', 'Sell'] as const).map(type => (
                             <button
                                 key={type}
@@ -301,7 +301,7 @@ const CorporateFilings: React.FC = () => {
                 {/* Left: Watchlist Sidebar */}
                 <div className="lg:col-span-1 flex flex-col gap-4 min-h-0 staggered-fade-in" style={{ animationDelay: '100ms' }}>
                     <Card className="flex-1 flex flex-col !p-0 overflow-hidden border-0 shadow-lg">
-                        <div className="p-4 border-b border-gray-100 dark:border-brand-border-dark bg-gray-50 dark:bg-brand-darkest/30">
+                        <div className="p-4 border-b border-gray-100 dark:border-[#1A1A1A] bg-gray-50 dark:bg-[#000000]/30">
                             <h3 className="font-bold text-slate-900 dark:text-white text-sm">Monitoring List</h3>
                         </div>
 
@@ -312,7 +312,7 @@ const CorporateFilings: React.FC = () => {
                                     value={newTicker}
                                     onChange={(e) => setNewTicker(e.target.value)}
                                     placeholder="Add Ticker..."
-                                    className="w-full pl-9 pr-3 py-2 bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark rounded-lg text-sm focus:ring-2 focus:ring-brand-primary outline-none"
+                                    className="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] rounded-lg text-sm focus:ring-2 focus:ring-brand-primary outline-none"
                                 />
                                 <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                             </form>
@@ -320,7 +320,7 @@ const CorporateFilings: React.FC = () => {
 
                         <div className="flex-1 overflow-y-auto p-3 space-y-2">
                             {watchlist.map(ticker => (
-                                <div key={ticker} className="group flex justify-between items-center p-3 bg-white dark:bg-brand-dark border border-gray-100 dark:border-brand-border-dark rounded-xl hover:shadow-md transition-all hover:border-brand-primary/30">
+                                <div key={ticker} className="group flex justify-between items-center p-3 bg-white dark:bg-[#0A0A0A] border border-gray-100 dark:border-[#1A1A1A] rounded-xl hover:shadow-md transition-all hover:border-brand-primary/30">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center font-bold text-xs">
                                             {ticker[0]}
@@ -338,8 +338,8 @@ const CorporateFilings: React.FC = () => {
 
                 {/* Right: Filings Terminal */}
                 <div className="lg:col-span-3 flex flex-col min-h-0 staggered-fade-in" style={{ animationDelay: '200ms' }}>
-                    <Card className="flex-1 flex flex-col !p-0 border-0 shadow-xl overflow-hidden bg-white dark:bg-brand-dark">
-                        <div className="grid grid-cols-12 bg-gray-50 dark:bg-brand-darkest/50 border-b border-gray-200 dark:border-brand-border-dark p-3 text-xs font-bold text-gray-500 uppercase tracking-wider sticky top-0 z-20">
+                    <Card className="flex-1 flex flex-col !p-0 border-0 shadow-xl overflow-hidden bg-white dark:bg-[#0A0A0A]">
+                        <div className="grid grid-cols-12 bg-gray-50 dark:bg-[#000000]/50 border-b border-gray-200 dark:border-[#1A1A1A] p-3 text-xs font-bold text-gray-500 uppercase tracking-wider sticky top-0 z-20">
                             <div className="col-span-2">Ticker</div>
                             <div className="col-span-3">Insider</div>
                             <div className="col-span-2 text-center">Type</div>
@@ -358,7 +358,7 @@ const CorporateFilings: React.FC = () => {
                                     return (
                                         <div
                                             key={filing.id}
-                                            className={`relative grid grid-cols-12 items-center p-4 border-b border-gray-100 dark:border-brand-border-dark/50 hover:bg-gray-50 dark:hover:bg-brand-darkest/30 transition-all group overflow-hidden ${filing.isNew ? (isBuy ? 'animate-flash-green' : 'animate-flash-red') : ''}`}
+                                            className={`relative grid grid-cols-12 items-center p-4 border-b border-gray-100 dark:border-[#1A1A1A]/50 hover:bg-gray-50 dark:hover:bg-[#000000]/30 transition-all group overflow-hidden ${filing.isNew ? (isBuy ? 'animate-flash-green' : 'animate-flash-red') : ''}`}
                                         >
                                             {/* Volume Bar Background */}
                                             <div

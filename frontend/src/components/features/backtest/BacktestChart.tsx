@@ -168,7 +168,7 @@ const BacktestChart: React.FC<BacktestChartProps> = ({ data = [], trades = [] })
 
         const chart = createChart(chartContainerRef.current, {
             layout: {
-                background: { type: ColorType.Solid, color: '#1E293B' }, // Slate-800
+                background: { type: ColorType.Solid, color: '#141414' }, // Slate-800
                 textColor: '#94A3B8', // Slate-400
             },
             grid: {
@@ -351,7 +351,7 @@ const BacktestChart: React.FC<BacktestChartProps> = ({ data = [], trades = [] })
             <div className="relative w-full h-[450px]">
                 <div 
                     ref={chartContainerRef} 
-                    className="w-full h-full rounded-b-xl overflow-hidden border border-slate-700 shadow-2xl bg-[#1E293B]" 
+                    className="w-full h-full rounded-b-xl overflow-hidden border border-slate-700 shadow-2xl bg-[#141414]" 
                 />
                 
                 {!formattedData.length && (

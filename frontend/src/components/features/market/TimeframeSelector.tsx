@@ -121,7 +121,7 @@ export const TimeframeSelector: React.FC<TimeframeSelectorProps> = ({ interval, 
                 className={`
                     flex items-center gap-2 px-3 py-2 rounded-xl border transition-all duration-300
                     ${isOpen
-                        ? 'bg-white dark:bg-[#0B1120] border-brand-primary/60 shadow-[0_0_15px_rgba(59,130,246,0.2)] dark:shadow-[0_0_15px_rgba(59,130,246,0.15)]'
+                        ? 'bg-white dark:bg-[#000000] border-brand-primary/60 shadow-[0_0_15px_rgba(59,130,246,0.2)] dark:shadow-[0_0_15px_rgba(59,130,246,0.15)]'
                         : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-brand-primary/40 dark:hover:border-brand-primary/30 hover:bg-gray-50 dark:hover:bg-white/10'
                     }
                 `}

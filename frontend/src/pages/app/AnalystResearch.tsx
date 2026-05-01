@@ -27,7 +27,7 @@ const ConsensusRing: React.FC<{ data: any[], dominantRating: string }> = ({ data
                         ))}
                     </Pie>
                     <Tooltip
-                        contentStyle={theme === 'dark' ? { backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px' } : { borderRadius: '8px' }}
+                        contentStyle={theme === 'dark' ? { backgroundColor: '#0A0A0A', border: '1px solid #334155', borderRadius: '8px' } : { borderRadius: '8px' }}
                         itemStyle={{ color: theme === 'dark' ? '#fff' : '#000' }}
                     />
                 </PieChart>
@@ -88,7 +88,7 @@ const PriceTargetVisualizer: React.FC<{ low: number, avg: number, high: number, 
 
             {/* Average (Diamond) */}
             <div className="absolute top-8 flex flex-col items-center transform -translate-x-1/2 z-10" style={{ left: `${avgPct}%` }}>
-                <div className="w-4 h-4 bg-white dark:bg-brand-dark border-2 border-brand-primary rotate-45 transform translate-y-1.5 shadow-lg"></div>
+                <div className="w-4 h-4 bg-white dark:bg-[#0A0A0A] border-2 border-brand-primary rotate-45 transform translate-y-1.5 shadow-lg"></div>
                 <span className="text-xs font-bold text-brand-primary mt-4">${avg}</span>
                 <span className="text-[10px] text-gray-400">Avg</span>
             </div>
@@ -124,7 +124,7 @@ const RatingCard: React.FC<{ rating: any }> = ({ rating }) => {
     }
 
     return (
-        <div className={`group relative p-4 bg-white dark:bg-brand-dark border-y border-r border-gray-100 dark:border-brand-border-dark rounded-r-xl border-l-4 ${borderColor} shadow-sm hover:shadow-md hover:translate-x-1 transition-all duration-200`}>
+        <div className={`group relative p-4 bg-white dark:bg-[#0A0A0A] border-y border-r border-gray-100 dark:border-[#1A1A1A] rounded-r-xl border-l-4 ${borderColor} shadow-sm hover:shadow-md hover:translate-x-1 transition-all duration-200`}>
             <div className="flex justify-between items-start mb-2">
                 <div>
                     <h4 className="font-bold text-slate-900 dark:text-white">{rating.firm}</h4>
@@ -283,7 +283,7 @@ const AnalystResearch: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-1 gap-4">
                         {reportsData.map(report => (
-                            <a href={report.link} key={report.id} target="_blank" rel="noopener noreferrer" className="group block p-5 bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark rounded-xl hover:shadow-lg transition-all hover:border-brand-primary/50">
+                            <a href={report.link} key={report.id} target="_blank" rel="noopener noreferrer" className="group block p-5 bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] rounded-xl hover:shadow-lg transition-all hover:border-brand-primary/50">
                                 <div className="flex flex-col sm:flex-row justify-between gap-4">
                                     <div>
                                         <div className="flex items-center gap-2 mb-2">

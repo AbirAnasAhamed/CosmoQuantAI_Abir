@@ -902,7 +902,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-            <div className="w-[600px] bg-[#0B1120] border-2 border-yellow-500/30 rounded-[2rem] p-6 shadow-[0_0_50px_rgba(59,130,246,0.2)] max-h-[90vh] flex flex-col">
+            <div className="w-[600px] bg-[#000000] border-2 border-yellow-500/30 rounded-[2rem] p-6 shadow-[0_0_50px_rgba(59,130,246,0.2)] max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center mb-4 flex-shrink-0">
                     <h2 className="text-2xl font-black italic text-white tracking-tighter">SNIPER DEPLOYMENT</h2>
                     <button
@@ -968,16 +968,16 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                     >
                                         {availableExchanges.length > 0 ? (
                                             availableExchanges.map(ex => (
-                                                <option key={ex} className="bg-[#0B1120] text-white" value={ex}>
+                                                <option key={ex} className="bg-[#000000] text-white" value={ex}>
                                                     {ex.charAt(0).toUpperCase() + ex.slice(1)}
                                                 </option>
                                             ))
                                         ) : (
                                             <>
-                                                <option className="bg-[#0B1120] text-white" value="binance">Binance</option>
-                                                <option className="bg-[#0B1120] text-white" value="bybit">Bybit</option>
-                                                <option className="bg-[#0B1120] text-white" value="okx">OKX</option>
-                                                <option className="bg-[#0B1120] text-white" value="mexc">MEXC</option>
+                                                <option className="bg-[#000000] text-white" value="binance">Binance</option>
+                                                <option className="bg-[#000000] text-white" value="bybit">Bybit</option>
+                                                <option className="bg-[#000000] text-white" value="okx">OKX</option>
+                                                <option className="bg-[#000000] text-white" value="mexc">MEXC</option>
                                             </>
                                         )}
                                     </select>
@@ -987,9 +987,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                         {tradingMode === 'spot' && strategyMode === 'short' ? 'Sell Order (Entry)' : 'Sell Order (TP)'}
                                     </label>
                                     <select className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-brand-primary text-sm font-bold" value={form.sellOrderType} onChange={(e) => handleFormChange('sellOrderType', e.target.value)}>
-                                        <option className="bg-[#0B1120] text-white" value="market">Market (Normal)</option>
-                                        <option className="bg-[#0B1120] text-white" value="limit">Limit (Maker)</option>
-                                        <option className="bg-[#0B1120] text-white" value="marketable_limit">Marketable Limit (MEXC)</option>
+                                        <option className="bg-[#000000] text-white" value="market">Market (Normal)</option>
+                                        <option className="bg-[#000000] text-white" value="limit">Limit (Maker)</option>
+                                        <option className="bg-[#000000] text-white" value="marketable_limit">Marketable Limit (MEXC)</option>
                                     </select>
                                 </div>
                             </div>
@@ -1023,9 +1023,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                         value={form.buyOrderType} 
                                         onChange={(e) => handleFormChange('buyOrderType', e.target.value)}
                                     >
-                                        <option className="bg-[#0B1120]" value="market">Market (Normal)</option>
-                                        <option className="bg-[#0B1120]" value="limit">Limit (Maker)</option>
-                                        <option className="bg-[#0B1120]" value="marketable_limit">Marketable Limit (Recommended for MEXC)</option>
+                                        <option className="bg-[#000000]" value="market">Market (Normal)</option>
+                                        <option className="bg-[#000000]" value="limit">Limit (Maker)</option>
+                                        <option className="bg-[#000000]" value="marketable_limit">Marketable Limit (Recommended for MEXC)</option>
                                     </select>
                                 </div>
                                 {(form.buyOrderType === 'marketable_limit' || form.sellOrderType === 'marketable_limit') && (
@@ -1057,9 +1057,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                 <div className="flex flex-col">
                                     <label className="text-[10px] text-gray-500 font-bold uppercase mb-1">Select API Config</label>
                                     <select className="w-full bg-yellow-500/10 border border-yellow-500/20 p-2.5 rounded-xl text-white outline-none text-sm" value={form.apiKeyId} onChange={(e) => setForm({ ...form, apiKeyId: e.target.value })}>
-                                        <option className="bg-[#0B1120] text-white" value="">-- Choose Saved Key --</option>
+                                        <option className="bg-[#000000] text-white" value="">-- Choose Saved Key --</option>
                                         {savedKeys.filter(k => k.exchange === form.exchange).map(k => (
-                                            <option className="bg-[#0B1120] text-white" key={k.id} value={k.id}>{k.name}</option>
+                                            <option className="bg-[#000000] text-white" key={k.id} value={k.id}>{k.name}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -1094,9 +1094,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                     if (val === 'auto') handleFormChange('enableObImbalance', true);
                                                 }}
                                             >
-                                                <option className="bg-[#0B1120]" value="auto">Auto (Heatmap Based)</option>
-                                                <option className="bg-[#0B1120] text-green-400" value="long">Long Only</option>
-                                                <option className="bg-[#0B1120] text-red-400" value="short">Short Only</option>
+                                                <option className="bg-[#000000]" value="auto">Auto (Heatmap Based)</option>
+                                                <option className="bg-[#000000] text-green-400" value="long">Long Only</option>
+                                                <option className="bg-[#000000] text-red-400" value="short">Short Only</option>
                                             </select>
                                         </div>
                                     </div>
@@ -1171,7 +1171,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             )}
 
                             {/* --- ESTIMATED PROFIT ANALYSIS --- */}
-                            <div className="mt-4 bg-[#050B14] p-4 rounded-xl border border-brand-primary/20 shadow-[0_0_15px_rgba(59,130,246,0.05)]">
+                            <div className="mt-4 bg-[#000000] p-4 rounded-xl border border-brand-primary/20 shadow-[0_0_15px_rgba(59,130,246,0.05)]">
                                 <h4 className="text-[10px] font-black uppercase text-gray-500 mb-3 flex items-center gap-2">
                                     <svg className="w-3 h-3 text-brand-primary" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
                                     Estimated Profit Analysis
@@ -1633,7 +1633,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 <div className="col-span-2">
                                                     <label className="text-[10px] font-bold text-fuchsia-400 uppercase mb-1 block">UT Timeframe</label>
                                                     <select 
-                                                        className="w-full bg-[#0B1120] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-fuchsia-500 text-sm font-bold text-center" 
+                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-fuchsia-500 text-sm font-bold text-center" 
                                                         value={form.utBotTimeframe} 
                                                         onChange={(e) => handleFormChange('utBotTimeframe', e.target.value)}
                                                     >
@@ -1651,7 +1651,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                     <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Sensitivity (Key)</label>
                                                     <input 
                                                         type="number"
-                                                        className="w-full bg-[#0B1120] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-fuchsia-500 text-sm font-bold text-center font-mono" 
+                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-fuchsia-500 text-sm font-bold text-center font-mono" 
                                                         value={form.utBotSensitivity} 
                                                         onChange={(e) => handleFormChange('utBotSensitivity', parseFloat(e.target.value))}
                                                         min={0.1}
@@ -1662,7 +1662,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                     <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">ATR Period</label>
                                                     <input 
                                                         type="number"
-                                                        className="w-full bg-[#0B1120] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-fuchsia-500 text-sm font-bold text-center font-mono" 
+                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-fuchsia-500 text-sm font-bold text-center font-mono" 
                                                         value={form.utBotAtrPeriod} 
                                                         onChange={(e) => handleFormChange('utBotAtrPeriod', parseInt(e.target.value))}
                                                         min={1}
@@ -1808,7 +1808,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 <div className="col-span-2">
                                                     <label className="text-[10px] font-bold text-sky-400 uppercase mb-1 block">Supertrend Timeframe</label>
                                                     <select 
-                                                        className="w-full bg-[#0B1120] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-sky-500 text-sm font-bold text-center" 
+                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-sky-500 text-sm font-bold text-center" 
                                                         value={form.supertrendTimeframe} 
                                                         onChange={(e) => handleFormChange('supertrendTimeframe', e.target.value)}
                                                     >
@@ -1826,7 +1826,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                     <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">ATR Period</label>
                                                     <input 
                                                         type="number"
-                                                        className="w-full bg-[#0B1120] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-sky-500 text-sm font-bold text-center font-mono" 
+                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-sky-500 text-sm font-bold text-center font-mono" 
                                                         value={form.supertrendPeriod} 
                                                         onChange={(e) => handleFormChange('supertrendPeriod', parseInt(e.target.value))}
                                                         min={1}
@@ -1837,7 +1837,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                     <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">ATR Multiplier</label>
                                                     <input 
                                                         type="number"
-                                                        className="w-full bg-[#0B1120] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-sky-500 text-sm font-bold text-center font-mono" 
+                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-sky-500 text-sm font-bold text-center font-mono" 
                                                         value={form.supertrendMultiplier} 
                                                         onChange={(e) => handleFormChange('supertrendMultiplier', parseFloat(e.target.value))}
                                                         min={0.1}
@@ -1910,7 +1910,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                             <div className="col-span-2">
                                                 <label className="text-[10px] font-bold text-emerald-400 uppercase mb-1 block">Calculation Timeframe</label>
                                                 <select 
-                                                    className="w-full bg-[#0B1120] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-emerald-500 text-sm font-bold text-center" 
+                                                    className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-emerald-500 text-sm font-bold text-center" 
                                                     value={form.wickSrTimeframe} 
                                                     onChange={(e) => handleFormChange('wickSrTimeframe', e.target.value)}
                                                 >
@@ -1988,7 +1988,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                     </div>
                                                     <input
                                                         type="number"
-                                                        className="w-20 bg-[#0B1120] border border-cyan-500/30 rounded-lg p-1.5 text-cyan-300 outline-none focus:border-cyan-400 text-sm font-bold text-center font-mono"
+                                                        className="w-20 bg-[#000000] border border-cyan-500/30 rounded-lg p-1.5 text-cyan-300 outline-none focus:border-cyan-400 text-sm font-bold text-center font-mono"
                                                         value={form.dynamicTpFrontrunPct}
                                                         onChange={(e) => handleFormChange('dynamicTpFrontrunPct', parseFloat(e.target.value) || 0)}
                                                         min={0} max={5} step={0.05}
@@ -2206,10 +2206,10 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                     value={form.slOrderType} 
                                     onChange={(e) => handleFormChange('slOrderType', e.target.value)}
                                 >
-                                    <option className="bg-[#0B1120]" value="market">Market (Safest)</option>
-                                    <option className="bg-[#0B1120]" value="stop_limit">Stop-Limit (Slippage Bound)</option>
-                                    <option className="bg-[#0B1120]" value="soft_limit">Soft Limit (Maker Try)</option>
-                                    <option className="bg-[#0B1120]" value="limit">Limit (Strict Maker)</option>
+                                    <option className="bg-[#000000]" value="market">Market (Safest)</option>
+                                    <option className="bg-[#000000]" value="stop_limit">Stop-Limit (Slippage Bound)</option>
+                                    <option className="bg-[#000000]" value="soft_limit">Soft Limit (Maker Try)</option>
+                                    <option className="bg-[#000000]" value="limit">Limit (Strict Maker)</option>
                                 </select>
                             </div>
 
@@ -2563,13 +2563,13 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 value={form.trendFilterThreshold} 
                                                 onChange={(e) => handleFormChange('trendFilterThreshold', e.target.value)}
                                             >
-                                                <option className="bg-[#0B1120]" value="Moderate">Moderate (0.7+)</option>
-                                                <option className="bg-[#0B1120]" value="Moderately Strong">Moderately Strong (0.8+)</option>
-                                                <option className="bg-[#0B1120]" value="Mostly Strong">Mostly Strong (0.9+)</option>
-                                                <option className="bg-[#0B1120]" value="Strong">Strong (0.92+)</option>
-                                                <option className="bg-[#0B1120]" value="Very Strong">Very Strong (0.94+)</option>
-                                                <option className="bg-[#0B1120]" value="Exceptionally Strong">Exceptionally Strong (0.96+)</option>
-                                                <option className="bg-[#0B1120]" value="Ultra Strong">Ultra Strong (0.98+)</option>
+                                                <option className="bg-[#000000]" value="Moderate">Moderate (0.7+)</option>
+                                                <option className="bg-[#000000]" value="Moderately Strong">Moderately Strong (0.8+)</option>
+                                                <option className="bg-[#000000]" value="Mostly Strong">Mostly Strong (0.9+)</option>
+                                                <option className="bg-[#000000]" value="Strong">Strong (0.92+)</option>
+                                                <option className="bg-[#000000]" value="Very Strong">Very Strong (0.94+)</option>
+                                                <option className="bg-[#000000]" value="Exceptionally Strong">Exceptionally Strong (0.96+)</option>
+                                                <option className="bg-[#000000]" value="Ultra Strong">Ultra Strong (0.98+)</option>
                                             </select>
                                         </div>
                                         <div className="col-span-2">

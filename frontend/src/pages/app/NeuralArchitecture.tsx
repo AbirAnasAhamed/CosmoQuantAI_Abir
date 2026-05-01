@@ -82,7 +82,7 @@ const SystemMonitor = () => {
             {/* Main Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Area Chart */}
-                <div className="lg:col-span-2 bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-slate-700 rounded-xl p-6 h-[400px] shadow-sm">
+                <div className="lg:col-span-2 bg-white dark:bg-[#141414] border border-gray-200 dark:border-slate-700 rounded-xl p-6 h-[400px] shadow-sm">
                     <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Cumulative Performance</h3>
                     <ResponsiveContainer width="100%" height="100%" className="!h-[320px]">
                         <AreaChart data={pnlData}>
@@ -104,7 +104,7 @@ const SystemMonitor = () => {
                 </div>
 
                 {/* Health Panel */}
-                <div className="bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-slate-700 rounded-xl p-6 flex flex-col shadow-sm">
+                <div className="bg-white dark:bg-[#141414] border border-gray-200 dark:border-slate-700 rounded-xl p-6 flex flex-col shadow-sm">
                     <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">System Health</h3>
                     <div className="space-y-4 flex-1">
                         <HealthItem label="API Latency" value="45ms" status="good" />
@@ -121,7 +121,7 @@ const SystemMonitor = () => {
             </div>
 
             {/* Bar Chart */}
-            <div className="bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-slate-700 rounded-xl p-6 h-[350px] shadow-sm">
+            <div className="bg-white dark:bg-[#141414] border border-gray-200 dark:border-slate-700 rounded-xl p-6 h-[350px] shadow-sm">
                 <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Daily Profit & Loss Analysis</h3>
                 <ResponsiveContainer width="100%" height="100%" className="!h-[270px]">
                     <BarChart data={dailyPerformance}>
@@ -193,7 +193,7 @@ const BrainVisualizer = () => {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
             {/* Grid Side */}
-            <div className="bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-slate-700 rounded-xl p-6 shadow-sm relative overflow-hidden">
+            <div className="bg-white dark:bg-[#141414] border border-gray-200 dark:border-slate-700 rounded-xl p-6 shadow-sm relative overflow-hidden">
                 <div className="flex items-center space-x-3 mb-6">
                     <div className="p-3 bg-indigo-500/10 rounded-lg text-indigo-500">
                         <BrainCircuit size={28} />
@@ -232,7 +232,7 @@ const BrainVisualizer = () => {
             </div>
 
             {/* Output Side (Simulated) */}
-            <div className="bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-slate-700 rounded-xl p-6 flex flex-col shadow-sm">
+            <div className="bg-white dark:bg-[#141414] border border-gray-200 dark:border-slate-700 rounded-xl p-6 flex flex-col shadow-sm">
                 <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
                     <Layers size={18} /> Strategic Output
                 </h3>
@@ -267,7 +267,7 @@ const BrainVisualizer = () => {
 const StatCard = ({ title, value, sub, icon: Icon, trend }: any) => {
     const trendColor = trend === 'up' ? 'text-emerald-500' : trend === 'down' ? 'text-red-500' : 'text-amber-500';
     return (
-        <div className="bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-slate-700 rounded-xl p-6 flex items-start justify-between hover:border-brand-primary/50 transition-colors shadow-sm">
+        <div className="bg-white dark:bg-[#141414] border border-gray-200 dark:border-slate-700 rounded-xl p-6 flex items-start justify-between hover:border-brand-primary/50 transition-colors shadow-sm">
             <div>
                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">{title}</p>
                 <h4 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{value}</h4>

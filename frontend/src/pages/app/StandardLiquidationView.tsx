@@ -144,7 +144,7 @@ const StandardLiquidationView: React.FC = () => {
                 theme: theme === 'dark' ? 'Dark' : 'Light',
                 style: '1',
                 locale: 'en',
-                toolbar_bg: theme === 'dark' ? '#1E293B' : '#FFFFFF',
+                toolbar_bg: theme === 'dark' ? '#141414' : '#FFFFFF',
                 enable_publishing: false,
                 hide_side_toolbar: false,
                 allow_symbol_change: false,
@@ -198,7 +198,7 @@ const StandardLiquidationView: React.FC = () => {
             {/* High-Tech HUD */}
             <div className="flex-shrink-0 grid grid-cols-1 md:grid-cols-5 gap-4 staggered-fade-in relative z-50">
                 {/* Search & Price */}
-                <Card className="md:col-span-1 flex flex-col justify-center !p-5 relative bg-gradient-to-br from-[#0B1120] to-[#111827] border-white/5 shadow-2xl rounded-2xl group z-[60]">
+                <Card className="md:col-span-1 flex flex-col justify-center !p-5 relative bg-gradient-to-br from-[#000000] to-[#111827] border-white/5 shadow-2xl rounded-2xl group z-[60]">
                     <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/10 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-700 rounded-2xl pointer-events-none"></div>
                     <div className="absolute -right-10 -top-10 w-32 h-32 bg-brand-primary/20 blur-[50px] rounded-full pointer-events-none"></div>
                     
@@ -264,7 +264,7 @@ const StandardLiquidationView: React.FC = () => {
                 </Card>
 
                 {/* Filter Control */}
-                <Card className="md:col-span-1 flex flex-col justify-center !p-5 relative overflow-hidden bg-gradient-to-br from-[#0B1120] to-[#111827] border-white/5 shadow-2xl rounded-2xl group">
+                <Card className="md:col-span-1 flex flex-col justify-center !p-5 relative overflow-hidden bg-gradient-to-br from-[#000000] to-[#111827] border-white/5 shadow-2xl rounded-2xl group">
                     <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 via-transparent to-transparent opacity-30 group-hover:opacity-100 transition-opacity duration-700"></div>
                     {minLiquidationThreshold > 50000 && (
                         <div className="absolute top-0 right-0 p-1">
@@ -300,7 +300,7 @@ const StandardLiquidationView: React.FC = () => {
                 </Card>
 
                 {/* Stats: Total Vol */}
-                <Card className="md:col-span-1 flex flex-col justify-center !p-5 relative overflow-hidden bg-gradient-to-br from-[#0B1120] to-[#111827] border-white/5 shadow-2xl rounded-2xl group">
+                <Card className="md:col-span-1 flex flex-col justify-center !p-5 relative overflow-hidden bg-gradient-to-br from-[#000000] to-[#111827] border-white/5 shadow-2xl rounded-2xl group">
                     <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 via-transparent to-transparent opacity-30 group-hover:opacity-100 transition-opacity duration-700"></div>
                     <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-rose-500/10 blur-[30px] rounded-full"></div>
                     <div className="relative z-10 flex items-center gap-4">
@@ -318,7 +318,7 @@ const StandardLiquidationView: React.FC = () => {
                 </Card>
 
                 {/* Stats: Ratio Bar */}
-                <Card className="md:col-span-2 flex flex-col justify-center !p-5 relative overflow-hidden bg-gradient-to-br from-[#0B1120] to-[#111827] border-white/5 shadow-2xl rounded-2xl group">
+                <Card className="md:col-span-2 flex flex-col justify-center !p-5 relative overflow-hidden bg-gradient-to-br from-[#000000] to-[#111827] border-white/5 shadow-2xl rounded-2xl group">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_0%,transparent_100%)] pointer-events-none"></div>
                     <div className="relative z-10 flex flex-col h-full justify-center gap-4">
                         <div className="flex justify-between items-end">
@@ -364,7 +364,7 @@ const StandardLiquidationView: React.FC = () => {
 
                 {/* Left: Chart */}
                 <div className="h-full flex flex-col transition-all duration-75 relative" style={{ width: `${chartWidth}%` }}>
-                    <Card className="flex-1 min-h-0 relative p-0 overflow-hidden border-white/5 shadow-2xl bg-[#0B1120] rounded-2xl group">
+                    <Card className="flex-1 min-h-0 relative p-0 overflow-hidden border-white/5 shadow-2xl bg-[#000000] rounded-2xl group">
                         {/* High-tech border effects */}
                         <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-0"></div>
                         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-brand-primary/50 to-transparent opacity-50 z-10"></div>
@@ -415,7 +415,7 @@ const StandardLiquidationView: React.FC = () => {
 
                         {/* Floating Toolbar for Highlights */}
                         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none w-full max-w-lg px-4 transition-transform duration-500 group-hover:-translate-y-2">
-                            <div className="bg-[#0B1120]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2.5 flex items-center justify-between gap-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)] pointer-events-auto relative overflow-hidden group/toolbar">
+                            <div className="bg-[#000000]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2.5 flex items-center justify-between gap-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)] pointer-events-auto relative overflow-hidden group/toolbar">
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-brand-primary/5 to-transparent -translate-x-full group-hover/toolbar:animate-[shimmer_2s_infinite]"></div>
                                 
                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2 whitespace-nowrap flex items-center gap-1.5">
@@ -466,7 +466,7 @@ const StandardLiquidationView: React.FC = () => {
 
                 {/* Right: Kill Feed & CLD */}
                 <div className="h-full flex flex-col gap-4" style={{ width: `calc(${100 - chartWidth}% - 22px)` }}>
-                    <Card className="flex-1 flex flex-col min-h-0 !p-0 border-white/5 shadow-2xl bg-[#0B1120] rounded-2xl overflow-hidden relative">
+                    <Card className="flex-1 flex flex-col min-h-0 !p-0 border-white/5 shadow-2xl bg-[#000000] rounded-2xl overflow-hidden relative">
                         {/* High-tech border effects */}
                         <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 via-transparent to-transparent opacity-50 z-0 pointer-events-none"></div>
 
@@ -567,9 +567,9 @@ const StandardLiquidationView: React.FC = () => {
 
             {/* Fullscreen Chart Portal */}
             {isChartFullScreen && (
-                <div className="fixed inset-0 z-[100] bg-white dark:bg-brand-darkest p-0 animate-modal-fade-in">
+                <div className="fixed inset-0 z-[100] bg-white dark:bg-[#000000] p-0 animate-modal-fade-in">
                     <div id={`tradingview_fullscreen_liquidation_chart_${widgetKey}`} className="w-full h-full" />
-                    <button onClick={toggleFullScreen} className="absolute top-4 right-4 z-20 p-2 bg-brand-darkest/50 backdrop-blur-md rounded-lg text-white hover:bg-brand-darkest transition-colors">
+                    <button onClick={toggleFullScreen} className="absolute top-4 right-4 z-20 p-2 bg-[#000000]/50 backdrop-blur-md rounded-lg text-white hover:bg-[#000000] transition-colors">
                         <CollapseIcon />
                     </button>
                 </div>

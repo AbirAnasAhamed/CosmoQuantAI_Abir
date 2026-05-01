@@ -75,7 +75,7 @@ const KpiCard: React.FC<{
     animationDelay: number
 }> = ({ title, value, isCurrency = false, change, icon, colorClass, animationDelay }) => (
     <div
-        className={`relative group p-6 rounded-2xl bg-white dark:bg-brand-dark border border-brand-border-light dark:border-brand-border-dark overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl staggered-fade-in`}
+        className={`relative group p-6 rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl staggered-fade-in`}
         style={{ animationDelay: `${animationDelay}ms` }}
     >
         {/* Background Glow */}
@@ -136,7 +136,7 @@ const ActiveShape = (props: any) => {
 
 const QuickActionBtn: React.FC<{ icon: React.ReactNode; label: string; onClick?: () => void }> = ({ icon, label, onClick }) => (
     <button onClick={onClick} className="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 border border-transparent hover:border-brand-primary/30 transition-all duration-300 group">
-        <div className="w-10 h-10 rounded-full bg-white dark:bg-brand-darkest flex items-center justify-center text-brand-primary mb-2 shadow-sm group-hover:scale-110 transition-transform">
+        <div className="w-10 h-10 rounded-full bg-white dark:bg-[#000000] flex items-center justify-center text-brand-primary mb-2 shadow-sm group-hover:scale-110 transition-transform">
             {icon}
         </div>
         <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">{label}</span>
@@ -247,7 +247,7 @@ const Dashboard: React.FC = () => {
                         Welcome back, <span className="text-brand-primary font-semibold">Abir</span>. Systems are optimal.
                     </p>
                 </div>
-                <div className="flex items-center gap-2 bg-white dark:bg-brand-dark/50 px-4 py-2 rounded-full border border-brand-border-light dark:border-brand-border-dark shadow-sm">
+                <div className="flex items-center gap-2 bg-white dark:bg-[#0A0A0A]/50 px-4 py-2 rounded-full border border-brand-border-light dark:border-[#1A1A1A] shadow-sm">
                     <div className="relative flex h-3 w-3">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-success opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-brand-success"></span>
@@ -296,7 +296,7 @@ const Dashboard: React.FC = () => {
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Area Chart */}
-                <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-brand-dark border border-brand-border-light dark:border-brand-border-dark p-6 shadow-lg staggered-fade-in" style={{ animationDelay: '500ms' }}>
+                <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 shadow-lg staggered-fade-in" style={{ animationDelay: '500ms' }}>
                     <div className="flex justify-between items-center mb-6">
                         <div>
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white">Portfolio Performance</h2>
@@ -346,7 +346,7 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {/* Asset Allocation Donut */}
-                <div className="lg:col-span-1 rounded-2xl bg-white dark:bg-brand-dark border border-brand-border-light dark:border-brand-border-dark p-6 shadow-lg flex flex-col staggered-fade-in" style={{ animationDelay: '600ms' }}>
+                <div className="lg:col-span-1 rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 shadow-lg flex flex-col staggered-fade-in" style={{ animationDelay: '600ms' }}>
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Allocation</h2>
                     <div className="flex-1 relative min-h-[300px]" style={{ minHeight: '300px' }}>
                         <ResponsiveContainer width="100%" height="100%">
@@ -381,7 +381,7 @@ const Dashboard: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Active Bots Command Center */}
-                <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-brand-dark border border-brand-border-light dark:border-brand-border-dark p-6 shadow-lg staggered-fade-in" style={{ animationDelay: '700ms' }}>
+                <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 shadow-lg staggered-fade-in" style={{ animationDelay: '700ms' }}>
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                             <CpuIcon className="w-5 h-5 text-brand-primary" /> Active Bot Matrix
@@ -391,7 +391,7 @@ const Dashboard: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {bots.length > 0 ? bots.map((bot) => (
-                            <div key={bot.id} className="flex items-center p-4 rounded-xl bg-gray-50 dark:bg-brand-darkest/50 border border-transparent hover:border-brand-primary/30 transition-all duration-300 group">
+                            <div key={bot.id} className="flex items-center p-4 rounded-xl bg-gray-50 dark:bg-[#000000]/50 border border-transparent hover:border-brand-primary/30 transition-all duration-300 group">
                                 <div className="relative">
                                     <div className={`w-3 h-3 rounded-full ${bot.pnl >= 0 ? 'bg-brand-success' : 'bg-brand-danger'} animate-pulse`}></div>
                                 </div>
@@ -442,14 +442,14 @@ const Dashboard: React.FC = () => {
 
 
                     {/* Risk Analysis Card */}
-                    <div className="rounded-2xl bg-white dark:bg-brand-dark border border-brand-border-light dark:border-brand-border-dark p-6 shadow-lg staggered-fade-in" style={{ animationDelay: '850ms' }}>
+                    <div className="rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 shadow-lg staggered-fade-in" style={{ animationDelay: '850ms' }}>
                         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Risk Analysis</h2>
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="p-3 bg-gray-50 dark:bg-brand-darkest/50 rounded-xl">
+                            <div className="p-3 bg-gray-50 dark:bg-[#000000]/50 rounded-xl">
                                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Sharpe Ratio</p>
                                 <p className="text-xl font-bold text-brand-primary">{analyticsData?.sharpe_ratio?.toFixed(2) || '0.00'}</p>
                             </div>
-                            <div className="p-3 bg-gray-50 dark:bg-brand-darkest/50 rounded-xl">
+                            <div className="p-3 bg-gray-50 dark:bg-[#000000]/50 rounded-xl">
                                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Win Rate</p>
                                 <p className="text-xl font-bold text-brand-success">{analyticsData?.win_rate?.toFixed(1) || '0.0'}%</p>
                             </div>
@@ -472,11 +472,11 @@ const Dashboard: React.FC = () => {
                     <WhaleMovementWidget />
 
                     {/* Recent Log */}
-                    <div className="rounded-2xl bg-white dark:bg-brand-dark border border-brand-border-light dark:border-brand-border-dark p-6 shadow-lg flex-1 staggered-fade-in" style={{ animationDelay: '900ms' }}>
+                    <div className="rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 shadow-lg flex-1 staggered-fade-in" style={{ animationDelay: '900ms' }}>
                         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Recent Backtests</h2>
                         <div className="space-y-3">
                             {recentBacktests.length > 0 ? recentBacktests.slice(0, 3).map(result => (
-                                <div key={result.id} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 dark:hover:bg-brand-darkest/50 rounded-lg transition-colors cursor-pointer">
+                                <div key={result.id} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 dark:hover:bg-[#000000]/50 rounded-lg transition-colors cursor-pointer">
                                     <div>
                                         <p className="font-semibold text-slate-900 dark:text-white">{result.strategy}</p>
                                         <p className="text-xs text-gray-500">{result.market} • {result.timeframe}</p>

@@ -87,7 +87,7 @@ const RollingCorrelationModal: React.FC<RollingCorrelationModalProps> = ({ symbo
                                     fontSize={12}
                                 />
                                 <Tooltip
-                                    contentStyle={theme === 'dark' ? { backgroundColor: '#0F172A', border: '1px solid #334155' } : {}}
+                                    contentStyle={theme === 'dark' ? { backgroundColor: '#0A0A0A', border: '1px solid #334155' } : {}}
                                     itemStyle={{ color: '#6366F1' }}
                                     formatter={(value: number) => [value.toFixed(4), 'Correlation']}
                                     labelFormatter={(label) => new Date(label).toLocaleDateString() + ' ' + new Date(label).toLocaleTimeString()}

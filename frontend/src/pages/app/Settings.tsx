@@ -339,14 +339,14 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
         }
     };
 
-    const inputBaseClasses = "w-full bg-white dark:bg-brand-dark/50 border border-brand-border-light dark:border-brand-border-dark rounded-md p-2 text-slate-900 dark:text-white focus:ring-brand-primary focus:border-brand-primary transition-colors";
+    const inputBaseClasses = "w-full bg-white dark:bg-[#0A0A0A]/50 border border-brand-border-light dark:border-[#1A1A1A] rounded-md p-2 text-slate-900 dark:text-white focus:ring-brand-primary focus:border-brand-primary transition-colors";
 
     return (
         <div className="space-y-8 max-w-4xl animate-fade-in-slide-up">
             {/* Appearance Section */}
             <Card>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 border-b border-brand-border-light dark:border-brand-border-dark pb-4">Appearance</h2>
-                <div className="flex items-center space-x-4 p-4 bg-gray-100 dark:bg-brand-dark/50 rounded-lg">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 border-b border-brand-border-light dark:border-[#1A1A1A] pb-4">Appearance</h2>
+                <div className="flex items-center space-x-4 p-4 bg-gray-100 dark:bg-[#0A0A0A]/50 rounded-lg">
                     <label htmlFor="theme-toggle" className="flex items-center cursor-pointer">
                         <div className="relative">
                             <input type="checkbox" id="theme-toggle" className="sr-only" checked={isDarkMode} onChange={handleThemeChange} />
@@ -361,7 +361,7 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
             {/* Profile Section */}
             <div ref={profileRef}>
                 <Card>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 border-b border-brand-border-light dark:border-brand-border-dark pb-4">Profile Settings</h2>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 border-b border-brand-border-light dark:border-[#1A1A1A] pb-4">Profile Settings</h2>
                     <div className="space-y-6">
                         <div className="flex items-center gap-6">
                             <div className="w-20 h-20 rounded-full bg-brand-primary text-white flex items-center justify-center font-bold text-3xl flex-shrink-0 overflow-hidden">
@@ -396,7 +396,7 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
                             </div>
                             {/* Additional fields omitted for brevity but state is handled */}
                         </div>
-                        <div className="flex items-center gap-4 pt-4 border-t border-brand-border-light dark:border-brand-border-dark">
+                        <div className="flex items-center gap-4 pt-4 border-t border-brand-border-light dark:border-[#1A1A1A]">
                             <Button variant="primary" onClick={handleSaveChanges} disabled={saveStatus === 'saving'}>{saveStatus === 'saving' ? 'Saving...' : 'Save Changes'}</Button>
                         </div>
                     </div>
@@ -406,10 +406,10 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
             {/* Security Section (IP Whitelist) */}
             <div ref={securityRef}>
                 <Card>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 border-b border-brand-border-light dark:border-brand-border-dark pb-4">Security</h2>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 border-b border-brand-border-light dark:border-[#1A1A1A] pb-4">Security</h2>
 
                     <div className="space-y-6">
-                        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-brand-dark/30 rounded-lg border border-gray-200 dark:border-brand-border-dark">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#0A0A0A]/30 rounded-lg border border-gray-200 dark:border-[#1A1A1A]">
                             <div>
                                 <h3 className="font-medium text-slate-900 dark:text-white">IP Whitelist</h3>
                                 <p className="text-sm text-gray-500">Only allow access from specific IP addresses.</p>
@@ -440,13 +440,13 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
                                     <Button variant="secondary" onClick={() => setNewIP(clientIP)} disabled={!clientIP}>Add Current</Button>
                                 </div>
 
-                                <div className="bg-white dark:bg-brand-dark border border-brand-border-light dark:border-brand-border-dark rounded-md overflow-hidden">
+                                <div className="bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] rounded-md overflow-hidden">
                                     {allowedIPs.length === 0 ? (
                                         <p className="p-4 text-sm text-gray-500 text-center">No IPs whitelisted. Warning: You might lock yourself out if enabled without your IP.</p>
                                     ) : (
                                         <ul className="divide-y divide-brand-border-light dark:divide-brand-border-dark">
                                             {allowedIPs.map(ip => (
-                                                <li key={ip} className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-brand-dark/50">
+                                                <li key={ip} className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-[#0A0A0A]/50">
                                                     <span className="text-sm font-mono text-slate-700 dark:text-gray-300">{ip}</span>
                                                     <button onClick={() => handleRemoveIP(ip)} className="text-red-500 hover:text-red-700">
                                                         <TrashIcon />
@@ -459,7 +459,7 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
                             </div>
                         )}
 
-                        <div className="flex items-center gap-4 pt-4 border-t border-brand-border-light dark:border-brand-border-dark">
+                        <div className="flex items-center gap-4 pt-4 border-t border-brand-border-light dark:border-[#1A1A1A]">
                             <Button variant="primary" onClick={handleSaveSecurity} disabled={isSavingSecurity}>
                                 {isSavingSecurity ? 'Saving...' : 'Save Security Settings'}
                             </Button>
@@ -471,7 +471,7 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
             {/* API Keys Section */}
             <div ref={apiKeysRef}>
                 <Card>
-                    <div className="flex justify-between items-center mb-6 border-b border-brand-border-light dark:border-brand-border-dark pb-4">
+                    <div className="flex justify-between items-center mb-6 border-b border-brand-border-light dark:border-[#1A1A1A] pb-4">
                         <div>
                             <h2 className="text-xl font-bold text-slate-900 dark:text-white">API Key Management</h2>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage your exchange connections securely.</p>
@@ -501,7 +501,7 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400">
-                            <thead className="bg-gray-50 dark:bg-brand-dark/50 text-xs uppercase text-gray-700 dark:text-gray-300">
+                            <thead className="bg-gray-50 dark:bg-[#0A0A0A]/50 text-xs uppercase text-gray-700 dark:text-gray-300">
                                 <tr>
                                     <th className="px-6 py-3">Name</th>
                                     <th className="px-6 py-3">Exchange</th>
@@ -523,7 +523,7 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
                                         const hasError = balData?.error;
                                         const isSyncing = syncingKeyId === key.id;
                                         return (
-                                            <tr key={key.id || key.exchange} className="border-b border-gray-200 dark:border-brand-border-dark dark:hover:bg-brand-darkest/30">
+                                            <tr key={key.id || key.exchange} className="border-b border-gray-200 dark:border-[#1A1A1A] dark:hover:bg-[#000000]/30">
                                                 <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{key.name}</td>
                                                 <td className="px-6 py-4 capitalize">{key.exchange}</td>
                                                 <td className="px-6 py-4">
@@ -594,10 +594,10 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
             {/* Notification Section */}
             <div ref={notificationRef}>
                 <Card>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 border-b border-brand-border-light dark:border-brand-border-dark pb-4">Notifications</h2>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 border-b border-brand-border-light dark:border-[#1A1A1A] pb-4">Notifications</h2>
                     <div className="space-y-6">
                         {/* Master Toggle */}
-                        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-brand-dark/30 rounded-lg border border-gray-200 dark:border-brand-border-dark">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#0A0A0A]/30 rounded-lg border border-gray-200 dark:border-[#1A1A1A]">
                             <div>
                                 <h3 className="text-lg font-medium text-slate-900 dark:text-white">Telegram Session Alerts</h3>
                                 <p className="text-sm text-gray-500">Receive real-time alerts when major trading sessions start.</p>
@@ -657,7 +657,7 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
                                     <label key={key} className={`flex flex-col gap-1 p-3 rounded-lg border cursor-pointer transition-all ${
                                         notificationSettings[key as keyof typeof notificationSettings]
                                             ? 'border-brand-primary bg-brand-primary/10'
-                                            : 'border-gray-200 dark:border-brand-border-dark hover:border-brand-primary/50'
+                                            : 'border-gray-200 dark:border-[#1A1A1A] hover:border-brand-primary/50'
                                     }`}>
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm font-medium text-slate-900 dark:text-white">{label}</span>
@@ -691,7 +691,7 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
                                     <label key={key} className={`flex flex-col gap-1 p-3 rounded-lg border cursor-pointer transition-all ${
                                         notificationSettings[key as keyof typeof notificationSettings]
                                             ? 'border-brand-primary bg-brand-primary/10'
-                                            : 'border-gray-200 dark:border-brand-border-dark hover:border-brand-primary/50'
+                                            : 'border-gray-200 dark:border-[#1A1A1A] hover:border-brand-primary/50'
                                     }`}>
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm font-medium text-slate-900 dark:text-white">{label}</span>
@@ -708,7 +708,7 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-4 pt-4 border-t border-brand-border-light dark:border-brand-border-dark">
+                        <div className="flex items-center gap-4 pt-4 border-t border-brand-border-light dark:border-[#1A1A1A]">
                             <Button variant="primary" onClick={handleSaveNotification} disabled={isSavingNotifications}>
                                 {isSavingNotifications ? 'Saving...' : 'Save Settings'}
                             </Button>
@@ -720,7 +720,7 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
             {/* Add Connection Modal */}
             {isKeyModalOpen && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setIsKeyModalOpen(false)}>
-                    <div className="bg-white dark:bg-brand-dark w-full max-w-lg rounded-xl shadow-2xl p-6 border border-brand-border-light dark:border-brand-border-dark animate-slide-up" onClick={e => e.stopPropagation()}>
+                    <div className="bg-white dark:bg-[#0A0A0A] w-full max-w-lg rounded-xl shadow-2xl p-6 border border-brand-border-light dark:border-[#1A1A1A] animate-slide-up" onClick={e => e.stopPropagation()}>
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Add New Connection</h2>
 
                         <div className="space-y-4">

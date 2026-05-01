@@ -187,7 +187,7 @@ export const BacktestForm: React.FC<BacktestFormProps> = ({
         fetchTimeframes();
     }, [selectedExchange]);
 
-    const inputBaseClasses = "w-full bg-white dark:bg-brand-dark/50 border border-brand-border-light dark:border-brand-border-dark rounded-md p-2 text-slate-900 dark:text-white focus:ring-brand-primary focus:border-brand-primary";
+    const inputBaseClasses = "w-full bg-white dark:bg-[#0A0A0A]/50 border border-brand-border-light dark:border-[#1A1A1A] rounded-md p-2 text-slate-900 dark:text-white focus:ring-brand-primary focus:border-brand-primary";
 
     const handlePresetChange = (days: number) => {
         const end = new Date();
@@ -415,7 +415,7 @@ export const BacktestForm: React.FC<BacktestFormProps> = ({
                 </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-brand-border-light dark:border-brand-border-dark">
+            <div className="mt-4 pt-4 border-t border-brand-border-light dark:border-[#1A1A1A]">
                 <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">{enableRiskManagement ? <ShieldCheck size={16} className="text-green-500" /> : <ShieldAlert size={16} className="text-gray-400" />} Risk Management & Execution</h3>
                     <input type="checkbox" checked={enableRiskManagement} onChange={(e) => setEnableRiskManagement(e.target.checked)} className="w-4 h-4 text-brand-primary rounded" />

@@ -120,7 +120,7 @@ const SmartOrderForm: React.FC<{ symbol: string; activeSide: 'buy' | 'sell' }> =
                         type="number"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
-                        className="w-full bg-white dark:bg-brand-darkest border border-brand-border-light dark:border-white/10 rounded-lg px-3 py-3 text-sm text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-brand-primary outline-none"
+                        className="w-full bg-white dark:bg-[#000000] border border-brand-border-light dark:border-white/10 rounded-lg px-3 py-3 text-sm text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-brand-primary outline-none"
                         placeholder="0.00"
                     />
                     <span className="absolute right-3 top-3 text-xs text-gray-500 font-mono">{symbol.split('/')[0]}</span>

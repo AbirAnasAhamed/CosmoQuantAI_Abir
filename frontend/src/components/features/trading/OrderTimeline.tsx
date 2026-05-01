@@ -23,7 +23,7 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({ slices }) => {
                 return (
                     <div key={idx} className="relative flex items-center gap-4 animate-fade-in-right" style={{ animationDelay: `${idx * 50}ms` }}>
                         {/* Dot Indicator */}
-                        <div className={`absolute -left-[21px] w-3 h-3 rounded-full border-2 bg-white dark:bg-brand-darkest transition-colors duration-300
+                        <div className={`absolute -left-[21px] w-3 h-3 rounded-full border-2 bg-white dark:bg-[#000000] transition-colors duration-300
                             ${slice.status === 'executed' ? 'border-emerald-500 bg-emerald-500' :
                                 slice.status === 'scheduled' ? 'border-blue-500' : 'border-gray-300 dark:border-gray-600'}`}
                         />

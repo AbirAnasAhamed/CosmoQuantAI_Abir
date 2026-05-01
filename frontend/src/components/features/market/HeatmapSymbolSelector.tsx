@@ -103,7 +103,7 @@ export const HeatmapSymbolSelector: React.FC<HeatmapSymbolSelectorProps> = ({ sy
                     setSearchQuery('');
                 }}
                 className={`flex items-center gap-3 px-4 py-2 rounded-xl border transition-all duration-300 ${isDropdownOpen
-                    ? 'bg-white dark:bg-[#0B1120] border-brand-primary/60 shadow-[0_0_20px_rgba(59,130,246,0.3)]'
+                    ? 'bg-white dark:bg-[#000000] border-brand-primary/60 shadow-[0_0_20px_rgba(59,130,246,0.3)]'
                     : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-brand-primary/40 dark:hover:border-brand-primary/30 hover:shadow-lg dark:hover:bg-white/10'
                     }`}
             >
@@ -130,7 +130,7 @@ export const HeatmapSymbolSelector: React.FC<HeatmapSymbolSelectorProps> = ({ sy
                 <div className="p-3 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-black/20">
                     <div className="relative group">
                         <div className="absolute inset-0 bg-gradient-to-r from-brand-primary/20 to-purple-500/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
-                        <div className="relative flex items-center bg-white dark:bg-[#050B14] border border-gray-200 dark:border-white/10 rounded-xl shadow-inner focus-within:border-brand-primary/50 focus-within:ring-1 focus-within:ring-brand-primary/30 transition-all overflow-hidden">
+                        <div className="relative flex items-center bg-white dark:bg-[#000000] border border-gray-200 dark:border-white/10 rounded-xl shadow-inner focus-within:border-brand-primary/50 focus-within:ring-1 focus-within:ring-brand-primary/30 transition-all overflow-hidden">
                             <Search size={18} className="ml-3 text-gray-400 group-focus-within:text-brand-primary transition-colors" />
                             <input
                                 type="text"
@@ -176,7 +176,7 @@ export const HeatmapSymbolSelector: React.FC<HeatmapSymbolSelectorProps> = ({ sy
 
                     {/* Right Panel: Trading Pair List */}
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-2 relative bg-white/50 dark:bg-transparent">
-                        <div className="text-[10px] text-gray-400/70 font-black uppercase tracking-[0.15em] px-3 py-2 flex justify-between items-center sticky top-0 bg-white/95 dark:bg-[#0B1120]/95 backdrop-blur z-10 rounded-t-lg mb-1">
+                        <div className="text-[10px] text-gray-400/70 font-black uppercase tracking-[0.15em] px-3 py-2 flex justify-between items-center sticky top-0 bg-white/95 dark:bg-[#000000]/95 backdrop-blur z-10 rounded-t-lg mb-1">
                             <span>Trading Pairs <span className="text-gray-300 dark:text-gray-600 font-mono text-[9px]">({filteredMarkets.length})</span></span>
                             {loadingMarkets && <Activity size={12} className="animate-spin text-brand-primary" />}
                         </div>

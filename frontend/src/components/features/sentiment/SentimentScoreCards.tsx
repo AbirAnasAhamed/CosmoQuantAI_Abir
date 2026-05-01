@@ -36,7 +36,7 @@ const SentimentOrb = ({ score, momentum, volume, netflow }: any) => {
     const rotationSpeed = Math.max(3, 15 - Math.abs(momentum));
 
     return (
-        <div className="relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-[#0f172a] rounded-2xl border border-slate-700/50">
+        <div className="relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-[#0A0A0A] rounded-2xl border border-slate-700/50">
             {/* --- Background Cyber Grid --- */}
             <div className="absolute inset-0 opacity-20 pointer-events-none"
                 style={{
@@ -172,7 +172,7 @@ const FearGreedFlux = ({ score, classification }: any) => {
     const activeSegments = Math.round((score / 100) * totalSegments);
 
     return (
-        <div className="flex flex-col items-center justify-center h-full relative overflow-hidden bg-slate-50 dark:bg-[#0f172a] p-4">
+        <div className="flex flex-col items-center justify-center h-full relative overflow-hidden bg-slate-50 dark:bg-[#0A0A0A] p-4">
             {/* Background Noise */}
             <div className="absolute inset-0 opacity-20 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
 

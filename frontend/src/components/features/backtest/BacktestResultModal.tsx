@@ -57,7 +57,7 @@ const BacktestResultModal: React.FC<BacktestResultModalProps> = ({ bot, result, 
                                         <XAxis dataKey="name" stroke="#64748b" axisLine={false} tickLine={false} dy={10} fontSize={10} />
                                         <YAxis stroke="#64748b" tickFormatter={(value) => `$${Number(value) / 1000}k`} axisLine={false} tickLine={false} dx={-10} fontSize={10} />
                                         <Tooltip
-                                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', color: '#fff' }}
+                                            contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #141414', borderRadius: '12px', color: '#fff' }}
                                             itemStyle={{ color: '#fff' }}
                                         />
                                         <Line type="monotone" dataKey="value" name="Equity" stroke="#8b5cf6" strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0, fill: '#fff' }} />

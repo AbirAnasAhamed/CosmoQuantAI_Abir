@@ -37,14 +37,14 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({ options, value, onC
             <button
                 type="button"
                 onClick={() => !disabled && setIsOpen(!isOpen)}
-                className={`w-full text-left bg-white dark:bg-brand-dark/50 border ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} border-brand-border-light dark:border-brand-border-dark rounded-md px-3 py-2 text-sm text-slate-900 dark:text-white flex justify-between items-center focus:ring-2 focus:ring-brand-primary`}
+                className={`w-full text-left bg-white dark:bg-[#0A0A0A]/50 border ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} border-brand-border-light dark:border-[#1A1A1A] rounded-md px-3 py-2 text-sm text-slate-900 dark:text-white flex justify-between items-center focus:ring-2 focus:ring-brand-primary`}
             >
                 <span className="truncate">{value || placeholder}</span>
                 <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </button>
 
             {isOpen && (
-                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-[#0B1120] border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-hidden flex flex-col animate-fade-in-down">
+                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-[#000000] border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-hidden flex flex-col animate-fade-in-down">
                     {/* সার্চ বার */}
                     <div className="p-2 border-b border-gray-100 dark:border-gray-800 sticky top-0 bg-inherit">
                         <input

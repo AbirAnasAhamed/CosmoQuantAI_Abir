@@ -48,7 +48,7 @@ const RangeSliderInput: React.FC<{
         }
     };
 
-    const inputClasses = "w-24 bg-white dark:bg-brand-dark/50 border border-brand-border-light dark:border-brand-border-dark rounded-md p-1.5 text-slate-900 dark:text-white text-sm focus:ring-brand-primary focus:border-brand-primary";
+    const inputClasses = "w-24 bg-white dark:bg-[#0A0A0A]/50 border border-brand-border-light dark:border-[#1A1A1A] rounded-md p-1.5 text-slate-900 dark:text-white text-sm focus:ring-brand-primary focus:border-brand-primary";
 
     return (
         <div className="space-y-3">
@@ -106,7 +106,7 @@ export const StrategyParams: React.FC<StrategyParamsProps> = ({
     gaParams,
     setGaParams
 }) => {
-    const inputBaseClasses = "w-full bg-white dark:bg-brand-dark/50 border border-brand-border-light dark:border-brand-border-dark rounded-md p-2 text-slate-900 dark:text-white focus:ring-brand-primary focus:border-brand-primary";
+    const inputBaseClasses = "w-full bg-white dark:bg-[#0A0A0A]/50 border border-brand-border-light dark:border-[#1A1A1A] rounded-md p-2 text-slate-900 dark:text-white focus:ring-brand-primary focus:border-brand-primary";
 
     const handleParamChange = (key: string, value: string) => {
         const numValue = Number(value);
@@ -121,7 +121,7 @@ export const StrategyParams: React.FC<StrategyParamsProps> = ({
 
     if (mode === 'single') {
         return (
-            <div className="mt-6 pt-6 border-t border-brand-border-light dark:border-brand-border-dark animate-fade-in-down">
+            <div className="mt-6 pt-6 border-t border-brand-border-light dark:border-[#1A1A1A] animate-fade-in-down">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Strategy Parameters</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {Object.entries(activeParamsConfig).map(([key, config]: [string, any]) => (
@@ -137,13 +137,13 @@ export const StrategyParams: React.FC<StrategyParamsProps> = ({
 
     if (mode === 'optimization') {
         return (
-            <div className="mt-6 pt-6 border-t border-brand-border-light dark:border-brand-border-dark animate-fade-in-down">
+            <div className="mt-6 pt-6 border-t border-brand-border-light dark:border-[#1A1A1A] animate-fade-in-down">
                 {!hideOptimizationMethod && (
                     <div className="mb-6">
                         <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Optimization Method</h3>
-                        <div className="inline-flex bg-gray-100 dark:bg-brand-dark/50 rounded-lg p-1 space-x-1">
-                            <button onClick={() => setOptimizationMethod('gridSearch')} className={`px-3 py-1.5 text-xs font-semibold rounded-md ${optimizationMethod === 'gridSearch' ? 'bg-white dark:bg-brand-dark shadow text-brand-primary' : 'text-gray-500'}`}>Grid Search</button>
-                            <button onClick={() => setOptimizationMethod('geneticAlgorithm')} className={`px-3 py-1.5 text-xs font-semibold rounded-md ${optimizationMethod === 'geneticAlgorithm' ? 'bg-white dark:bg-brand-dark shadow text-brand-primary' : 'text-gray-500'}`}>Genetic Algorithm</button>
+                        <div className="inline-flex bg-gray-100 dark:bg-[#0A0A0A]/50 rounded-lg p-1 space-x-1">
+                            <button onClick={() => setOptimizationMethod('gridSearch')} className={`px-3 py-1.5 text-xs font-semibold rounded-md ${optimizationMethod === 'gridSearch' ? 'bg-white dark:bg-[#0A0A0A] shadow text-brand-primary' : 'text-gray-500'}`}>Grid Search</button>
+                            <button onClick={() => setOptimizationMethod('geneticAlgorithm')} className={`px-3 py-1.5 text-xs font-semibold rounded-md ${optimizationMethod === 'geneticAlgorithm' ? 'bg-white dark:bg-[#0A0A0A] shadow text-brand-primary' : 'text-gray-500'}`}>Genetic Algorithm</button>
                         </div>
                     </div>
                 )}

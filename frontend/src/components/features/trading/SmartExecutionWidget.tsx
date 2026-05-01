@@ -72,7 +72,7 @@ const SmartExecutionWidget: React.FC = () => {
     };
 
     return (
-        <div className="bg-white dark:bg-brand-darkest border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-xl animate-fade-in-up">
+        <div className="bg-white dark:bg-[#000000] border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-xl animate-fade-in-up">
             {/* Header */}
             <div className="p-4 border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 flex justify-between items-center">
                 <div className="flex items-center gap-2">

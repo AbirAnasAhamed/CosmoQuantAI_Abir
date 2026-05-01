@@ -436,7 +436,7 @@ export const BrainCore: React.FC<BrainCoreProps> = ({ currentData, genesisBot })
                                                 <YAxis dataKey="feature" type="category" width={100} tick={{ fontSize: 10, fill: '#94a3b8' }} />
                                                 <RechartsTooltip
                                                     cursor={{ fill: '#334155', opacity: 0.2 }}
-                                                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px', color: '#e2e8f0', fontSize: '12px' }}
+                                                    contentStyle={{ backgroundColor: '#141414', border: '1px solid #475569', borderRadius: '8px', color: '#e2e8f0', fontSize: '12px' }}
                                                 />
                                                 <ReferenceLine x={0} stroke="#64748b" />
                                                 <Bar dataKey="impact" name="Impact Score" radius={[0, 4, 4, 0]}>

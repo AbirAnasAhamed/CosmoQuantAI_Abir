@@ -67,7 +67,7 @@ const CreateAlertModal: React.FC<CreateAlertModalProps> = ({ onClose, onAddAlert
         onClose();
     };
     
-    const inputBaseClasses = "w-full bg-white dark:bg-slate-700 border border-brand-border-light dark:border-brand-border-dark rounded-md p-2 text-slate-900 dark:text-white";
+    const inputBaseClasses = "w-full bg-white dark:bg-slate-700 border border-brand-border-light dark:border-[#1A1A1A] rounded-md p-2 text-slate-900 dark:text-white";
 
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-modal-fade-in" onClick={onClose}>
@@ -125,7 +125,7 @@ const CreateAlertModal: React.FC<CreateAlertModalProps> = ({ onClose, onAddAlert
                                     className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-all active:scale-95 ${
                                         notificationChannels.includes(channel)
                                             ? 'bg-brand-primary border-transparent text-white'
-                                            : 'bg-transparent border-brand-border-light dark:border-brand-border-dark text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-brand-dark'
+                                            : 'bg-transparent border-brand-border-light dark:border-[#1A1A1A] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#0A0A0A]'
                                     }`}
                                 >
                                     {channel} Notification

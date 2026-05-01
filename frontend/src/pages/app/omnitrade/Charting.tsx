@@ -102,7 +102,7 @@ export const Charting = () => {
                         <YAxis yAxisId="right" orientation="right" stroke="#64748b" domain={['auto', 'auto']} tick={{ fontSize: 11 }} />
                         <YAxis yAxisId="left" orientation="left" stroke="#64748b" domain={[0, 'auto']} hide />
                         <Tooltip
-                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }}
+                            contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #334155', borderRadius: '8px' }}
                             itemStyle={{ fontSize: '12px' }}
                             labelStyle={{ color: '#94a3b8', marginBottom: '5px' }}
                         />

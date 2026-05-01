@@ -82,7 +82,7 @@ const PineScriptStudio: React.FC = () => {
                 container_id: chartContainerRef.current.id,
                 theme: theme === 'dark' ? 'Dark' : 'Light',
                 locale: 'en',
-                toolbar_bg: theme === 'dark' ? '#0B1120' : '#f1f3f6',
+                toolbar_bg: theme === 'dark' ? '#000000' : '#f1f3f6',
                 enable_publishing: false,
                 hide_side_toolbar: false,
                 allow_symbol_change: true,
@@ -121,16 +121,16 @@ const PineScriptStudio: React.FC = () => {
     };
 
     return (
-        <div ref={splitPaneRef} className="flex flex-col h-full relative bg-[#0B1120] rounded-2xl border border-gray-800 overflow-hidden shadow-2xl">
+        <div ref={splitPaneRef} className="flex flex-col h-full relative bg-[#000000] rounded-2xl border border-gray-800 overflow-hidden shadow-2xl">
             {isResizing && <div className="absolute inset-0 z-50 cursor-row-resize" />}
             
             {/* Top Pane: Chart */}
             <div className="relative min-h-0 transition-all duration-75" style={{ height: `${topPaneHeight}%` }}>
-                <div className="absolute top-4 right-4 z-10 bg-[#0B1120]/80 backdrop-blur-md border border-gray-700 rounded-lg px-3 py-1.5 flex items-center gap-2 text-xs font-mono text-green-400 shadow-lg">
+                <div className="absolute top-4 right-4 z-10 bg-[#000000]/80 backdrop-blur-md border border-gray-700 rounded-lg px-3 py-1.5 flex items-center gap-2 text-xs font-mono text-green-400 shadow-lg">
                     <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                     LIVE PREVIEW
                 </div>
-                <div ref={chartContainerRef} id={`pine_script_studio_chart_${widgetKey}`} className="w-full h-full bg-[#0B1120]" />
+                <div ref={chartContainerRef} id={`pine_script_studio_chart_${widgetKey}`} className="w-full h-full bg-[#000000]" />
             </div>
             
             {/* Resizer */}
@@ -142,20 +142,20 @@ const PineScriptStudio: React.FC = () => {
             </div>
 
             {/* Bottom Pane: Editor IDE */}
-            <div className="flex-1 min-h-0 flex flex-col bg-[#0F172A] relative">
+            <div className="flex-1 min-h-0 flex flex-col bg-[#0A0A0A] relative">
                 
                 {/* IDE Toolbar */}
-                <div className="flex items-center justify-between px-4 py-2 bg-[#0B1120] border-b border-gray-800">
+                <div className="flex items-center justify-between px-4 py-2 bg-[#000000] border-b border-gray-800">
                     <div className="flex items-center gap-2">
                         <button 
                             onClick={() => setActiveTab('editor')}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-t-lg text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'editor' ? 'bg-[#0F172A] text-brand-primary border-t-2 border-brand-primary' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-t-lg text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'editor' ? 'bg-[#0A0A0A] text-brand-primary border-t-2 border-brand-primary' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
                         >
                             <CodeBracketIcon /> Script.pine
                         </button>
                         <button 
                             onClick={() => setActiveTab('console')}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-t-lg text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'console' ? 'bg-[#0F172A] text-brand-primary border-t-2 border-brand-primary' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-t-lg text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'console' ? 'bg-[#0A0A0A] text-brand-primary border-t-2 border-brand-primary' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
                         >
                             <TerminalIcon /> Console
                         </button>
@@ -189,7 +189,7 @@ const PineScriptStudio: React.FC = () => {
                                     size="sm" 
                                     variant="secondary" 
                                     onClick={handleClearPlot}
-                                    className="h-9 text-xs bg-[#0B1120]/80 backdrop-blur border border-gray-700 hover:border-red-500 hover:text-red-500"
+                                    className="h-9 text-xs bg-[#000000]/80 backdrop-blur border border-gray-700 hover:border-red-500 hover:text-red-500"
                                  >
                                     <EraserIcon />
                                  </Button>
@@ -206,7 +206,7 @@ const PineScriptStudio: React.FC = () => {
                     </div>
 
                     {/* Console */}
-                    <div className={`absolute inset-0 bg-[#0F172A] p-4 overflow-y-auto font-mono text-xs transition-opacity duration-300 ${activeTab === 'console' ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                    <div className={`absolute inset-0 bg-[#0A0A0A] p-4 overflow-y-auto font-mono text-xs transition-opacity duration-300 ${activeTab === 'console' ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
                         {consoleLogs.map((log, i) => (
                             <div key={i} className="mb-1 text-gray-400 border-l-2 border-transparent hover:border-gray-600 pl-2">
                                 <span className="text-gray-600 mr-2">[{new Date().toLocaleTimeString()}]</span>
@@ -218,7 +218,7 @@ const PineScriptStudio: React.FC = () => {
                 </div>
                 
                 {/* Status Bar */}
-                <div className="h-6 bg-[#0B1120] border-t border-gray-800 flex items-center justify-between px-4 text-[10px] text-gray-500 font-mono">
+                <div className="h-6 bg-[#000000] border-t border-gray-800 flex items-center justify-between px-4 text-[10px] text-gray-500 font-mono">
                      <div className="flex gap-4">
                         <span>Ln 1, Col 1</span>
                         <span>UTF-8</span>

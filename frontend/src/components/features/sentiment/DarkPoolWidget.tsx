@@ -136,7 +136,7 @@ export const DarkPoolWidget: React.FC<DarkPoolWidgetProps> = ({ symbol = 'BTC' }
                             <BarChart data={mockChartData}>
                                 <Tooltip
                                     cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', fontSize: '12px' }}
+                                    contentStyle={{ backgroundColor: '#0A0A0A', borderColor: '#334155', fontSize: '12px' }}
                                 />
                                 <Bar dataKey="flow" radius={[2, 2, 0, 0]}>
                                     {mockChartData.map((entry, index) => (

@@ -148,7 +148,7 @@ export const VertexForge: React.FC<VertexForgeProps> = ({ bots, onDeploy }) => {
                                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                                         <XAxis dataKey="epoch" stroke="#64748b" />
                                         <YAxis stroke="#64748b" />
-                                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155' }} />
+                                        <Tooltip contentStyle={{ backgroundColor: '#0A0A0A', borderColor: '#334155' }} />
                                         <Line type="monotone" dataKey="loss" stroke="#ef4444" strokeWidth={2} dot={false} />
                                         <Line type="monotone" dataKey="valLoss" stroke="#f59e0b" strokeWidth={2} dot={false} strokeDasharray="5 5" />
                                         <Line type="monotone" dataKey="accuracy" stroke="#10b981" strokeWidth={2} dot={false} yAxisId={0} />

@@ -134,7 +134,7 @@ const CustomIndicatorStudio: React.FC = () => {
                 theme: theme === 'dark' ? 'Dark' : 'Light',
                 style: '1',
                 locale: 'en',
-                toolbar_bg: theme === 'dark' ? '#1E293B' : '#FFFFFF',
+                toolbar_bg: theme === 'dark' ? '#141414' : '#FFFFFF',
                 enable_publishing: false,
                 hide_side_toolbar: false,
                 allow_symbol_change: true,
@@ -291,12 +291,12 @@ const CustomIndicatorStudio: React.FC = () => {
     }, [isResizing, handleMouseMove, handleMouseUp]);
 
     return (
-        <div ref={splitPaneRef} className="flex flex-col h-[calc(100vh-140px)] relative overflow-hidden bg-gray-100 dark:bg-[#0F172A] rounded-2xl border border-brand-border-light dark:border-brand-border-dark shadow-2xl">
+        <div ref={splitPaneRef} className="flex flex-col h-[calc(100vh-140px)] relative overflow-hidden bg-gray-100 dark:bg-[#0A0A0A] rounded-2xl border border-brand-border-light dark:border-[#1A1A1A] shadow-2xl">
             {isResizing && <div className="absolute inset-0 z-50 cursor-row-resize" />}
 
             {/* Top Pane: Chart */}
             <div className="min-h-0 relative group transition-all ease-out duration-75" style={{ height: `${topPaneHeight}%` }}>
-                <div className="absolute inset-0 bg-white dark:bg-brand-dark">
+                <div className="absolute inset-0 bg-white dark:bg-[#0A0A0A]">
                     <div className="absolute top-4 right-4 z-20 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <button
                             onClick={toggleFullScreen}
@@ -321,17 +321,17 @@ const CustomIndicatorStudio: React.FC = () => {
 
             {/* Resizer Bar */}
             <div
-                className="h-3 cursor-row-resize flex items-center justify-center bg-gray-200 dark:bg-[#0B1120] border-y border-gray-300 dark:border-white/10 hover:bg-brand-primary/10 transition-colors z-10"
+                className="h-3 cursor-row-resize flex items-center justify-center bg-gray-200 dark:bg-[#000000] border-y border-gray-300 dark:border-white/10 hover:bg-brand-primary/10 transition-colors z-10"
                 onMouseDown={handleMouseDown}
             >
                 <div className="w-16 h-1 rounded-full bg-gray-400 dark:bg-gray-600"></div>
             </div>
 
             {/* Bottom Pane: Studio */}
-            <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-[#0B1120] relative">
+            <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-[#000000] relative">
 
                 {/* Studio Toolbar */}
-                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0B1120]">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#000000]">
                     <div className="flex gap-1 bg-gray-200 dark:bg-white/5 p-1 rounded-lg">
                         <button
                             onClick={() => setActiveTab('editor')}
@@ -481,7 +481,7 @@ const CustomIndicatorStudio: React.FC = () => {
             </div>
 
             {isChartFullScreen && (
-                <div className="fixed inset-0 z-[100] bg-white dark:bg-brand-darkest p-0 animate-modal-fade-in">
+                <div className="fixed inset-0 z-[100] bg-white dark:bg-[#000000] p-0 animate-modal-fade-in">
                     <div id={`indicator_chart_fullscreen_${widgetKey}`} className="w-full h-full" />
                     <button
                         onClick={toggleFullScreen}

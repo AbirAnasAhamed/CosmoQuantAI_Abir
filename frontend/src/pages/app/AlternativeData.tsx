@@ -59,7 +59,7 @@ const ScanLine = () => (
 );
 
 const DataMetric: React.FC<{ label: string; value: string; trend?: number; sub?: string }> = ({ label, value, trend, sub }) => (
-    <div className="bg-white/80 dark:bg-brand-darkest/60 backdrop-blur-md border border-gray-200 dark:border-brand-border-dark p-4 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden group hover:border-brand-primary/30 transition-all">
+    <div className="bg-white/80 dark:bg-[#000000]/60 backdrop-blur-md border border-gray-200 dark:border-[#1A1A1A] p-4 rounded-xl shadow-sm flex flex-col justify-between relative overflow-hidden group hover:border-brand-primary/30 transition-all">
         {/* Hover glow */}
         <div className="absolute -right-10 -top-10 w-24 h-24 bg-brand-primary/10 rounded-full blur-2xl group-hover:bg-brand-primary/20 transition-all duration-500"></div>
 
@@ -84,7 +84,7 @@ const SatelliteView: React.FC = () => {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
             {/* Visual Map Panel */}
-            <div className="lg:col-span-2 relative bg-slate-900 rounded-2xl overflow-hidden border border-brand-border-dark shadow-2xl group">
+            <div className="lg:col-span-2 relative bg-slate-900 rounded-2xl overflow-hidden border border-[#1A1A1A] shadow-2xl group">
                 {/* Simulated Satellite Map Background */}
                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-30"></div>
                 <div className="absolute inset-0" style={{
@@ -138,7 +138,7 @@ const SatelliteView: React.FC = () => {
                                 <XAxis dataKey="week" hide />
                                 <YAxis hide domain={['dataMin - 100', 'dataMax + 100']} />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#0F172A', border: 'none', borderRadius: '8px' }}
+                                    contentStyle={{ backgroundColor: '#0A0A0A', border: 'none', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
                                 />
                                 <Area type="monotone" dataKey="count" stroke="#6366F1" strokeWidth={2} fill="url(#satGradient)" />
@@ -186,7 +186,7 @@ const TransactionView: React.FC = () => {
                                 <XAxis dataKey="date" stroke="#94A3B8" tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} fontSize={10} axisLine={false} tickLine={false} />
                                 <YAxis stroke="#94A3B8" fontSize={10} axisLine={false} tickLine={false} />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px' }}
+                                    contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #334155', borderRadius: '8px' }}
                                     labelStyle={{ color: '#94A3B8' }}
                                 />
                                 <Legend />
@@ -225,7 +225,7 @@ const GeolocationView: React.FC = () => {
     return (
         <div className="h-full flex flex-col">
             <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 relative rounded-2xl overflow-hidden border border-brand-border-light dark:border-brand-border-dark shadow-xl">
+                <div className="lg:col-span-2 relative rounded-2xl overflow-hidden border border-brand-border-light dark:border-[#1A1A1A] shadow-xl">
                     {/* Map Base */}
                     <div className="absolute inset-0 bg-gray-200 dark:bg-slate-800">
                         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" className="opacity-20">
@@ -287,7 +287,7 @@ const JobPostingsView: React.FC = () => {
                             <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={true} vertical={false} />
                             <XAxis type="number" hide />
                             <YAxis dataKey="dept" type="category" width={100} tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
-                            <Tooltip contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px' }} />
+                            <Tooltip contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #334155', borderRadius: '8px' }} />
                             <Bar dataKey="openings" radius={[0, 4, 4, 0]}>
                                 {MOCK_JOB_POSTINGS_DATA.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={['#8B5CF6', '#A78BFA', '#C4B5FD', '#DDD6FE'][index % 4]} />
@@ -332,8 +332,8 @@ const AlternativeData: React.FC = () => {
         <div className="h-[calc(100vh-140px)] flex flex-col gap-6 animate-fade-in-slide-up">
 
             {/* Control Deck */}
-            <div className="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-brand-dark border border-brand-border-light dark:border-brand-border-dark p-2 rounded-2xl shadow-sm flex-shrink-0">
-                <div className="flex p-1 bg-gray-100 dark:bg-brand-darkest/50 rounded-xl overflow-x-auto no-scrollbar w-full md:w-auto">
+            <div className="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-2 rounded-2xl shadow-sm flex-shrink-0">
+                <div className="flex p-1 bg-gray-100 dark:bg-[#000000]/50 rounded-xl overflow-x-auto no-scrollbar w-full md:w-auto">
                     {navItems.map((item) => (
                         <button
                             key={item.id}

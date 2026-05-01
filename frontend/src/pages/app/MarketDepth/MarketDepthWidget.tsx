@@ -56,7 +56,7 @@ const SymbolSelector: React.FC<{
                     leaveTo="opacity-0"
                     afterLeave={() => setQuery('')}
                 >
-                    <Combobox.Options className="absolute mt-1 max-h-60 min-w-[150px] overflow-auto rounded-md bg-white dark:bg-[#1e293b] py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm z-50 custom-scrollbar">
+                    <Combobox.Options className="absolute mt-1 max-h-60 min-w-[150px] overflow-auto rounded-md bg-white dark:bg-[#141414] py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm z-50 custom-scrollbar">
                         {filtered.length === 0 && query !== '' ? (
                             <div className="relative cursor-default select-none py-2 px-4 text-gray-700 dark:text-gray-400">
                                 Nothing found.
@@ -331,7 +331,7 @@ const MarketDepthWidget: React.FC = () => {
     return (
         <div className="h-full flex flex-col p-6 space-y-4">
             {/* Header Section */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white dark:bg-[#1e293b] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white dark:bg-[#141414] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
                 <div>
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <Activity className="text-brand-primary w-5 h-5" />
@@ -341,14 +341,14 @@ const MarketDepthWidget: React.FC = () => {
 
                 <div className="flex flex-wrap items-center gap-2">
                     {/* Controls Group */}
-                    <div className='flex items-center gap-2 bg-gray-50 dark:bg-[#0f172a] px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700'>
+                    <div className='flex items-center gap-2 bg-gray-50 dark:bg-[#0A0A0A] px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700'>
                         {/* Exchange */}
                         <div className="flex flex-col">
                             <span className="text-[10px] text-gray-500 uppercase font-bold">Exchange</span>
                             <select
                                 value={selectedExchange}
                                 onChange={(e) => setSelectedExchange(e.target.value)}
-                                className="bg-transparent text-xs font-bold text-slate-700 dark:text-gray-200 focus:outline-none cursor-pointer max-w-[80px] dark:bg-[#0f172a]"
+                                className="bg-transparent text-xs font-bold text-slate-700 dark:text-gray-200 focus:outline-none cursor-pointer max-w-[80px] dark:bg-[#0A0A0A]"
                             >
                                 {availableExchanges.map(ex => <option key={ex} value={ex}>{ex.toUpperCase()}</option>)}
                             </select>
@@ -367,14 +367,14 @@ const MarketDepthWidget: React.FC = () => {
                     </div>
 
                     {/* Timeframe & Bucket */}
-                    <div className='flex items-center gap-2 bg-gray-50 dark:bg-[#0f172a] px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700'>
+                    <div className='flex items-center gap-2 bg-gray-50 dark:bg-[#0A0A0A] px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700'>
                         {/* Timeframe */}
                         <div className="flex flex-col">
                             <span className="text-[10px] text-gray-500 uppercase font-bold">Time</span>
                             <select
                                 value={selectedTimeframe}
                                 onChange={(e) => setSelectedTimeframe(e.target.value)}
-                                className="bg-transparent text-xs font-bold text-brand-primary focus:outline-none cursor-pointer dark:bg-[#0f172a]"
+                                className="bg-transparent text-xs font-bold text-brand-primary focus:outline-none cursor-pointer dark:bg-[#0A0A0A]"
                             >
                                 {timeframeOptions.map(tf => <option key={tf} value={tf}>{tf}</option>)}
                             </select>
@@ -387,7 +387,7 @@ const MarketDepthWidget: React.FC = () => {
                             <select
                                 value={bucketSize}
                                 onChange={(e) => setBucketSize(parseFloat(e.target.value))}
-                                className="bg-transparent text-xs font-bold text-brand-primary focus:outline-none cursor-pointer dark:bg-[#0f172a]"
+                                className="bg-transparent text-xs font-bold text-brand-primary focus:outline-none cursor-pointer dark:bg-[#0A0A0A]"
                             >
                                 {bucketOptions.map(b => <option key={b} value={b}>${b}</option>)}
                             </select>

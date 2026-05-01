@@ -2245,8 +2245,8 @@ const OrderFlowHeatmap: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-brand-light dark:bg-brand-darkest text-slate-900 dark:text-white overflow-hidden rounded-xl border border-gray-200 dark:border-white/10">
-            <header className="relative z-40 flex-shrink-0 p-4 border-b border-gray-200 dark:border-white/10 flex justify-between items-center bg-white dark:bg-[#0B1120]">
+        <div className="flex flex-col h-full bg-brand-light dark:bg-[#000000] text-slate-900 dark:text-white overflow-hidden rounded-xl border border-gray-200 dark:border-white/10">
+            <header className="relative z-40 flex-shrink-0 p-4 border-b border-gray-200 dark:border-white/10 flex justify-between items-center bg-white dark:bg-[#000000]">
                 <div className="flex items-center gap-4">
                     <HeatmapSymbolSelector symbol={symbol} exchange={exchange} onSymbolChange={setSymbol} onExchangeChange={setExchange} />
                     <TimeframeSelector interval={interval} onIntervalChange={setInterval} />
@@ -2314,10 +2314,10 @@ const OrderFlowHeatmap: React.FC = () => {
                 onAdvancedMetricsChange={onAdvancedMetricsChange}
             />
 
-            <div className={isFullscreen ? 'fixed inset-0 z-[200] bg-gray-50 dark:bg-[#050B14] p-4' : 'flex-1 p-4 overflow-hidden relative bg-gray-50 dark:bg-[#050B14]'}>
+            <div className={isFullscreen ? 'fixed inset-0 z-[200] bg-gray-50 dark:bg-[#000000] p-4' : 'flex-1 p-4 overflow-hidden relative bg-gray-50 dark:bg-[#000000]'}>
                 {/* IN FULLSCREEN MODE, RENDER ONLY THE MAIN CHART WITHOUT THE LEFT PADDING. OTHERWISE RENDER NORMALLY */}
                 <div className={`flex flex-row h-full gap-4 ${isFullscreen ? 'flex-col' : ''}`}>
-                    <div className={`${isFullscreen ? 'w-full h-full' : 'w-[70%]'} bg-white dark:bg-[#0B1120] rounded-xl border border-gray-200 dark:border-white/5 overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex flex-col`}>
+                    <div className={`${isFullscreen ? 'w-full h-full' : 'w-[70%]'} bg-white dark:bg-[#000000] rounded-xl border border-gray-200 dark:border-white/5 overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex flex-col`}>
                         <div className="p-3 border-b border-gray-200 dark:border-white/5 flex justify-between items-center">
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Order Flow Chart</h3>
                             <button
@@ -2336,7 +2336,7 @@ const OrderFlowHeatmap: React.FC = () => {
                         </div>
                     </div>
                     {!isFullscreen && (
-                        <div className="w-[30%] bg-white dark:bg-[#0B1120] rounded-xl border border-gray-200 dark:border-white/5 overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex flex-col">
+                        <div className="w-[30%] bg-white dark:bg-[#000000] rounded-xl border border-gray-200 dark:border-white/5 overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] flex flex-col">
                             <div className="p-3 border-b border-gray-200 dark:border-white/5 flex justify-between items-center">
                                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Level 2 Order Book</h3>
                             </div>
@@ -2428,7 +2428,7 @@ const OrderFlowHeatmap: React.FC = () => {
                 {/* BOT SETTINGS MODAL */}
                 {activeTab === 'bot_settings' && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="relative w-[90%] md:w-[70%] lg:w-[60%] max-w-4xl max-h-[90vh] bg-white dark:bg-[#0B1120] rounded-xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex flex-col transform transition-all scale-100">
+                        <div className="relative w-[90%] md:w-[70%] lg:w-[60%] max-w-4xl max-h-[90vh] bg-white dark:bg-[#000000] rounded-xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex flex-col transform transition-all scale-100">
                             <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-white/10 shrink-0">
                                 <h2 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-primary to-purple-500">OrderBlockBot Configuration</h2>
                                 <button
@@ -2448,7 +2448,7 @@ const OrderFlowHeatmap: React.FC = () => {
                 {/* BOT LOGS MODAL */}
                 {activeTab === 'bot_logs' && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="relative w-[90%] md:w-[70%] lg:w-[60%] max-w-4xl max-h-[90vh] bg-white dark:bg-[#0B1120] rounded-xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex flex-col transform transition-all scale-100">
+                        <div className="relative w-[90%] md:w-[70%] lg:w-[60%] max-w-4xl max-h-[90vh] bg-white dark:bg-[#000000] rounded-xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex flex-col transform transition-all scale-100">
                             <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-white/10 shrink-0">
                                 <h2 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-primary to-purple-500">OrderBlockBot Terminal Logs</h2>
                                 <button

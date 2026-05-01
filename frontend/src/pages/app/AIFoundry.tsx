@@ -34,7 +34,7 @@ const parseParamsFromCode = (code: string): Record<string, OptimizableParamConfi
 };
 
 const MetricCard: React.FC<{ label: string; value: string; positive?: boolean; icon?: React.ReactNode }> = ({ label, value, positive, icon }) => (
-    <div className="relative group bg-white dark:bg-brand-dark/40 border border-gray-200 dark:border-white/10 p-5 rounded-xl overflow-hidden transition-all hover:border-brand-primary/50">
+    <div className="relative group bg-white dark:bg-[#0A0A0A]/40 border border-gray-200 dark:border-white/10 p-5 rounded-xl overflow-hidden transition-all hover:border-brand-primary/50">
         <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity text-brand-primary">
             {icon}
         </div>
@@ -97,7 +97,7 @@ const RangeSliderInput: React.FC<{
         }
     };
     
-    const inputClasses = "w-full bg-gray-100 dark:bg-brand-dark/60 border-none rounded-lg p-1.5 text-center text-xs font-mono text-slate-900 dark:text-white focus:ring-1 focus:ring-brand-primary";
+    const inputClasses = "w-full bg-gray-100 dark:bg-[#0A0A0A]/60 border-none rounded-lg p-1.5 text-center text-xs font-mono text-slate-900 dark:text-white focus:ring-1 focus:ring-brand-primary";
 
     return (
         <div className="bg-white dark:bg-white/5 p-4 rounded-xl border border-gray-200 dark:border-white/10">
@@ -358,7 +358,7 @@ RULES:
                 
                 {/* Strategy Composer - Resizable Height */}
                 <div style={{ height: window.innerWidth >= 1024 ? `${composerHeight}%` : 'auto' }} className="flex flex-col min-h-[300px]">
-                    <div className="bg-white dark:bg-brand-dark border border-brand-border-light dark:border-brand-border-dark rounded-2xl shadow-lg relative overflow-hidden flex flex-col h-full">
+                    <div className="bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] rounded-2xl shadow-lg relative overflow-hidden flex flex-col h-full">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
                         
                         <div className="p-6 pb-0 flex-shrink-0">
@@ -381,7 +381,7 @@ RULES:
                                     rows={window.innerWidth >= 1024 ? undefined : 5} 
                                     value={prompt} 
                                     onChange={(e) => setPrompt(e.target.value)}
-                                    className="w-full bg-gray-50 dark:bg-brand-darkest/50 border border-gray-200 dark:border-white/10 rounded-xl p-4 text-slate-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-brand-primary focus:border-transparent resize-none font-sans text-sm leading-relaxed shadow-inner transition-all h-32 lg:h-auto lg:flex-grow"
+                                    className="w-full bg-gray-50 dark:bg-[#000000]/50 border border-gray-200 dark:border-white/10 rounded-xl p-4 text-slate-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-brand-primary focus:border-transparent resize-none font-sans text-sm leading-relaxed shadow-inner transition-all h-32 lg:h-auto lg:flex-grow"
                                     style={{ minHeight: '100px', maxHeight: '100%' }}
                                     placeholder="Example: Create a mean reversion strategy for BTC/USDT. Buy when RSI(14) is below 30 and price is below the lower Bollinger Band. Sell when RSI is above 70." 
                                 />
@@ -435,14 +435,14 @@ RULES:
 
                 {/* Model & Fine-tuning */}
                 <div className="flex-1 flex flex-col min-h-[200px] overflow-y-auto">
-                    <div className="bg-white dark:bg-brand-dark border border-brand-border-light dark:border-brand-border-dark rounded-2xl p-6 shadow-sm h-full">
+                    <div className="bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] rounded-2xl p-6 shadow-sm h-full">
                         <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide mb-4">Model Configuration</h3>
                         
                         <div className="space-y-5">
                              <div>
                                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Inference Model</label>
                                 <select value={generationModel} onChange={(e) => setGenerationModel(e.target.value)}
-                                    className="w-full bg-gray-50 dark:bg-brand-darkest/50 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm text-slate-900 dark:text-white focus:ring-brand-primary focus:border-brand-primary">
+                                    className="w-full bg-gray-50 dark:bg-[#000000]/50 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-sm text-slate-900 dark:text-white focus:ring-brand-primary focus:border-brand-primary">
                                     <optgroup label="Base Models">
                                         <option value="gemini-2.5-pro">Gemini 2.5 Pro (General)</option>
                                         <option value="quant-finetuned-v1">Quant-Finetuned v1 (Advanced)</option>
@@ -455,7 +455,7 @@ RULES:
                                 </select>
                             </div>
 
-                            <div className="p-4 bg-gray-50 dark:bg-brand-darkest/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+                            <div className="p-4 bg-gray-50 dark:bg-[#000000]/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
                                 <div className="flex justify-between items-center mb-2">
                                     <h4 className="text-sm font-semibold text-slate-900 dark:text-white">Knowledge Base</h4>
                                     <span className="text-[10px] bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded-full">Fine-tune</span>
@@ -463,7 +463,7 @@ RULES:
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Upload CSV data to specialize the model.</p>
                                 
                                 <div className="flex items-center gap-2">
-                                    <label htmlFor="fine-tune-upload" className="cursor-pointer bg-white dark:bg-brand-dark hover:bg-gray-50 dark:hover:bg-white/5 border border-gray-200 dark:border-gray-700 text-brand-primary text-xs font-bold py-2 px-3 rounded-lg transition-colors">
+                                    <label htmlFor="fine-tune-upload" className="cursor-pointer bg-white dark:bg-[#0A0A0A] hover:bg-gray-50 dark:hover:bg-white/5 border border-gray-200 dark:border-gray-700 text-brand-primary text-xs font-bold py-2 px-3 rounded-lg transition-colors">
                                         Choose File
                                         <input id="fine-tune-upload" type="file" className="sr-only" onChange={(e) => setFineTuneFileName(e.target.files?.[0].name || '')} accept=".csv" disabled={isFineTuning}/>
                                     </label>
@@ -480,7 +480,7 @@ RULES:
                                             <span>Training...</span>
                                             <span>{fineTuningProgress}%</span>
                                         </div>
-                                        <div className="w-full bg-gray-200 dark:bg-brand-darkest rounded-full h-1">
+                                        <div className="w-full bg-gray-200 dark:bg-[#000000] rounded-full h-1">
                                             <div className="bg-brand-success h-1 rounded-full transition-all duration-300" style={{width: `${fineTuningProgress}%`}}></div>
                                         </div>
                                     </div>
@@ -503,9 +503,9 @@ RULES:
             <div className="h-6 lg:hidden"></div>
 
             {/* RIGHT PANEL: THE FORGE (Output) */}
-            <div className="flex-1 flex flex-col bg-white dark:bg-brand-dark border border-brand-border-light dark:border-brand-border-dark rounded-2xl shadow-xl overflow-hidden h-full">
+            <div className="flex-1 flex flex-col bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] rounded-2xl shadow-xl overflow-hidden h-full">
                 {/* Forge Header */}
-                <div className="flex items-center justify-between px-6 py-3 border-b border-brand-border-light dark:border-brand-border-dark bg-gray-50 dark:bg-brand-darkest/30">
+                <div className="flex items-center justify-between px-6 py-3 border-b border-brand-border-light dark:border-[#1A1A1A] bg-gray-50 dark:bg-[#000000]/30">
                     <div className="flex space-x-6 overflow-x-auto no-scrollbar">
                         {['code', 'results', 'optimize'].map(tab => (
                             <button 
@@ -566,7 +566,7 @@ RULES:
                                 </div>
                             )}
 
-                            <div className="h-80 bg-white dark:bg-brand-darkest/30 rounded-xl border border-gray-200 dark:border-white/5 p-4">
+                            <div className="h-80 bg-white dark:bg-[#000000]/30 rounded-xl border border-gray-200 dark:border-white/5 p-4">
                                 <ResponsiveContainer width="100%" height="100%">
                                    <LineChart data={EQUITY_CURVE_DATA}>
                                        <defs>
@@ -610,7 +610,7 @@ RULES:
                                             <span>Processing Generations...</span>
                                             <span>{optimizationProgress}%</span>
                                         </div>
-                                        <div className="w-full bg-gray-200 dark:bg-brand-darkest rounded-full h-2">
+                                        <div className="w-full bg-gray-200 dark:bg-[#000000] rounded-full h-2">
                                             <div className="bg-gradient-to-r from-brand-primary to-purple-500 h-2 rounded-full transition-all duration-300" style={{width: `${optimizationProgress}%`}}></div>
                                         </div>
                                     </div>

@@ -105,7 +105,7 @@ export const ArbitrageScannerWidget: React.FC = () => {
     };
 
     return (
-        <div className="relative h-full flex flex-col rounded-2xl overflow-hidden border border-slate-700/50 bg-[#0f172a] shadow-2xl">
+        <div className="relative h-full flex flex-col rounded-2xl overflow-hidden border border-slate-700/50 bg-[#0A0A0A] shadow-2xl">
             {/* --- Background Effects --- */}
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50"></div>

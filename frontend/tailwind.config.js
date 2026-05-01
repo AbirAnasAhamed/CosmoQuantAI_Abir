@@ -15,22 +15,22 @@ export default {
                 sans: ['Inter', 'sans-serif'],
             },
             colors: {
-                'brand-darkest': '#0F172A',       // slate-900
-                'brand-dark': '#1E293B',          // slate-800
+                'brand-darkest': '#000000',       // pure black
+                'brand-dark': '#0A0A0A',          // almost black
                 'brand-primary': '#6366F1',       // indigo-500
                 'brand-primary-hover': '#4F46E5', // indigo-600
-                'brand-nav-active': '#312E81',   // indigo-800
+                'brand-nav-active': '#111111',   // very dark gray
                 'brand-success': '#10B981',       // emerald-500
                 'brand-success-light': '#6EE7B7', // emerald-300
                 'brand-danger': '#F43F5E',        // rose-500
                 'brand-danger-light': '#FDA4AF',  // rose-300
                 'brand-warning': '#FBBF24',       // amber-400
                 'brand-light': '#F8FAFC',         // slate-50
-                'brand-border-dark': '#334155',   // slate-700
+                'brand-border-dark': '#1F1F1F',   // dark gray border
                 'brand-border-light': '#E2E8F0',  // slate-200
                 omni: {
-                    bg: '#0B1120',      // Deep dark background
-                    panel: '#1e293b',   // Panel background (slate-800)
+                    bg: '#000000',      // Deep dark background
+                    panel: '#0A0A0A',   // Panel background
                     accent: '#6366f1',  // Indigo-500 (Primary Accent)
                     success: '#10b981', // Emerald-500
                     warning: '#f59e0b', // Amber-500

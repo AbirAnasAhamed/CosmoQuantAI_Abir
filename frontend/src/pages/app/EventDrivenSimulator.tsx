@@ -301,7 +301,7 @@ const EventDrivenSimulator: React.FC = () => {
         <div className="flex h-[calc(100vh-8rem)] gap-6 p-2">
             {/* Left Configuration Panel */}
             <div className="w-1/3 flex flex-col gap-6">
-                <Card className="p-6 bg-white dark:bg-[#1e293b] border-slate-200 dark:border-slate-700 shadow-xl overflow-y-auto max-h-[70vh]">
+                <Card className="p-6 bg-white dark:bg-[#141414] border-slate-200 dark:border-slate-700 shadow-xl overflow-y-auto max-h-[70vh]">
                     <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
                         <Activity className="text-brand-primary" />
                         Simulation Config
@@ -543,13 +543,13 @@ const EventDrivenSimulator: React.FC = () => {
 
                 {/* Real-time Stats */}
                 <div className="grid grid-cols-2 gap-4">
-                    <Card className="p-4 bg-white dark:bg-[#1e293b] border-l-4 border-emerald-500">
+                    <Card className="p-4 bg-white dark:bg-[#141414] border-l-4 border-emerald-500">
                         <p className="text-sm text-slate-500">Net PnL</p>
                         <p className={`text-2xl font-bold ${pnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                             ${pnl.toFixed(2)}
                         </p>
                     </Card>
-                    <Card className="p-4 bg-white dark:bg-[#1e293b] border-l-4 border-blue-500">
+                    <Card className="p-4 bg-white dark:bg-[#141414] border-l-4 border-blue-500">
                         <p className="text-sm text-slate-500">Holdings</p>
                         <p className="text-2xl font-bold text-slate-800 dark:text-white">
                             {holdings}
@@ -561,7 +561,7 @@ const EventDrivenSimulator: React.FC = () => {
             {/* Right Monitor Panel */}
             <div className="flex-1 flex flex-col gap-6">
                 {/* Live Chart */}
-                <Card className="h-1/3 bg-white dark:bg-[#1e293b] p-4 relative overflow-hidden flex flex-col">
+                <Card className="h-1/3 bg-white dark:bg-[#141414] p-4 relative overflow-hidden flex flex-col">
                     <div className="absolute top-4 left-4 z-10 flex gap-2">
                         <div className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
                             <span className="text-xs font-mono text-white flex items-center gap-2">
@@ -575,7 +575,7 @@ const EventDrivenSimulator: React.FC = () => {
                             ref={chartRef}
                             data={marketData}
                             colors={{
-                                backgroundColor: '#1e293b',
+                                backgroundColor: '#141414',
                                 textColor: '#CBD5E1'
                             }}
                         />
@@ -583,7 +583,7 @@ const EventDrivenSimulator: React.FC = () => {
                 </Card>
 
                 {/* Order Book - NEW */}
-                <Card className="h-1/4 bg-white dark:bg-[#1e293b] p-0 relative overflow-hidden flex flex-col">
+                <Card className="h-1/4 bg-white dark:bg-[#141414] p-0 relative overflow-hidden flex flex-col">
                     <div className="absolute top-2 left-2 z-10 bg-slate-900/80 px-2 py-1 rounded text-xs text-white border border-slate-700">
                         Order Book (Simulated)
                     </div>
@@ -596,7 +596,7 @@ const EventDrivenSimulator: React.FC = () => {
                 </Card>
 
                 {/* Equity Curve */}
-                <Card className="h-1/6 bg-white dark:bg-[#1e293b] p-4 relative overflow-hidden flex flex-col">
+                <Card className="h-1/6 bg-white dark:bg-[#141414] p-4 relative overflow-hidden flex flex-col">
                     <EquityCurve data={equityData} />
                 </Card>
 

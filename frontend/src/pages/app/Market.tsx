@@ -47,7 +47,7 @@ const NewsTickerBar: React.FC = () => {
 
     return (
         <>
-            <div className="flex items-center gap-4 overflow-hidden bg-white dark:bg-brand-dark border border-brand-border-light dark:border-brand-border-dark rounded-xl p-2 shadow-sm flex-shrink-0">
+            <div className="flex items-center gap-4 overflow-hidden bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] rounded-xl p-2 shadow-sm flex-shrink-0">
                 <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-lg flex-shrink-0">
                     <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
@@ -76,7 +76,7 @@ const NewsTickerBar: React.FC = () => {
             {selectedNews && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-modal-fade-in" onClick={() => setSelectedNews(null)}>
                     <div
-                        className="bg-white dark:bg-[#0F172A] w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden animate-modal-content-slide-down"
+                        className="bg-white dark:bg-[#0A0A0A] w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden animate-modal-content-slide-down"
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="p-6 relative">
@@ -149,7 +149,7 @@ const OrderBook: React.FC<{ bids: OrderBookEntry[], asks: OrderBookEntry[], spre
     };
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 dark:bg-brand-darkest/30 rounded-lg overflow-hidden">
+        <div className="flex flex-col h-full bg-slate-50 dark:bg-[#000000]/30 rounded-lg overflow-hidden">
             <div className="grid grid-cols-3 text-[10px] uppercase tracking-wider text-gray-400 p-2 border-b border-gray-200 dark:border-white/5 font-semibold">
                 <span>Price (USDT)</span>
                 <span className="text-right">Amt (BTC)</span>
@@ -174,7 +174,7 @@ const OrderBook: React.FC<{ bids: OrderBookEntry[], asks: OrderBookEntry[], spre
 
 // --- RecentTrades Component (অপরিবর্তিত) ---
 const RecentTrades: React.FC<{ trades: TradeWithStatus[] }> = ({ trades }) => (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-brand-darkest/30 rounded-lg overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#000000]/30 rounded-lg overflow-hidden">
         <div className="grid grid-cols-3 text-[10px] uppercase tracking-wider text-gray-400 p-2 border-b border-gray-200 dark:border-white/5 font-semibold">
             <span>Time</span>
             <span className="text-right">Price</span>
@@ -230,8 +230,8 @@ const ConnectExchangeModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-modal-fade-in" onClick={onClose}>
-            <div className="bg-white dark:bg-brand-darkest w-full max-w-2xl rounded-2xl shadow-2xl border border-brand-border-light dark:border-brand-border-dark flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-                <header className="flex justify-between items-center p-6 border-b border-brand-border-light dark:border-brand-border-dark bg-gray-50 dark:bg-white/5">
+            <div className="bg-white dark:bg-[#000000] w-full max-w-2xl rounded-2xl shadow-2xl border border-brand-border-light dark:border-[#1A1A1A] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                <header className="flex justify-between items-center p-6 border-b border-brand-border-light dark:border-[#1A1A1A] bg-gray-50 dark:bg-white/5">
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white">Manage Exchanges</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">&times;</button>
                 </header>
@@ -240,7 +240,7 @@ const ConnectExchangeModal: React.FC<{
                         <div key={exchange.id} className="flex flex-col gap-3 p-4 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="p-2 bg-white dark:bg-brand-dark rounded-lg shadow-sm">
+                                    <div className="p-2 bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm">
                                         {exchange.logo}
                                     </div>
                                     <div>
@@ -606,7 +606,7 @@ const Market: React.FC = () => {
     const spreadPercent = bids[0]?.price ? (spread / bids[0].price) * 100 : 0;
 
     // --- UI Helpers ---
-    const inputClasses = "w-full bg-white dark:bg-brand-darkest border border-brand-border-light dark:border-white/10 rounded-md px-3 py-2.5 text-sm text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none transition font-mono";
+    const inputClasses = "w-full bg-white dark:bg-[#000000] border border-brand-border-light dark:border-white/10 rounded-md px-3 py-2.5 text-sm text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none transition font-mono";
     const activeColorClass = activeOrderFormTab === 'buy' ? 'text-emerald-500 border-emerald-500' : 'text-rose-500 border-rose-500';
     const activeBgClass = activeOrderFormTab === 'buy' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-rose-500 hover:bg-rose-600';
     const activeGradientClass = activeOrderFormTab === 'buy' ? 'from-emerald-500/20 to-emerald-500/5' : 'from-rose-500/20 to-rose-500/5';
@@ -628,7 +628,7 @@ const Market: React.FC = () => {
             <NewsTickerBar />
 
             {/* Market HUD */}
-            <div className="flex-shrink-0 staggered-fade-in bg-white dark:bg-brand-dark rounded-2xl border border-brand-border-light dark:border-brand-border-dark p-4 shadow-lg relative overflow-hidden">
+            <div className="flex-shrink-0 staggered-fade-in bg-white dark:bg-[#0A0A0A] rounded-2xl border border-brand-border-light dark:border-[#1A1A1A] p-4 shadow-lg relative overflow-hidden">
                 <div className={`absolute top-0 right-0 w-96 h-full bg-gradient-to-l ${isPositive ? 'from-emerald-500/10' : 'from-rose-500/10'} to-transparent pointer-events-none`}></div>
 
                 <div className="flex flex-wrap items-center justify-between gap-6 relative z-10">
@@ -692,9 +692,9 @@ const Market: React.FC = () => {
 
                 {/* Chart Area (Now with TradingView) */}
                 <div className="h-full flex flex-col transition-all duration-75" style={{ width: `${leftPaneWidth}%` }}>
-                    <Card className="h-full p-0 overflow-hidden border-0 shadow-xl bg-white dark:bg-brand-dark relative group flex flex-col">
+                    <Card className="h-full p-0 overflow-hidden border-0 shadow-xl bg-white dark:bg-[#0A0A0A] relative group flex flex-col">
                         {/* Custom Timeframe Toolbar (Optional: TradingView has its own, but keeping this for UI consistency if needed) */}
-                        <div className="flex items-center gap-1 p-2 border-b border-gray-200 dark:border-white/5 overflow-x-auto no-scrollbar bg-white dark:bg-[#0F172A] z-10">
+                        <div className="flex items-center gap-1 p-2 border-b border-gray-200 dark:border-white/5 overflow-x-auto no-scrollbar bg-white dark:bg-[#0A0A0A] z-10">
                             {['1m', '5m', '15m', '1h', '4h', '1d', '1w'].map((tf) => (
                                 <button
                                     key={tf}
@@ -710,7 +710,7 @@ const Market: React.FC = () => {
                         </div>
 
                         {/* TradingView Container */}
-                        <div className="flex-1 w-full relative bg-white dark:bg-[#0F172A]">
+                        <div className="flex-1 w-full relative bg-white dark:bg-[#0A0A0A]">
                             <div id={`tv_chart_container_${widgetKey}`} className="w-full h-full" />
                         </div>
 
@@ -732,13 +732,13 @@ const Market: React.FC = () => {
                 <div className="h-full flex flex-col gap-3" style={{ width: `calc(${100 - leftPaneWidth}% - 12px)` }}>
 
                     {/* Tab Switcher */}
-                    <div className="flex p-1 bg-gray-200 dark:bg-brand-dark rounded-xl">
+                    <div className="flex p-1 bg-gray-200 dark:bg-[#0A0A0A] rounded-xl">
                         {(['trade', 'orderBook', 'trades'] as const).map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveSidePanelTab(tab)}
                                 className={`flex-1 py-2 text-xs font-bold uppercase tracking-wide rounded-lg transition-all duration-200 ${activeSidePanelTab === tab
-                                    ? 'bg-white dark:bg-brand-darkest text-brand-primary shadow-sm'
+                                    ? 'bg-white dark:bg-[#000000] text-brand-primary shadow-sm'
                                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'
                                     }`}
                             >
@@ -756,7 +756,7 @@ const Market: React.FC = () => {
                         <div className="flex-1 min-h-0 p-4 overflow-y-auto">
                             {activeSidePanelTab === 'trade' && (
                                 <div className="h-full flex flex-col">
-                                    <div className="flex mb-6 bg-gray-100 dark:bg-brand-darkest/50 p-1 rounded-xl">
+                                    <div className="flex mb-6 bg-gray-100 dark:bg-[#000000]/50 p-1 rounded-xl">
                                         <button onClick={() => setActiveOrderFormTab('buy')} className={`flex-1 py-3 text-center font-bold rounded-lg transition-all duration-200 ${activeOrderFormTab === 'buy' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25' : 'text-gray-500 hover:bg-white/5'}`}>Buy / Long</button>
                                         <button onClick={() => setActiveOrderFormTab('sell')} className={`flex-1 py-3 text-center font-bold rounded-lg transition-all duration-200 ${activeOrderFormTab === 'sell' ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/25' : 'text-gray-500 hover:bg-white/5'}`}>Sell / Short</button>
                                     </div>
@@ -883,9 +883,9 @@ const Market: React.FC = () => {
             {/* Fullscreen Chart Modal */}
             {
                 isChartFullScreen && (
-                    <div className="fixed inset-0 z-[100] bg-white dark:bg-brand-darkest p-0 animate-modal-fade-in">
+                    <div className="fixed inset-0 z-[100] bg-white dark:bg-[#000000] p-0 animate-modal-fade-in">
                         <div id={`tv_chart_container_fullscreen_${widgetKey}`} className="w-full h-full" />
-                        <button onClick={toggleFullScreen} className="absolute top-4 right-4 z-20 p-2 bg-brand-darkest/50 backdrop-blur-md rounded-lg text-white hover:bg-brand-darkest transition-colors">
+                        <button onClick={toggleFullScreen} className="absolute top-4 right-4 z-20 p-2 bg-[#000000]/50 backdrop-blur-md rounded-lg text-white hover:bg-[#000000] transition-colors">
                             <CollapseIcon />
                         </button>
                     </div>

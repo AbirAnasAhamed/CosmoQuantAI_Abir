@@ -48,7 +48,7 @@ const FilterSlider: React.FC<{
                     <span>{values.max}</span>
                 </div>
             </div>
-            <div className="relative h-2 w-full rounded-full bg-gray-200 dark:bg-brand-dark">
+            <div className="relative h-2 w-full rounded-full bg-gray-200 dark:bg-[#0A0A0A]">
                 <div 
                     className="absolute h-full bg-brand-primary/50 rounded-full" 
                     style={{ left: `${minPos}%`, right: `${100 - maxPos}%` }}
@@ -127,8 +127,8 @@ const Screener: React.FC = () => {
     return (
         <div className="flex flex-col gap-6">
             {/* Filter Command Deck */}
-            <Card className="!p-0 overflow-hidden border border-gray-200 dark:border-brand-border-dark bg-white dark:bg-brand-dark shadow-lg transition-all duration-300">
-                <div className="p-4 flex flex-wrap items-center justify-between gap-4 bg-gray-50 dark:bg-brand-darkest/50 border-b border-gray-200 dark:border-brand-border-dark">
+            <Card className="!p-0 overflow-hidden border border-gray-200 dark:border-[#1A1A1A] bg-white dark:bg-[#0A0A0A] shadow-lg transition-all duration-300">
+                <div className="p-4 flex flex-wrap items-center justify-between gap-4 bg-gray-50 dark:bg-[#000000]/50 border-b border-gray-200 dark:border-[#1A1A1A]">
                     <div className="flex items-center gap-3">
                          <div className="p-2 bg-brand-primary/10 rounded-lg text-brand-primary">
                             <FilterIcon />
@@ -143,7 +143,7 @@ const Screener: React.FC = () => {
                                 placeholder="Search Ticker..." 
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 bg-white dark:bg-brand-dark border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary outline-none"
+                                className="w-full pl-9 pr-4 py-2 bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary outline-none"
                             />
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                                 <SearchIcon />
@@ -186,10 +186,10 @@ const Screener: React.FC = () => {
             </Card>
 
             {/* Results Grid */}
-            <Card className="flex-1 !p-0 overflow-hidden border-0 shadow-xl bg-white dark:bg-brand-dark">
+            <Card className="flex-1 !p-0 overflow-hidden border-0 shadow-xl bg-white dark:bg-[#0A0A0A]">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-50 dark:bg-brand-darkest/50 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 dark:border-brand-border-dark">
+                        <thead className="bg-gray-50 dark:bg-[#000000]/50 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 dark:border-[#1A1A1A]">
                             <tr>
                                 <th className="p-5">Ticker</th>
                                 <th className="p-5 w-1/5">Market Cap</th>
@@ -201,7 +201,7 @@ const Screener: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-brand-border-dark">
                             {filteredResults.map((stock, idx) => (
-                                <tr key={stock.id} className="group hover:bg-gray-50 dark:hover:bg-brand-darkest/30 transition-colors">
+                                <tr key={stock.id} className="group hover:bg-gray-50 dark:hover:bg-[#000000]/30 transition-colors">
                                     <td className="p-5">
                                         <div className="flex items-center gap-3">
                                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-md`} style={{ backgroundColor: `hsl(${idx * 40}, 70%, 50%)` }}>
@@ -298,7 +298,7 @@ const CorrelationTracker: React.FC = () => {
             <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-24 relative z-10 py-10">
                 {/* Asset 1 */}
                 <div className="relative group">
-                    <div className="w-32 h-32 rounded-full bg-white dark:bg-brand-dark border-4 border-gray-200 dark:border-brand-border-dark flex flex-col items-center justify-center shadow-xl z-20 relative">
+                    <div className="w-32 h-32 rounded-full bg-white dark:bg-[#0A0A0A] border-4 border-gray-200 dark:border-[#1A1A1A] flex flex-col items-center justify-center shadow-xl z-20 relative">
                         <div className="w-12 h-12 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-xl mb-2">
                             {asset1[0]}
                         </div>
@@ -325,7 +325,7 @@ const CorrelationTracker: React.FC = () => {
                         ></div>
                     </div>
 
-                    <div className="bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark px-6 py-3 rounded-2xl shadow-lg flex flex-col items-center">
+                    <div className="bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] px-6 py-3 rounded-2xl shadow-lg flex flex-col items-center">
                         <span className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-1">Pearson Correlation</span>
                         <div className="flex items-baseline gap-1">
                             <span className={`text-4xl font-mono font-bold ${getCorrelationColor(correlation)}`}>
@@ -341,7 +341,7 @@ const CorrelationTracker: React.FC = () => {
 
                 {/* Asset 2 */}
                 <div className="relative group">
-                     <div className="w-32 h-32 rounded-full bg-white dark:bg-brand-dark border-4 border-gray-200 dark:border-brand-border-dark flex flex-col items-center justify-center shadow-xl z-20 relative">
+                     <div className="w-32 h-32 rounded-full bg-white dark:bg-[#0A0A0A] border-4 border-gray-200 dark:border-[#1A1A1A] flex flex-col items-center justify-center shadow-xl z-20 relative">
                          <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-500 font-bold text-xl mb-2">
                             {asset2[0]}
                         </div>
@@ -407,7 +407,7 @@ const SectorAnalysis: React.FC = () => {
                         <XAxis type="number" stroke={axisColor} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} />
                         <YAxis dataKey="name" type="category" stroke={axisColor} width={120} tick={{fontSize: 11}} axisLine={false} tickLine={false} />
                         <Tooltip
-                            contentStyle={theme === 'dark' ? { backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px' } : { borderRadius: '8px' }}
+                            contentStyle={theme === 'dark' ? { backgroundColor: '#0A0A0A', border: '1px solid #334155', borderRadius: '8px' } : { borderRadius: '8px' }}
                             cursor={{fill: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}}
                             formatter={(value: number) => [`${value.toFixed(2)}%`, 'Performance']}
                         />
@@ -460,7 +460,7 @@ const QuantScreener: React.FC = () => {
 
     return (
         <div className="space-y-8 h-full flex flex-col">
-            <div className="flex-shrink-0 border-b border-brand-border-light dark:border-brand-border-dark bg-white dark:bg-brand-dark rounded-t-2xl px-2">
+            <div className="flex-shrink-0 border-b border-brand-border-light dark:border-[#1A1A1A] bg-white dark:bg-[#0A0A0A] rounded-t-2xl px-2">
                 <nav className="flex space-x-2">
                     <TabButton tabId="screener" label="Multi-Factor Screener" icon={<FilterIcon />} />
                     <TabButton tabId="correlation" label="Correlation Matrix" icon={<LinkIcon />} />

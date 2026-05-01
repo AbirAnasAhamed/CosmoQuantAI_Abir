@@ -20,7 +20,7 @@ export const SessionsDashboard: React.FC<SessionsDashboardProps> = ({ settings, 
 
     return (
         <div className="absolute top-16 right-4 z-[20] flex flex-col gap-2 pointer-events-none select-none">
-            <div className="backdrop-blur-xl bg-white/10 dark:bg-[#0B1120]/60 border border-white/10 rounded-2xl shadow-2xl p-4 min-w-[200px] border-l-4 border-l-brand-primary animate-in fade-in slide-in-from-right-4 duration-500 overflow-hidden">
+            <div className="backdrop-blur-xl bg-white/10 dark:bg-[#000000]/60 border border-white/10 rounded-2xl shadow-2xl p-4 min-w-[200px] border-l-4 border-l-brand-primary animate-in fade-in slide-in-from-right-4 duration-500 overflow-hidden">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse shadow-[0_0_8px_rgba(var(--brand-primary-rgb),0.8)]" />

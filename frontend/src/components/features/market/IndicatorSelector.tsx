@@ -250,7 +250,7 @@ export const IndicatorSelector: React.FC<IndicatorSelectorProps> = ({ settings, 
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#0B1120] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
+                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#000000] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
                     <div className="p-3 border-b border-gray-200 dark:border-white/10">
                         <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Technical Indicators</h3>
                     </div>
@@ -627,12 +627,12 @@ export const IndicatorSelector: React.FC<IndicatorSelectorProps> = ({ settings, 
                                                 className="w-full bg-transparent text-gray-700 dark:text-gray-300 focus:outline-none focus:text-cyan-400 text-center text-[10px]"
                                                 title="Calculate Support/Resistance on a higher timeframe"
                                             >
-                                                <option className="bg-white dark:bg-[#0B1120]" value="1m">1 Minute (Default)</option>
-                                                <option className="bg-white dark:bg-[#0B1120]" value="5m">5 Minutes</option>
-                                                <option className="bg-white dark:bg-[#0B1120]" value="15m">15 Minutes (Strong)</option>
-                                                <option className="bg-white dark:bg-[#0B1120]" value="1h">1 Hour (Ultra)</option>
-                                                <option className="bg-white dark:bg-[#0B1120]" value="4h">4 Hours</option>
-                                                <option className="bg-white dark:bg-[#0B1120]" value="1d">1 Day</option>
+                                                <option className="bg-white dark:bg-[#000000]" value="1m">1 Minute (Default)</option>
+                                                <option className="bg-white dark:bg-[#000000]" value="5m">5 Minutes</option>
+                                                <option className="bg-white dark:bg-[#000000]" value="15m">15 Minutes (Strong)</option>
+                                                <option className="bg-white dark:bg-[#000000]" value="1h">1 Hour (Ultra)</option>
+                                                <option className="bg-white dark:bg-[#000000]" value="4h">4 Hours</option>
+                                                <option className="bg-white dark:bg-[#000000]" value="1d">1 Day</option>
                                             </select>
                                         </div>
                                         <div className="flex items-center gap-1 bg-gray-100 dark:bg-white/10 px-1.5 py-1 rounded">
@@ -729,13 +729,13 @@ export const IndicatorSelector: React.FC<IndicatorSelectorProps> = ({ settings, 
                                     value={settings.trendFinderThreshold || 'Strong'}
                                     onChange={(e) => onSettingsChange({ ...settings, trendFinderThreshold: e.target.value })}
                                 >
-                                    <option className="bg-white dark:bg-[#0B1120]" value="Moderate">Moderate (0.7+)</option>
-                                    <option className="bg-white dark:bg-[#0B1120]" value="Moderately Strong">Moderately Strong (0.8+)</option>
-                                    <option className="bg-white dark:bg-[#0B1120]" value="Mostly Strong">Mostly Strong (0.9+)</option>
-                                    <option className="bg-white dark:bg-[#0B1120]" value="Strong">Strong (0.92+)</option>
-                                    <option className="bg-white dark:bg-[#0B1120]" value="Very Strong">Very Strong (0.94+)</option>
-                                    <option className="bg-white dark:bg-[#0B1120]" value="Exceptionally Strong">Exceptionally Strong (0.96+)</option>
-                                    <option className="bg-white dark:bg-[#0B1120]" value="Ultra Strong">Ultra Strong (0.98+)</option>
+                                    <option className="bg-white dark:bg-[#000000]" value="Moderate">Moderate (0.7+)</option>
+                                    <option className="bg-white dark:bg-[#000000]" value="Moderately Strong">Moderately Strong (0.8+)</option>
+                                    <option className="bg-white dark:bg-[#000000]" value="Mostly Strong">Mostly Strong (0.9+)</option>
+                                    <option className="bg-white dark:bg-[#000000]" value="Strong">Strong (0.92+)</option>
+                                    <option className="bg-white dark:bg-[#000000]" value="Very Strong">Very Strong (0.94+)</option>
+                                    <option className="bg-white dark:bg-[#000000]" value="Exceptionally Strong">Exceptionally Strong (0.96+)</option>
+                                    <option className="bg-white dark:bg-[#000000]" value="Ultra Strong">Ultra Strong (0.98+)</option>
                                 </select>
                            </div>
                            <div className="flex flex-col gap-1 mt-1">

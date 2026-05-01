@@ -73,7 +73,7 @@ const FundingDivergenceTracker: React.FC<Props> = ({ eventId }) => {
                         <XAxis dataKey="label" stroke={axisColor} fontSize={9} tickLine={false} axisLine={false} />
                         <YAxis stroke={axisColor} fontSize={9} tickFormatter={v => `${v.toFixed(2)}%`} tickLine={false} axisLine={false} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px', fontSize: '11px' }}
+                            contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #334155', borderRadius: '8px', fontSize: '11px' }}
                             formatter={(v: number) => [`${v.toFixed(4)}%`, 'Funding Rate']}
                         />
                         <ReferenceLine y={0} stroke="#475569" strokeDasharray="3 3" />

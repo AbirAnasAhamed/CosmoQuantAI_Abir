@@ -237,10 +237,10 @@ const UnusualOptionsActivity: React.FC = () => {
             </div>
 
             {/* Main Data Feed */}
-            <Card className="flex-1 flex flex-col min-h-0 !p-0 overflow-hidden border border-gray-200 dark:border-brand-border-dark shadow-lg staggered-fade-in" style={{ animationDelay: '150ms' }}>
+            <Card className="flex-1 flex flex-col min-h-0 !p-0 overflow-hidden border border-gray-200 dark:border-[#1A1A1A] shadow-lg staggered-fade-in" style={{ animationDelay: '150ms' }}>
 
                 {/* Controls Toolbar */}
-                <div className="p-4 border-b border-gray-100 dark:border-brand-border-dark bg-white dark:bg-brand-dark flex flex-wrap gap-4 justify-between items-center">
+                <div className="p-4 border-b border-gray-100 dark:border-[#1A1A1A] bg-white dark:bg-[#0A0A0A] flex flex-wrap gap-4 justify-between items-center">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <span className="w-2 h-6 bg-brand-primary rounded-full"></span>
                         Live Option Flow
@@ -253,7 +253,7 @@ const UnusualOptionsActivity: React.FC = () => {
                                 placeholder="Search Ticker..."
                                 value={filters.ticker}
                                 onChange={(e) => setFilters(f => ({ ...f, ticker: e.target.value }))}
-                                className="pl-9 pr-4 py-1.5 bg-gray-100 dark:bg-brand-darkest/50 border border-transparent focus:border-brand-primary rounded-lg text-sm text-slate-900 dark:text-white outline-none transition-all w-40"
+                                className="pl-9 pr-4 py-1.5 bg-gray-100 dark:bg-[#000000]/50 border border-transparent focus:border-brand-primary rounded-lg text-sm text-slate-900 dark:text-white outline-none transition-all w-40"
                             />
                             <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                         </div>
@@ -261,7 +261,7 @@ const UnusualOptionsActivity: React.FC = () => {
                         <select
                             value={filters.sentiment}
                             onChange={(e) => setFilters(f => ({ ...f, sentiment: e.target.value }))}
-                            className="px-3 py-1.5 bg-gray-100 dark:bg-brand-darkest/50 border border-transparent focus:border-brand-primary rounded-lg text-sm text-slate-700 dark:text-gray-300 outline-none cursor-pointer"
+                            className="px-3 py-1.5 bg-gray-100 dark:bg-[#000000]/50 border border-transparent focus:border-brand-primary rounded-lg text-sm text-slate-700 dark:text-gray-300 outline-none cursor-pointer"
                         >
                             <option value="All">All Sentiments</option>
                             <option value="Bullish">Bullish Only</option>
@@ -277,7 +277,7 @@ const UnusualOptionsActivity: React.FC = () => {
                 {/* Table */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                     <table className="w-full text-left border-collapse">
-                        <thead className="sticky top-0 bg-gray-50 dark:bg-brand-dark z-10 shadow-sm">
+                        <thead className="sticky top-0 bg-gray-50 dark:bg-[#0A0A0A] z-10 shadow-sm">
                             <tr className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                 <th className="p-4">Time</th>
                                 <th className="p-4">Ticker</th>
@@ -292,7 +292,7 @@ const UnusualOptionsActivity: React.FC = () => {
                         </thead>
                         <tbody className="text-sm divide-y divide-gray-100 dark:divide-brand-border-dark">
                             {filteredTrades.map(trade => (
-                                <tr key={trade.id} className={`hover:bg-gray-50 dark:hover:bg-brand-darkest/30 transition-colors ${trade.isNew ? 'animate-row-flash bg-brand-primary/5' : ''}`}>
+                                <tr key={trade.id} className={`hover:bg-gray-50 dark:hover:bg-[#000000]/30 transition-colors ${trade.isNew ? 'animate-row-flash bg-brand-primary/5' : ''}`}>
                                     <td className="p-4 font-mono text-gray-500 text-xs">{trade.time}</td>
                                     <td className="p-4">
                                         <span className="font-bold text-slate-900 dark:text-white">{trade.ticker}</span>

@@ -124,7 +124,7 @@ const Sidebar: React.FC<{
     }, []);
 
     const DropdownMenuItem: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void; }> = ({ icon, label, onClick }) => (
-        <button onClick={onClick} className="flex items-center w-full px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-brand-dark/50 hover:text-brand-primary transition-all rounded-lg group">
+        <button onClick={onClick} className="flex items-center w-full px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#0A0A0A]/50 hover:text-brand-primary transition-all rounded-lg group">
             <span className="w-5 h-5 mr-3 text-gray-400 group-hover:text-brand-primary transition-colors">{icon}</span>
             {label}
         </button>
@@ -194,12 +194,12 @@ const Sidebar: React.FC<{
     ], []);
 
     return (
-        <aside className={`${isCollapsed ? 'w-20' : 'w-72'} bg-[#F8FAFC] dark:bg-[#050B14] border-r border-gray-200 dark:border-white/5 flex flex-col h-screen transition-all duration-400 ease-in-out will-change-[width] shadow-[5px_0_20px_rgba(0,0,0,0.05)] z-20 relative group`}>
+        <aside className={`${isCollapsed ? 'w-20' : 'w-72'} bg-[#F8FAFC] dark:bg-[#000000] border-r border-gray-200 dark:border-white/5 flex flex-col h-screen transition-all duration-400 ease-in-out will-change-[width] shadow-[5px_0_20px_rgba(0,0,0,0.05)] z-20 relative group`}>
 
             {/* Collapse Toggle Button */}
             <button
                 onClick={onToggle}
-                className="absolute -right-3 top-20 w-6 h-6 bg-white dark:bg-[#161e2e] border border-gray-200 dark:border-gray-700 rounded-full flex items-center justify-center text-gray-400 hover:text-brand-primary shadow-md z-30 transition-all duration-300 hover:scale-110 active:scale-95 ease-out"
+                className="absolute -right-3 top-20 w-6 h-6 bg-white dark:bg-[#111111] border border-gray-200 dark:border-gray-700 rounded-full flex items-center justify-center text-gray-400 hover:text-brand-primary shadow-md z-30 transition-all duration-300 hover:scale-110 active:scale-95 ease-out"
             >
                 <ChevronDownIcon className={`w-4 h-4 transition-transform duration-300 ease-in-out ${isCollapsed ? '-rotate-90' : 'rotate-90'}`} />
             </button>
@@ -250,7 +250,7 @@ const Sidebar: React.FC<{
             {/* Profile Section */}
             <div className="p-4 relative z-20" ref={profileRef}>
                 {/* Dropdown Menu */}
-                <div className={`absolute bottom-[85px] w-[calc(100%-32px)] left-4 bg-white dark:bg-[#161e2e] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-2 z-50 origin-bottom transition-all duration-200 ease-out transform ${isProfileOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'}`}>
+                <div className={`absolute bottom-[85px] w-[calc(100%-32px)] left-4 bg-white dark:bg-[#111111] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-2 z-50 origin-bottom transition-all duration-200 ease-out transform ${isProfileOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'}`}>
                     <div className="px-3 py-2 mb-1 border-b border-gray-100 dark:border-gray-700">
                         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">My Account</p>
                     </div>
@@ -266,13 +266,13 @@ const Sidebar: React.FC<{
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
                     className={`flex items-center w-full p-3 rounded-2xl border transition-all duration-300 group
                         ${isProfileOpen
-                            ? 'bg-white dark:bg-[#161e2e] border-brand-primary shadow-lg shadow-brand-primary/10'
+                            ? 'bg-white dark:bg-[#111111] border-brand-primary shadow-lg shadow-brand-primary/10'
                             : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/5 hover:border-brand-primary/50 hover:bg-gray-50 dark:hover:bg-white/10'
                         }`}
                 >
                     <div className="relative">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-primary to-purple-500 text-white flex items-center justify-center font-bold text-sm shadow-md ring-2 ring-white dark:ring-[#0B1120]">AA</div>
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-[#0B1120] rounded-full"></div>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-primary to-purple-500 text-white flex items-center justify-center font-bold text-sm shadow-md ring-2 ring-white dark:ring-[#000000]">AA</div>
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-[#000000] rounded-full"></div>
                     </div>
                     <div className="ml-3 flex-1 min-w-0 text-left transition-all duration-400 ease-in-out will-change-[opacity,width]" style={{ width: isCollapsed ? '0px' : 'auto', opacity: isCollapsed ? 0 : 1, overflow: 'hidden' }}>
                         <p className="font-bold text-sm text-slate-900 dark:text-white truncate group-hover:text-brand-primary transition-colors">{userProfile.fullName}</p>
@@ -392,7 +392,7 @@ const AppDashboard: React.FC<AppDashboardProps> = ({ currentView, onNavigate, on
 
     return (
         <BacktestProvider>
-            <div className="flex h-screen bg-brand-light dark:bg-brand-darkest transition-all duration-300">
+            <div className="flex h-screen bg-brand-light dark:bg-[#000000] transition-all duration-300">
                 <Sidebar 
                         currentView={currentView} 
                         onNavigate={onNavigate} 
@@ -401,7 +401,7 @@ const AppDashboard: React.FC<AppDashboardProps> = ({ currentView, onNavigate, on
                         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
                     />
                     <div className="flex-1 flex flex-col overflow-hidden relative z-0">
-                        <header className="flex-shrink-0 bg-white/80 dark:bg-brand-darkest/80 backdrop-blur-md border-b border-gray-200 dark:border-brand-border-dark/50 z-10">
+                        <header className="flex-shrink-0 bg-white/80 dark:bg-[#000000]/80 backdrop-blur-md border-b border-gray-200 dark:border-[#1A1A1A]/50 z-10">
                             <div className="grid grid-cols-3 items-center px-8 h-16">
                                 {/* Left — Page Title */}
                                 <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
@@ -419,7 +419,7 @@ const AppDashboard: React.FC<AppDashboardProps> = ({ currentView, onNavigate, on
                                         <div>
                                             {walletAddress ? (
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-mono bg-gray-100 dark:bg-brand-dark/50 px-2 py-1 rounded text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+                                                    <span className="text-xs font-mono bg-gray-100 dark:bg-[#0A0A0A]/50 px-2 py-1 rounded text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
                                                         {`${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`}
                                                     </span>
                                                     <Button variant="secondary" onClick={handleDisconnectWallet} className="px-3 py-1 text-xs h-8">Disconnect</Button>

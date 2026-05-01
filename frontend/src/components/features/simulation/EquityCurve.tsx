@@ -88,7 +88,7 @@ const EquityCurve: React.FC<EquityCurveProps> = ({ data, initialEquity = 10000 }
                             hide={true}
                         />
                         <Tooltip
-                            contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
+                            contentStyle={{ backgroundColor: '#141414', borderColor: '#334155', color: '#f8fafc' }}
                             itemStyle={{ color: '#818cf8' }}
                             labelStyle={{ color: '#94a3b8' }}
                             formatter={(value: number) => [`$${value.toFixed(2)}`, 'Equity']}

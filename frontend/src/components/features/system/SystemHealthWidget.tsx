@@ -46,7 +46,7 @@ const SystemHealthWidget: React.FC = () => {
     // If initial loading
     if (loading && !health && !error) {
         return (
-            <div className="rounded-2xl bg-white dark:bg-brand-dark border border-brand-border-light dark:border-brand-border-dark p-6 shadow-lg animate-pulse">
+            <div className="rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 shadow-lg animate-pulse">
                 <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
                 <div className="space-y-3">
                     <div className="h-10 w-full bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
@@ -63,7 +63,7 @@ const SystemHealthWidget: React.FC = () => {
     const celeryStatus = error ? 'offline' : (health?.services.celery_worker || 'offline');
 
     return (
-        <div className="rounded-2xl bg-white dark:bg-brand-dark border border-brand-border-light dark:border-brand-border-dark p-6 shadow-lg staggered-fade-in">
+        <div className="rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 shadow-lg staggered-fade-in">
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <Activity className="w-5 h-5 text-brand-primary" /> System Status
@@ -83,9 +83,9 @@ const SystemHealthWidget: React.FC = () => {
 
             <div className="space-y-3">
                 {/* Database */}
-                <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-brand-darkest/50">
+                <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-[#000000]/50">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-white dark:bg-brand-dark shadow-sm text-blue-500">
+                        <div className="p-2 rounded-lg bg-white dark:bg-[#0A0A0A] shadow-sm text-blue-500">
                             <Database className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Database</span>
@@ -96,9 +96,9 @@ const SystemHealthWidget: React.FC = () => {
                 </div>
 
                 {/* Redis */}
-                <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-brand-darkest/50">
+                <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-[#000000]/50">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-white dark:bg-brand-dark shadow-sm text-red-500">
+                        <div className="p-2 rounded-lg bg-white dark:bg-[#0A0A0A] shadow-sm text-red-500">
                             <Server className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Redis Cache</span>
@@ -109,9 +109,9 @@ const SystemHealthWidget: React.FC = () => {
                 </div>
 
                 {/* Celery Worker */}
-                <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-brand-darkest/50">
+                <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-[#000000]/50">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-white dark:bg-brand-dark shadow-sm text-orange-500">
+                        <div className="p-2 rounded-lg bg-white dark:bg-[#0A0A0A] shadow-sm text-orange-500">
                             <Cpu className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">AI Workers</span>

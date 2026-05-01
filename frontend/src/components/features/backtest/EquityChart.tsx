@@ -19,18 +19,18 @@ const EquityChart: React.FC<EquityChartProps> = ({ data }) => {
                 textColor: '#9CA3AF',
             },
             grid: {
-                vertLines: { color: '#1E293B' }, // খুব হালকা গ্রিড লাইন
-                horzLines: { color: '#1E293B' },
+                vertLines: { color: '#141414' }, // খুব হালকা গ্রিড লাইন
+                horzLines: { color: '#141414' },
             },
             width: chartContainerRef.current.clientWidth,
             height: 300,
             timeScale: {
                 timeVisible: true,
                 secondsVisible: false,
-                borderColor: '#1E293B',
+                borderColor: '#141414',
             },
             rightPriceScale: {
-                borderColor: '#1E293B',
+                borderColor: '#141414',
             },
             crosshair: {
                 vertLine: {

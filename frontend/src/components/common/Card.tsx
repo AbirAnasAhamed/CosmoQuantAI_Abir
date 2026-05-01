@@ -17,7 +17,7 @@ const Card: React.FC<CardProps> = ({ children, className = '', onClick, style })
     <div
       onClick={onClick}
       style={style}
-      className={`bg-white dark:bg-brand-dark p-6 rounded-lg shadow-md dark:shadow-lg border border-brand-border-light dark:border-brand-border-dark transition-all duration-300 ${interactiveClasses} ${className}`}
+      className={`bg-white dark:bg-[#0A0A0A] p-6 rounded-lg shadow-md dark:shadow-lg border border-brand-border-light dark:border-[#1A1A1A] transition-all duration-300 ${interactiveClasses} ${className}`}
     >
       {children}
     </div>

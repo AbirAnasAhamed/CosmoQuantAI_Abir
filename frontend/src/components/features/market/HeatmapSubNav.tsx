@@ -26,7 +26,7 @@ export const HeatmapSubNav: React.FC<HeatmapSubNavProps> = ({
     onAdvancedMetricsChange
 }) => {
     return (
-        <div className="flex bg-white dark:bg-[#0B1120] border-b border-gray-200 dark:border-white/10 px-4 py-2 items-center gap-4">
+        <div className="flex bg-white dark:bg-[#000000] border-b border-gray-200 dark:border-white/10 px-4 py-2 items-center gap-4">
             <div className="flex space-x-1 bg-gray-100 dark:bg-black/30 p-1 rounded-lg">
                 <button
                     onClick={() => onChange('heatmap')}

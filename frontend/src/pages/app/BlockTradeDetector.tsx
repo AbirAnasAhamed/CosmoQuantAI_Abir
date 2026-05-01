@@ -77,7 +77,7 @@ const TradeRow: React.FC<{ trade: BlockTrade; maxTradeValue: number; isNew: bool
     const timeString = new Date(trade.timestamp).toLocaleTimeString([], { hour12: false });
 
     return (
-        <div className={`relative group flex items-center justify-between py-3 px-4 border-b border-brand-border-light/50 dark:border-brand-border-dark/50 hover:bg-gray-50 dark:hover:bg-brand-darkest/30 transition-all duration-300 overflow-hidden ${isNew ? 'animate-flash-blue' : ''}`}>
+        <div className={`relative group flex items-center justify-between py-3 px-4 border-b border-brand-border-light/50 dark:border-[#1A1A1A]/50 hover:bg-gray-50 dark:hover:bg-[#000000]/30 transition-all duration-300 overflow-hidden ${isNew ? 'animate-flash-blue' : ''}`}>
             {/* Volume Bar Background */}
             <div
                 className={`absolute top-0 bottom-0 left-0 transition-all duration-500 ${barColor}`}
@@ -298,8 +298,8 @@ const BlockTradeDetector: React.FC = () => {
 
                 {/* Left: Lit Market Block Trades */}
                 <div className="lg:col-span-2 flex flex-col min-h-0 staggered-fade-in" style={{ animationDelay: '100ms' }}>
-                    <Card className="flex-1 flex flex-col !p-0 border-0 shadow-xl overflow-hidden bg-white dark:bg-brand-dark">
-                        <div className="p-4 border-b border-brand-border-light dark:border-brand-border-dark flex justify-between items-center bg-gray-50 dark:bg-brand-darkest/30">
+                    <Card className="flex-1 flex flex-col !p-0 border-0 shadow-xl overflow-hidden bg-white dark:bg-[#0A0A0A]">
+                        <div className="p-4 border-b border-brand-border-light dark:border-[#1A1A1A] flex justify-between items-center bg-gray-50 dark:bg-[#000000]/30">
                             <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <LightningIcon className="text-yellow-500" />
                                 Live Block Tape
@@ -337,7 +337,7 @@ const BlockTradeDetector: React.FC = () => {
                 <div className="flex flex-col gap-6 min-h-0 staggered-fade-in" style={{ animationDelay: '200ms' }}>
 
                     {/* Whale Movements Section */}
-                    <Card className="flex-1 flex flex-col !p-0 border-purple-500/20 overflow-hidden bg-[#0F172A] dark:bg-[#0F172A] relative">
+                    <Card className="flex-1 flex flex-col !p-0 border-purple-500/20 overflow-hidden bg-[#0A0A0A] dark:bg-[#0A0A0A] relative">
                         {/* Background pattern for "Dark" feel */}
                         <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#A855F7 1px, transparent 1px)', backgroundSize: '10px 10px' }}></div>
 
@@ -362,7 +362,7 @@ const BlockTradeDetector: React.FC = () => {
 
                     {/* Unusual Volume Section (Still Mock) */}
                     <Card className="h-1/3 flex flex-col !p-0 overflow-hidden">
-                        <div className="p-4 border-b border-brand-border-light dark:border-brand-border-dark bg-gray-50 dark:bg-brand-darkest/30">
+                        <div className="p-4 border-b border-brand-border-light dark:border-[#1A1A1A] bg-gray-50 dark:bg-[#000000]/30">
                             <h3 className="font-bold text-slate-900 dark:text-white text-sm">Volume Anomalies (Alpha)</h3>
                         </div>
                         <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
@@ -376,7 +376,7 @@ const BlockTradeDetector: React.FC = () => {
                                 </thead>
                                 <tbody>
                                     {unusualVolume.map(spike => (
-                                        <tr key={spike.ticker} className={`border-b border-brand-border-light/30 dark:border-brand-border-dark/30 last:border-0 ${spike.isUpdated ? 'animate-flash-blue' : ''}`}>
+                                        <tr key={spike.ticker} className={`border-b border-brand-border-light/30 dark:border-[#1A1A1A]/30 last:border-0 ${spike.isUpdated ? 'animate-flash-blue' : ''}`}>
                                             <td className="p-2 font-bold text-slate-900 dark:text-white">{spike.ticker}</td>
                                             <td className="p-2 text-right font-mono text-brand-warning">{spike.volumeRatio.toFixed(1)}x</td>
                                             <td className="p-2 text-right font-mono text-gray-400">${spike.lastPrice.toFixed(2)}</td>

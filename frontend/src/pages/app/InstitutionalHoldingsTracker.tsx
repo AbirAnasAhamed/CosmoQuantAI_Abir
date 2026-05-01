@@ -46,8 +46,8 @@ const HoldingDetailModal: React.FC<{ holding: FundHolding; onClose: () => void }
 
     return (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-backdrop-fade-in" onClick={onClose} role="dialog" aria-modal="true">
-            <div className="bg-white dark:bg-brand-dark w-full max-w-3xl rounded-2xl shadow-2xl border border-brand-border-light dark:border-brand-border-dark flex flex-col overflow-hidden animate-modal-content-slide-down" onClick={e => e.stopPropagation()}>
-                <header className="flex justify-between items-center p-6 border-b border-brand-border-light dark:border-brand-border-dark bg-gray-50 dark:bg-brand-darkest/50">
+            <div className="bg-white dark:bg-[#0A0A0A] w-full max-w-3xl rounded-2xl shadow-2xl border border-brand-border-light dark:border-[#1A1A1A] flex flex-col overflow-hidden animate-modal-content-slide-down" onClick={e => e.stopPropagation()}>
+                <header className="flex justify-between items-center p-6 border-b border-brand-border-light dark:border-[#1A1A1A] bg-gray-50 dark:bg-[#000000]/50">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center font-bold text-lg">
                             {holding.ticker[0]}
@@ -64,25 +64,25 @@ const HoldingDetailModal: React.FC<{ holding: FundHolding; onClose: () => void }
 
                 <div className="p-8 space-y-8 overflow-y-auto max-h-[70vh]">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-gray-50 dark:bg-brand-darkest/50 p-4 rounded-xl border border-brand-border-light dark:border-brand-border-dark">
+                        <div className="bg-gray-50 dark:bg-[#000000]/50 p-4 rounded-xl border border-brand-border-light dark:border-[#1A1A1A]">
                             <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold mb-1">Shares Held</p>
                             <p className="text-xl font-mono font-bold text-slate-900 dark:text-white">{holding.shares.toLocaleString()}</p>
                         </div>
-                        <div className="bg-gray-50 dark:bg-brand-darkest/50 p-4 rounded-xl border border-brand-border-light dark:border-brand-border-dark">
+                        <div className="bg-gray-50 dark:bg-[#000000]/50 p-4 rounded-xl border border-brand-border-light dark:border-[#1A1A1A]">
                             <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold mb-1">Market Value</p>
                             <p className="text-xl font-mono font-bold text-brand-primary">${(holding.value / 1000000).toFixed(1)}M</p>
                         </div>
-                        <div className="bg-gray-50 dark:bg-brand-darkest/50 p-4 rounded-xl border border-brand-border-light dark:border-brand-border-dark">
+                        <div className="bg-gray-50 dark:bg-[#000000]/50 p-4 rounded-xl border border-brand-border-light dark:border-[#1A1A1A]">
                             <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold mb-1">Portfolio %</p>
                             <p className="text-xl font-mono font-bold text-slate-900 dark:text-white">{holding.percent_portfolio?.toFixed(2) || '0.00'}%</p>
                         </div>
-                        <div className={`p-4 rounded-xl border border-transparent bg-gray-100 dark:bg-brand-darkest/50 text-gray-600 dark:text-gray-300`}>
+                        <div className={`p-4 rounded-xl border border-transparent bg-gray-100 dark:bg-[#000000]/50 text-gray-600 dark:text-gray-300`}>
                             <p className="text-xs uppercase tracking-wider font-semibold mb-1 opacity-80">Last Reported</p>
                             <p className="text-sm font-bold">{holding.date_reported || 'N/A'}</p>
                         </div>
                     </div>
 
-                    <div className="bg-white dark:bg-brand-dark rounded-xl border border-brand-border-light dark:border-brand-border-dark p-4">
+                    <div className="bg-white dark:bg-[#0A0A0A] rounded-xl border border-brand-border-light dark:border-[#1A1A1A] p-4">
                         <h3 className="text-sm font-bold mb-4 text-slate-900 dark:text-white uppercase tracking-wider">Historical Position Size</h3>
                         <div className="h-64 w-full">
                             <ResponsiveContainer width="100%" height="100%">
@@ -92,7 +92,7 @@ const HoldingDetailModal: React.FC<{ holding: FundHolding; onClose: () => void }
                                     <YAxis stroke={axisColor} fontSize={10} tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`} tickLine={false} axisLine={false} dx={-10} />
                                     <Tooltip
                                         formatter={(value: number) => [value.toLocaleString(), 'Shares']}
-                                        contentStyle={theme === 'dark' ? { backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px' } : { borderRadius: '8px' }}
+                                        contentStyle={theme === 'dark' ? { backgroundColor: '#0A0A0A', border: '1px solid #334155', borderRadius: '8px' } : { borderRadius: '8px' }}
                                         cursor={{ fill: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
                                     />
                                     <Bar dataKey="shares" radius={[4, 4, 0, 0]}>
@@ -209,7 +209,7 @@ const InstitutionalHoldingsTracker: React.FC = () => {
                         onClick={() => setSelectedGuruId(guru.id)}
                         className={`flex-shrink-0 snap-start w-72 p-5 rounded-2xl border transition-all duration-300 text-left group ${selectedGuruId === guru.id
                                 ? 'bg-brand-primary text-white border-brand-primary shadow-lg shadow-brand-primary/25 scale-[1.02]'
-                                : 'bg-white dark:bg-brand-dark border-brand-border-light dark:border-brand-border-dark hover:border-brand-primary/50'
+                                : 'bg-white dark:bg-[#0A0A0A] border-brand-border-light dark:border-[#1A1A1A] hover:border-brand-primary/50'
                             }`}
                         style={{ animationDelay: `${index * 100}ms` }}
                     >
@@ -240,8 +240,8 @@ const InstitutionalHoldingsTracker: React.FC = () => {
 
                 {/* Left: Holdings Table */}
                 <div className="lg:col-span-2 flex flex-col min-h-0 staggered-fade-in" style={{ animationDelay: '200ms' }}>
-                    <Card className="flex-1 flex flex-col !p-0 border-0 shadow-xl overflow-hidden bg-white dark:bg-brand-dark">
-                        <div className="flex justify-between items-center p-4 border-b border-brand-border-light dark:border-brand-border-dark bg-gray-50 dark:bg-brand-darkest/30">
+                    <Card className="flex-1 flex flex-col !p-0 border-0 shadow-xl overflow-hidden bg-white dark:bg-[#0A0A0A]">
+                        <div className="flex justify-between items-center p-4 border-b border-brand-border-light dark:border-[#1A1A1A] bg-gray-50 dark:bg-[#000000]/30">
                             <div className="flex gap-4">
                                 <button onClick={() => setActiveTab('holdings')} className={`text-sm font-bold transition-colors ${activeTab === 'holdings' ? 'text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Holdings</button>
                                 <button onClick={() => setActiveTab('movers')} className={`text-sm font-bold transition-colors ${activeTab === 'movers' ? 'text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}>Top Movers</button>
@@ -252,7 +252,7 @@ const InstitutionalHoldingsTracker: React.FC = () => {
                         <div className="flex-1 overflow-y-auto custom-scrollbar relative">
                             {activeTab === 'holdings' && (
                                 <table className="w-full text-left border-collapse">
-                                    <thead className="sticky top-0 bg-white dark:bg-brand-dark z-10 shadow-sm text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    <thead className="sticky top-0 bg-white dark:bg-[#0A0A0A] z-10 shadow-sm text-xs font-bold text-gray-500 uppercase tracking-wider">
                                         <tr>
                                             <th className="p-4">Ticker</th>
                                             <th className="p-4 text-right">Shares</th>
@@ -266,7 +266,7 @@ const InstitutionalHoldingsTracker: React.FC = () => {
                                             <tr
                                                 key={holding.ticker}
                                                 onClick={() => setSelectedHolding(holding)}
-                                                className="hover:bg-gray-50 dark:hover:bg-brand-darkest/50 transition-colors cursor-pointer group"
+                                                className="hover:bg-gray-50 dark:hover:bg-[#000000]/50 transition-colors cursor-pointer group"
                                             >
                                                 <td className="p-4">
                                                     <div className="flex items-center gap-3">
@@ -310,7 +310,7 @@ const InstitutionalHoldingsTracker: React.FC = () => {
                                             {topMovers.map(mover => (
                                                 <div key={mover.ticker} className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 rounded-xl">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-brand-dark flex items-center justify-center font-bold text-emerald-600 shadow-sm">{mover.ticker[0]}</div>
+                                                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#0A0A0A] flex items-center justify-center font-bold text-emerald-600 shadow-sm">{mover.ticker[0]}</div>
                                                         <div>
                                                             <p className="font-bold text-slate-900 dark:text-white">{mover.ticker}</p>
                                                         </div>
@@ -332,8 +332,8 @@ const InstitutionalHoldingsTracker: React.FC = () => {
 
                 {/* Right: Sector & Stats */}
                 <div className="flex flex-col gap-6 min-h-0 staggered-fade-in" style={{ animationDelay: '300ms' }}>
-                    <Card className="flex-1 flex flex-col !p-0 border-0 shadow-lg bg-white dark:bg-brand-dark overflow-hidden">
-                        <div className="p-5 border-b border-gray-100 dark:border-brand-border-dark">
+                    <Card className="flex-1 flex flex-col !p-0 border-0 shadow-lg bg-white dark:bg-[#0A0A0A] overflow-hidden">
+                        <div className="p-5 border-b border-gray-100 dark:border-[#1A1A1A]">
                             <h3 className="font-bold text-slate-900 dark:text-white">Sector Allocation (Est.)</h3>
                         </div>
                         <div className="flex-1 p-4 relative">
@@ -354,7 +354,7 @@ const InstitutionalHoldingsTracker: React.FC = () => {
                                         ))}
                                     </Pie>
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#0F172A', border: 'none', borderRadius: '8px', color: '#fff' }}
+                                        contentStyle={{ backgroundColor: '#0A0A0A', border: 'none', borderRadius: '8px', color: '#fff' }}
                                         itemStyle={{ color: '#fff' }}
                                     />
                                 </PieChart>
@@ -366,7 +366,7 @@ const InstitutionalHoldingsTracker: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className="p-5 border-t border-gray-100 dark:border-brand-border-dark bg-gray-50 dark:bg-brand-darkest/30">
+                        <div className="p-5 border-t border-gray-100 dark:border-[#1A1A1A] bg-gray-50 dark:bg-[#000000]/30">
                             <div className="flex flex-wrap gap-3 justify-center">
                                 {sectorData.map((entry, index) => (
                                     <div key={entry.name} className="flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-gray-400">

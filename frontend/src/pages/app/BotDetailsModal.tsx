@@ -154,10 +154,10 @@ const BotDetailsModal: React.FC<BotDetailsModalProps> = ({ bot, onClose }) => {
 
     return createPortal(
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
-            <div className="bg-[#0f172a] w-full max-w-5xl h-[85vh] rounded-xl shadow-2xl flex flex-col overflow-hidden border border-gray-800 ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
+            <div className="bg-[#0A0A0A] w-full max-w-5xl h-[85vh] rounded-xl shadow-2xl flex flex-col overflow-hidden border border-gray-800 ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
 
                 {/* --- 1. Header Section --- */}
-                <div className="h-16 px-6 border-b border-gray-800 bg-[#1e293b]/50 flex items-center justify-between">
+                <div className="h-16 px-6 border-b border-gray-800 bg-[#141414]/50 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div className={`p-2 rounded-lg ${bot.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-gray-700/50 text-gray-400'}`}>
                             {bot.status === 'active' ? <Activity size={20} className="animate-pulse" /> : <Pause size={20} />}
@@ -179,7 +179,7 @@ const BotDetailsModal: React.FC<BotDetailsModalProps> = ({ bot, onClose }) => {
                 </div>
 
                 {/* --- 2. Navigation Tabs --- */}
-                <div className="flex border-b border-gray-800 bg-[#0f172a] px-6">
+                <div className="flex border-b border-gray-800 bg-[#0A0A0A] px-6">
                     {['overview', 'config', 'logs'].map((tab) => (
                         <button
                             key={tab}
@@ -195,7 +195,7 @@ const BotDetailsModal: React.FC<BotDetailsModalProps> = ({ bot, onClose }) => {
                 </div>
 
                 {/* --- 3. Content Area --- */}
-                <div className="flex-1 overflow-hidden bg-[#0B1120] relative">
+                <div className="flex-1 overflow-hidden bg-[#000000] relative">
 
                     {/* OVERVIEW TAB */}
                     {activeTab === 'overview' && (

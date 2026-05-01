@@ -155,7 +155,7 @@ const PairCard: React.FC<{ pairData: CointegratedPair; index: number }> = ({ pai
     const signalBg = pairData.signal === 'Buy Pair' ? 'bg-emerald-500/10 border-emerald-500/20' : pairData.signal === 'Sell Pair' ? 'bg-rose-500/10 border-rose-500/20' : 'bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10';
 
     return (
-        <div className={`staggered-fade-in bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${isHighAlert ? 'ring-2 ring-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.4)] animate-pulse' : isOpportunity ? 'ring-1 ring-brand-primary/50' : ''}`} style={{ animationDelay: `${index * 100}ms` }}>
+        <div className={`staggered-fade-in bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${isHighAlert ? 'ring-2 ring-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.4)] animate-pulse' : isOpportunity ? 'ring-1 ring-brand-primary/50' : ''}`} style={{ animationDelay: `${index * 100}ms` }}>
             <div className="p-5">
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
@@ -186,7 +186,7 @@ const PairCard: React.FC<{ pairData: CointegratedPair; index: number }> = ({ pai
                             <XAxis dataKey="time" hide />
                             <YAxis domain={['dataMin', 'dataMax']} hide />
                             <Tooltip
-                                contentStyle={theme === 'dark' ? { backgroundColor: '#0F172A', border: '1px solid #334155' } : {}}
+                                contentStyle={theme === 'dark' ? { backgroundColor: '#0A0A0A', border: '1px solid #334155' } : {}}
                                 formatter={(value: number) => [value.toFixed(4), 'Spread']}
                                 labelFormatter={() => ''}
                             />
@@ -395,7 +395,7 @@ const CorrelationMatrix: React.FC = () => {
 
                     {/* Left Column: The Quantum Grid */}
                     <div className="xl:col-span-7">
-                        <Card className="h-full bg-slate-50 dark:bg-brand-dark border-0 shadow-xl p-6">
+                        <Card className="h-full bg-slate-50 dark:bg-[#0A0A0A] border-0 shadow-xl p-6">
                             <div className="overflow-x-auto">
                                 <div className="min-w-[500px]">
                                     {/* Matrix Header */}
@@ -442,7 +442,7 @@ const CorrelationMatrix: React.FC = () => {
 
                     {/* Right Column: Cointegration Scanner */}
                     <div className="xl:col-span-5 flex flex-col gap-6">
-                        <div className="flex items-center justify-between bg-white dark:bg-brand-dark p-4 rounded-xl border border-gray-200 dark:border-brand-border-dark shadow-sm">
+                        <div className="flex items-center justify-between bg-white dark:bg-[#0A0A0A] p-4 rounded-xl border border-gray-200 dark:border-[#1A1A1A] shadow-sm">
                             <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <span className="relative flex h-3 w-3">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>

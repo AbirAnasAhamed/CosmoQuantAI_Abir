@@ -77,7 +77,7 @@ export const SentimentPriceChart: React.FC<SentimentChartsProps> = ({
                                 </filter>
                             </defs>
 
-                            <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#1e293b' : '#e2e8f0'} vertical={false} opacity={0.5} />
+                            <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#141414' : '#e2e8f0'} vertical={false} opacity={0.5} />
                             <XAxis
                                 dataKey="time"
                                 stroke={theme === 'dark' ? '#475569' : '#94a3b8'}

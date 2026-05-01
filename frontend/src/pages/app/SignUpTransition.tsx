@@ -39,7 +39,7 @@ const SignUpTransition: React.FC<SignUpTransitionProps> = ({ onAnimationComplete
     }, [activeStep, steps.length, onAnimationComplete]);
 
     return (
-        <div className="fixed inset-0 bg-[#0B1120] flex flex-col items-center justify-center overflow-hidden z-[100]">
+        <div className="fixed inset-0 bg-[#000000] flex flex-col items-center justify-center overflow-hidden z-[100]">
             {/* Matrix/Grid Background */}
             <div className="absolute inset-0 opacity-20" 
                  style={{ 
@@ -54,7 +54,7 @@ const SignUpTransition: React.FC<SignUpTransitionProps> = ({ onAnimationComplete
                     <Logo />
                 </div>
 
-                <div className="bg-slate-900/80 backdrop-blur-md border border-brand-border-dark rounded-xl p-6 shadow-2xl">
+                <div className="bg-slate-900/80 backdrop-blur-md border border-[#1A1A1A] rounded-xl p-6 shadow-2xl">
                     <div className="space-y-4 mb-6">
                         {steps.map((step, index) => (
                             index <= activeStep ? (

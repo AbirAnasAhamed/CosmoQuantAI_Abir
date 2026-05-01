@@ -206,7 +206,7 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed bottom-[112px] right-8 w-80 rounded-2xl bg-[#0B1120]/80 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-[100] overflow-hidden"
+            className="fixed bottom-[112px] right-8 w-80 rounded-2xl bg-[#000000]/80 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-[100] overflow-hidden"
           >
             {/* Header (Drag area) */}
             <div 
@@ -266,7 +266,7 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
                     className="w-full bg-black/40 border border-white/10 rounded-lg py-2 pl-3 pr-8 text-white text-sm focus:outline-none focus:border-brand-primary/50 transition-colors appearance-none cursor-pointer hover:bg-black/60"
                   >
                     {apiKeys.map(k => (
-                       <option key={k.id} value={k.id} className="bg-[#0B1120]">
+                       <option key={k.id} value={k.id} className="bg-[#000000]">
                        {/* BUG-08 fix: Robust label fallback with exchange uppercase */}
                        {k.name || k.label || k.key_name || `${k.exchange?.toUpperCase()} — Key #${k.id}`}
                        </option>

@@ -113,7 +113,7 @@ const FeaturedModelHero: React.FC<{ model: MarketplaceModel; onSelect: () => voi
 const ModelCard: React.FC<{ model: MarketplaceModel; onSelect: () => void; delay: number }> = ({ model, onSelect, delay }) => (
     <div 
         onClick={onSelect}
-        className="group relative flex flex-col bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark rounded-2xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 cursor-pointer animate-fade-in-up"
+        className="group relative flex flex-col bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] rounded-2xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 cursor-pointer animate-fade-in-up"
         style={{ animationDelay: `${delay}ms` }}
     >
         {/* Top Gradient Line */}
@@ -193,7 +193,7 @@ const ModelDetailView: React.FC<{ model: MarketplaceModel; onBack: () => void }>
                 
                 {/* Left: Main Info */}
                 <div className="lg:col-span-2 space-y-8">
-                    <div className="bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark rounded-3xl p-8 shadow-sm relative overflow-hidden">
+                    <div className="bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] rounded-3xl p-8 shadow-sm relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-6 opacity-5">
                             <svg className="w-64 h-64 text-slate-900 dark:text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                         </div>
@@ -255,7 +255,7 @@ const ModelDetailView: React.FC<{ model: MarketplaceModel; onBack: () => void }>
                                     <YAxis stroke={axisColor} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} dx={-10} />
                                     <Tooltip
                                         cursor={{ fill: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
-                                        contentStyle={theme === 'dark' ? { backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px' } : { borderRadius: '8px' }}
+                                        contentStyle={theme === 'dark' ? { backgroundColor: '#141414', border: '1px solid #334155', borderRadius: '8px' } : { borderRadius: '8px' }}
                                         formatter={(value: number) => [`${value.toFixed(2)}%`, 'Profit']}
                                     />
                                     <Bar dataKey="profit" radius={[4, 4, 0, 0]}>
@@ -301,7 +301,7 @@ const ModelDetailView: React.FC<{ model: MarketplaceModel; onBack: () => void }>
                         </h3>
                         <div className="space-y-4 max-h-80 overflow-y-auto custom-scrollbar pr-2">
                              {model.reviews.map(review => (
-                                <div key={review.id} className="p-3 bg-gray-50 dark:bg-brand-darkest/50 rounded-xl border border-gray-100 dark:border-white/5">
+                                <div key={review.id} className="p-3 bg-gray-50 dark:bg-[#000000]/50 rounded-xl border border-gray-100 dark:border-white/5">
                                     <div className="flex justify-between items-start mb-1">
                                         <span className="text-xs font-bold text-slate-900 dark:text-white">{review.username}</span>
                                         <span className="text-[10px] text-gray-400">{review.date}</span>
@@ -345,7 +345,7 @@ const MLModelMarketplace: React.FC = () => {
         <div className="space-y-8 animate-fade-in-slide-up pb-10">
             
             {/* Search & Filter Deck */}
-            <Card className="!p-3 sticky top-0 z-30 backdrop-blur-md bg-white/90 dark:bg-brand-dark/90 border-b border-brand-border-light dark:border-brand-border-dark rounded-2xl shadow-sm">
+            <Card className="!p-3 sticky top-0 z-30 backdrop-blur-md bg-white/90 dark:bg-[#0A0A0A]/90 border-b border-brand-border-light dark:border-[#1A1A1A] rounded-2xl shadow-sm">
                 <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
                     <div className="relative w-full md:w-96">
                         <input 
@@ -353,7 +353,7 @@ const MLModelMarketplace: React.FC = () => {
                             placeholder="Search algos, authors, or tags..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-brand-darkest border-transparent focus:border-brand-primary focus:bg-white dark:focus:bg-black rounded-xl text-sm transition-all outline-none"
+                            className="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-[#000000] border-transparent focus:border-brand-primary focus:bg-white dark:focus:bg-black rounded-xl text-sm transition-all outline-none"
                         />
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                             <SearchIcon />
@@ -361,7 +361,7 @@ const MLModelMarketplace: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto no-scrollbar">
-                        <div className="p-2 bg-gray-100 dark:bg-brand-darkest rounded-lg text-gray-500">
+                        <div className="p-2 bg-gray-100 dark:bg-[#000000] rounded-lg text-gray-500">
                             <FilterIcon />
                         </div>
                         {['All', 'BTC/USDT', 'ETH/USDT', 'SOL/USDT'].map(opt => (
@@ -371,7 +371,7 @@ const MLModelMarketplace: React.FC = () => {
                                 className={`px-4 py-2 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
                                     filter === opt 
                                         ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/25' 
-                                        : 'bg-white dark:bg-brand-darkest border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-brand-primary/50'
+                                        : 'bg-white dark:bg-[#000000] border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-brand-primary/50'
                                 }`}
                             >
                                 {opt}

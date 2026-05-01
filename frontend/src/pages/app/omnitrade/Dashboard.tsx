@@ -61,7 +61,7 @@ export const Dashboard: React.FC = () => {
                             <XAxis dataKey="name" hide />
                             <YAxis stroke="#94a3b8" domain={['auto', 'auto']} tick={{ fontSize: 12 }} />
                             <Tooltip
-                                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
+                                contentStyle={{ backgroundColor: '#141414', border: '1px solid #475569', borderRadius: '8px' }}
                                 itemStyle={{ color: '#38bdf8' }}
                             />
                             <Area type="monotone" dataKey="value" stroke="#38bdf8" fillOpacity={1} fill="url(#colorValue)" />
@@ -94,7 +94,7 @@ export const Dashboard: React.FC = () => {
                         <XAxis dataKey="day" stroke="#94a3b8" tick={{ fontSize: 12 }} />
                         <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
+                            contentStyle={{ backgroundColor: '#141414', border: '1px solid #475569', borderRadius: '8px' }}
                             cursor={{ fill: '#334155', opacity: 0.4 }}
                             formatter={(value: number) => [`$${value}`, 'PnL']}
                         />

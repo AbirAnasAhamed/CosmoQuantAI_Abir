@@ -38,7 +38,7 @@ export const FeatureLab: React.FC<FeatureLabProps> = ({ data }) => {
                                 <XAxis type="number" stroke="#64748b" domain={[0, 1]} />
                                 <YAxis dataKey="name" type="category" width={100} stroke="#94a3b8" tick={{ fontSize: 12 }} />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155' }}
+                                    contentStyle={{ backgroundColor: '#0A0A0A', borderColor: '#334155' }}
                                     cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                                 />
                                 <Area type="monotone" dataKey="importance" stroke="#38bdf8" fill="url(#impGrad)" />

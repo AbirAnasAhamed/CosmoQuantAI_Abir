@@ -79,7 +79,7 @@ const ComboBox: React.FC<ComboBoxProps> = ({
             </div>
 
             {isOpen && (
-                <ul className="absolute z-50 w-full mt-1 bg-brand-darkest border border-white/10 rounded-md shadow-lg max-h-48 overflow-y-auto custom-scrollbar no-scrollbar">
+                <ul className="absolute z-50 w-full mt-1 bg-[#000000] border border-white/10 rounded-md shadow-lg max-h-48 overflow-y-auto custom-scrollbar no-scrollbar">
                     {filteredOptions.length > 0 ? (
                         filteredOptions.map((option) => (
                             <li

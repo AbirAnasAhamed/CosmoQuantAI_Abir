@@ -63,7 +63,7 @@ const PanicButton = () => {
                 className={`group flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-bold transition-all duration-300 shadow-sm border
                     ${isOpen
                         ? 'bg-red-50 text-red-600 border-red-200 ring-2 ring-red-100'
-                        : 'bg-white dark:bg-brand-dark/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-red-50 hover:text-red-500 hover:border-red-200'
+                        : 'bg-white dark:bg-[#0A0A0A]/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-red-50 hover:text-red-500 hover:border-red-200'
                     } ${loading ? 'opacity-70 cursor-wait' : ''}`}
                 title="Emergency Controls"
             >

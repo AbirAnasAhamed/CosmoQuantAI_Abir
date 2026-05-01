@@ -54,7 +54,7 @@ export const AdvancedMetricsDropdown: React.FC<AdvancedMetricsDropdownProps> = (
             </button>
 
             {isOpen && (
-                <div className="absolute left-0 mt-2 w-64 bg-white dark:bg-[#0B1120] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
+                <div className="absolute left-0 mt-2 w-64 bg-white dark:bg-[#000000] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
                     <div className="p-3 border-b border-gray-200 dark:border-white/10 bg-gradient-to-r from-purple-500/10 to-transparent">
                         <h3 className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider flex items-center gap-2">
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

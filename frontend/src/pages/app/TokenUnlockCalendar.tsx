@@ -208,16 +208,16 @@ const EventDetailModal: React.FC<{ event: TokenUnlockEvent; onClose: () => void;
                     <div className="space-y-8">
                         {/* Top Metrics */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="p-5 rounded-xl bg-gray-50 dark:bg-brand-darkest/50 border border-gray-100 dark:border-white/5">
+                            <div className="p-5 rounded-xl bg-gray-50 dark:bg-[#000000]/50 border border-gray-100 dark:border-white/5">
                                 <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Unlock Value</p>
                                 <p className="text-2xl font-mono font-bold text-slate-900 dark:text-white mt-1">${event.unlockAmountUSD?.toLocaleString()}</p>
                             </div>
-                            <div className="p-5 rounded-xl bg-gray-50 dark:bg-brand-darkest/50 border border-gray-100 dark:border-white/5">
+                            <div className="p-5 rounded-xl bg-gray-50 dark:bg-[#000000]/50 border border-gray-100 dark:border-white/5">
                                 <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Supply Impact</p>
                                 <p className="text-2xl font-mono font-bold text-brand-primary mt-1">{event.unlockPercentageOfCirculating?.toFixed(2)}%</p>
                                 <p className="text-xs text-gray-400">of circulating supply</p>
                             </div>
-                            <div className="p-5 rounded-xl bg-gray-50 dark:bg-brand-darkest/50 border border-gray-100 dark:border-white/5">
+                            <div className="p-5 rounded-xl bg-gray-50 dark:bg-[#000000]/50 border border-gray-100 dark:border-white/5">
                                 <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Risk Score</p>
                                 <div className="flex items-center gap-2 mt-1">
                                     <ImpactGauge score={event.impactScore} />
@@ -245,7 +245,7 @@ const EventDetailModal: React.FC<{ event: TokenUnlockEvent; onClose: () => void;
                                             <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
                                             <XAxis dataKey="date" type="number" domain={['dataMin', 'dataMax']} tickFormatter={(time) => new Date(time).toLocaleDateString('en-US', { year: '2-digit', month: 'short' })} stroke={axisColor} fontSize={10} tickLine={false} axisLine={false} dy={10} />
                                             <YAxis stroke={axisColor} fontSize={10} tickFormatter={(val) => `${val}%`} tickLine={false} axisLine={false} dx={-10} />
-                                            <Tooltip contentStyle={theme === 'dark' ? { backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px' } : { borderRadius: '8px' }} labelFormatter={(time) => new Date(time).toLocaleDateString()} formatter={(val: number) => [`${val.toFixed(1)}%`, 'Unlocked']} />
+                                            <Tooltip contentStyle={theme === 'dark' ? { backgroundColor: '#0A0A0A', border: '1px solid #334155', borderRadius: '8px' } : { borderRadius: '8px' }} labelFormatter={(time) => new Date(time).toLocaleDateString()} formatter={(val: number) => [`${val.toFixed(1)}%`, 'Unlocked']} />
                                             <Area type="stepAfter" dataKey="unlockedPercentage" stroke="#6366F1" strokeWidth={3} fill="url(#vestingGradientModal)" />
                                         </AreaChart>
                                     </ResponsiveContainer>
@@ -265,7 +265,7 @@ const EventDetailModal: React.FC<{ event: TokenUnlockEvent; onClose: () => void;
                                                 <Pie data={allocationData as any} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5}>
                                                     {allocationData.map((_, index) => <Cell key={`cell-${index}`} fill={ALLOCATION_COLORS[index % ALLOCATION_COLORS.length]} stroke="none" />)}
                                                 </Pie>
-                                                <Tooltip contentStyle={theme === 'dark' ? { backgroundColor: '#0F172A', border: '1px solid #334155', borderRadius: '8px' } : { borderRadius: '8px' }} formatter={(value: number) => `${value}%`} />
+                                                <Tooltip contentStyle={theme === 'dark' ? { backgroundColor: '#0A0A0A', border: '1px solid #334155', borderRadius: '8px' } : { borderRadius: '8px' }} formatter={(value: number) => `${value}%`} />
                                                 <Legend verticalAlign="bottom" height={36} iconType="circle" />
                                             </PieChart>
                                         ) : (
@@ -334,10 +334,10 @@ const EventDetailModal: React.FC<{ event: TokenUnlockEvent; onClose: () => void;
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-backdrop-fade-in" onClick={onClose}>
-            <div className="bg-white dark:bg-[#0B1120] w-full max-w-5xl rounded-2xl shadow-2xl max-h-[92vh] flex flex-col border border-gray-200 dark:border-gray-800 animate-modal-content-slide-down overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-white dark:bg-[#000000] w-full max-w-5xl rounded-2xl shadow-2xl max-h-[92vh] flex flex-col border border-gray-200 dark:border-gray-800 animate-modal-content-slide-down overflow-hidden" onClick={e => e.stopPropagation()}>
 
                 {/* Modal Header */}
-                <div className="relative overflow-hidden p-6 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#0F172A]">
+                <div className="relative overflow-hidden p-6 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#0A0A0A]">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-brand-primary/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
                     <div className="flex justify-between items-center relative z-10">
                         <div className="flex items-center gap-4">
@@ -379,12 +379,12 @@ const EventDetailModal: React.FC<{ event: TokenUnlockEvent; onClose: () => void;
                 </div>
 
                 {/* Tab Content */}
-                <div className="flex-1 overflow-y-auto p-6 bg-white dark:bg-[#0B1120]">
+                <div className="flex-1 overflow-y-auto p-6 bg-white dark:bg-[#000000]">
                     {renderTabContent()}
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#0F172A] flex justify-end gap-3">
+                <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#0A0A0A] flex justify-end gap-3">
                     <Button variant="secondary" onClick={onClose}>Dismiss</Button>
                     <Button onClick={handleSetAlert} variant="primary" className="shadow-lg shadow-brand-primary/25">
                         Set Smart Alert
@@ -467,7 +467,7 @@ const TokenUnlockCalendar: React.FC = () => {
             {selectedEvent && <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
 
             {/* Header */}
-            <div className="bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark rounded-2xl p-6 shadow-lg animate-fade-in-down">
+            <div className="bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] rounded-2xl p-6 shadow-lg animate-fade-in-down">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
@@ -496,7 +496,7 @@ const TokenUnlockCalendar: React.FC = () => {
 
                         {/* Impact Filter (Radar tab only) */}
                         {pageTab === 'radar' && (
-                            <div className="flex items-center gap-3 bg-gray-100 dark:bg-brand-darkest/50 p-2 rounded-xl">
+                            <div className="flex items-center gap-3 bg-gray-100 dark:bg-[#000000]/50 p-2 rounded-xl">
                                 <div className="px-2 text-xs font-bold uppercase tracking-wider text-gray-500">Impact</div>
                                 <span className="text-xs font-mono text-slate-600 dark:text-gray-300">0</span>
                                 <input
@@ -517,13 +517,13 @@ const TokenUnlockCalendar: React.FC = () => {
             {/* Market Intel Tab */}
             {pageTab === 'market' && (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 animate-fade-in-up">
-                    <div className="bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark rounded-2xl p-6 shadow-lg">
+                    <div className="bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] rounded-2xl p-6 shadow-lg">
                         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                             🌐 Sector Contagion Map
                         </h2>
                         <ContagionMapWidget />
                     </div>
-                    <div className="bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark rounded-2xl p-6 shadow-lg">
+                    <div className="bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] rounded-2xl p-6 shadow-lg">
                         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                             🔄 Rotation Intelligence
                         </h2>
@@ -541,7 +541,7 @@ const TokenUnlockCalendar: React.FC = () => {
                                 <div className="flex items-center gap-3 mb-6">
                                     <h2 className="text-xl font-bold text-slate-900 dark:text-white">{groupName}</h2>
                                     <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800"></div>
-                                    <span className="text-xs text-gray-500 bg-gray-100 dark:bg-brand-dark px-2 py-1 rounded-lg font-semibold">
+                                    <span className="text-xs text-gray-500 bg-gray-100 dark:bg-[#0A0A0A] px-2 py-1 rounded-lg font-semibold">
                                         {events.length} events
                                     </span>
                                 </div>
@@ -555,7 +555,7 @@ const TokenUnlockCalendar: React.FC = () => {
                                             <div
                                                 key={event.id}
                                                 onClick={() => setSelectedEvent(event)}
-                                                className="group relative bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark rounded-2xl p-1 cursor-pointer hover:-translate-y-1 hover:shadow-xl transition-all duration-300 overflow-hidden"
+                                                className="group relative bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] rounded-2xl p-1 cursor-pointer hover:-translate-y-1 hover:shadow-xl transition-all duration-300 overflow-hidden"
                                             >
                                                 {/* Top Glow Border */}
                                                 <div className="absolute inset-x-0 top-0 h-1" style={{ background: `linear-gradient(90deg, transparent, ${impactColor}, transparent)` }}></div>
@@ -563,7 +563,7 @@ const TokenUnlockCalendar: React.FC = () => {
                                                 <div className="p-5 relative z-10">
                                                     <div className="flex justify-between items-start mb-4">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-12 h-12 bg-gray-50 dark:bg-brand-darkest rounded-xl flex items-center justify-center p-2 shadow-sm border border-gray-100 dark:border-gray-800">
+                                                            <div className="w-12 h-12 bg-gray-50 dark:bg-[#000000] rounded-xl flex items-center justify-center p-2 shadow-sm border border-gray-100 dark:border-gray-800">
                                                                 {event.logo}
                                                             </div>
                                                             <div>

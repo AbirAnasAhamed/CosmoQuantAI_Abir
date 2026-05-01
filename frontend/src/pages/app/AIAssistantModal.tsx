@@ -103,8 +103,8 @@ const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ isOpen, onClose, cu
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="ai-assistant-title">
-            <div className="bg-white dark:bg-brand-dark w-full max-w-2xl h-[80vh] rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
-                <header className="flex justify-between items-center p-4 border-b border-brand-border-light dark:border-brand-border-dark flex-shrink-0">
+            <div className="bg-white dark:bg-[#0A0A0A] w-full max-w-2xl h-[80vh] rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+                <header className="flex justify-between items-center p-4 border-b border-brand-border-light dark:border-[#1A1A1A] flex-shrink-0">
                     <h2 id="ai-assistant-title" className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-3">
                         <AssistantIcon className="h-6 w-6 text-brand-primary" />
                         Cosmo AI Assistant
@@ -115,7 +115,7 @@ const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ isOpen, onClose, cu
                     {messages.map((msg, index) => (
                         <div key={index} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                              {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center flex-shrink-0"><AssistantIcon className="h-5 w-5 text-brand-primary"/></div>}
-                            <div className={`max-w-xl p-3 rounded-lg ${msg.role === 'user' ? 'bg-brand-primary text-white' : 'bg-gray-100 dark:bg-brand-dark'}`}>
+                            <div className={`max-w-xl p-3 rounded-lg ${msg.role === 'user' ? 'bg-brand-primary text-white' : 'bg-gray-100 dark:bg-[#0A0A0A]'}`}>
                                 {renderMarkdown(msg.content)}
                             </div>
                         </div>
@@ -123,7 +123,7 @@ const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ isOpen, onClose, cu
                     {isLoading && (
                         <div className="flex justify-start gap-3">
                             <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center flex-shrink-0"><AssistantIcon className="h-5 w-5 text-brand-primary"/></div>
-                            <div className="max-w-md p-3 rounded-lg bg-gray-100 dark:bg-brand-dark flex items-center space-x-2">
+                            <div className="max-w-md p-3 rounded-lg bg-gray-100 dark:bg-[#0A0A0A] flex items-center space-x-2">
                                 <span className="block w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
                                 <span className="block w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
                                 <span className="block w-2 h-2 bg-slate-400 rounded-full animate-bounce"></span>
@@ -132,7 +132,7 @@ const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ isOpen, onClose, cu
                     )}
                      <div ref={messagesEndRef} />
                 </div>
-                <form onSubmit={handleSendMessage} className="p-4 border-t border-brand-border-light dark:border-brand-border-dark flex items-center gap-2 flex-shrink-0">
+                <form onSubmit={handleSendMessage} className="p-4 border-t border-brand-border-light dark:border-[#1A1A1A] flex items-center gap-2 flex-shrink-0">
                     <input
                         type="text"
                         value={input}

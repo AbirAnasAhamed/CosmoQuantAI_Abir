@@ -47,12 +47,12 @@ const CreateTaskModal: React.FC<{ onClose: () => void; onAddTask: (task: Omit<Ta
         }
     };
 
-    const inputClasses = "w-full bg-slate-50 dark:bg-brand-dark/50 border border-brand-border-light dark:border-brand-border-dark rounded-xl p-3 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-primary outline-none transition-all";
+    const inputClasses = "w-full bg-slate-50 dark:bg-[#0A0A0A]/50 border border-brand-border-light dark:border-[#1A1A1A] rounded-xl p-3 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-primary outline-none transition-all";
 
     return (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-backdrop-fade-in" onClick={onClose}>
-            <div className="bg-white dark:bg-brand-dark w-full max-w-lg rounded-2xl shadow-2xl border border-brand-border-light dark:border-brand-border-dark overflow-hidden animate-modal-content-slide-down" onClick={e => e.stopPropagation()}>
-                <div className="p-6 border-b border-brand-border-light dark:border-brand-border-dark bg-gray-50 dark:bg-brand-darkest/50">
+            <div className="bg-white dark:bg-[#0A0A0A] w-full max-w-lg rounded-2xl shadow-2xl border border-brand-border-light dark:border-[#1A1A1A] overflow-hidden animate-modal-content-slide-down" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b border-brand-border-light dark:border-[#1A1A1A] bg-gray-50 dark:bg-[#000000]/50">
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <span className="w-2 h-6 bg-brand-primary rounded-full"></span>
                         Initialize Protocol
@@ -129,7 +129,7 @@ const TaskItem: React.FC<{ task: Task; onToggle: (id: number) => void; onDelete:
 
     return (
         <div 
-            className={`group relative flex items-center p-4 mb-3 bg-white dark:bg-brand-dark border border-gray-100 dark:border-brand-border-dark rounded-xl hover:shadow-lg hover:border-brand-primary/30 transition-all duration-300 ${animationClass} ${task.completed ? 'opacity-60' : ''}`}
+            className={`group relative flex items-center p-4 mb-3 bg-white dark:bg-[#0A0A0A] border border-gray-100 dark:border-[#1A1A1A] rounded-xl hover:shadow-lg hover:border-brand-primary/30 transition-all duration-300 ${animationClass} ${task.completed ? 'opacity-60' : ''}`}
             style={{ animationDelay: `${index * 50}ms` }}
         >
             {/* Priority Indicator */}
@@ -298,7 +298,7 @@ const TaskManager: React.FC = () => {
 
         <Card className="flex-1 flex flex-col staggered-fade-in" style={{ animationDelay: '250ms' }}>
             {/* Filter Tabs */}
-            <div className="flex items-center gap-2 mb-6 pb-4 border-b border-gray-100 dark:border-brand-border-dark">
+            <div className="flex items-center gap-2 mb-6 pb-4 border-b border-gray-100 dark:border-[#1A1A1A]">
                 {(['All', 'Pending', 'Completed'] as const).map(f => (
                     <button
                         key={f}
@@ -329,7 +329,7 @@ const TaskManager: React.FC = () => {
                     </div>
                 ) : (
                     <div className="h-64 flex flex-col items-center justify-center text-center opacity-50">
-                        <div className="w-20 h-20 bg-gray-100 dark:bg-brand-darkest rounded-full flex items-center justify-center mb-4">
+                        <div className="w-20 h-20 bg-gray-100 dark:bg-[#000000] rounded-full flex items-center justify-center mb-4">
                             <CheckIcon className="w-10 h-10 text-gray-300 dark:text-gray-600" />
                         </div>
                         <p className="text-gray-500 dark:text-gray-400 font-medium">All systems nominal. No tasks found.</p>

@@ -115,7 +115,7 @@ const EconomicTimeline: React.FC = () => {
             {MOCK_ECONOMIC_CALENDAR.map((event, idx) => (
                 <div key={event.id} className="relative pl-6 group">
                     {/* Timeline Connector */}
-                    <div className="absolute -left-[21px] top-1 flex items-center justify-center bg-white dark:bg-brand-dark">
+                    <div className="absolute -left-[21px] top-1 flex items-center justify-center bg-white dark:bg-[#0A0A0A]">
                         <ImpactOrb impact={event.impact} />
                     </div>
                     
@@ -197,7 +197,7 @@ const RealTimeData: React.FC = () => {
         <div className="flex flex-col gap-6 h-full overflow-hidden animate-fade-in-slide-up">
             
             {/* The Pulse Header */}
-            <div className="relative rounded-2xl bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark overflow-hidden shadow-lg flex-shrink-0">
+            <div className="relative rounded-2xl bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] overflow-hidden shadow-lg flex-shrink-0">
                  {/* Background Sparkline Area */}
                  <div className="absolute inset-0 opacity-10 pointer-events-none">
                     <ResponsiveContainer width="100%" height="100%">
@@ -258,8 +258,8 @@ const RealTimeData: React.FC = () => {
                 
                 {/* Left Column: Financial X-Ray */}
                 <div className="xl:col-span-2 flex flex-col min-h-0">
-                    <Card className="flex-1 flex flex-col !p-0 overflow-hidden border border-gray-200 dark:border-brand-border-dark shadow-lg">
-                        <div className="flex flex-wrap items-center justify-between p-4 border-b border-gray-200 dark:border-brand-border-dark bg-gray-50 dark:bg-brand-darkest/50">
+                    <Card className="flex-1 flex flex-col !p-0 overflow-hidden border border-gray-200 dark:border-[#1A1A1A] shadow-lg">
+                        <div className="flex flex-wrap items-center justify-between p-4 border-b border-gray-200 dark:border-[#1A1A1A] bg-gray-50 dark:bg-[#000000]/50">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <svg className="w-5 h-5 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                                 Financial X-Ray
@@ -282,7 +282,7 @@ const RealTimeData: React.FC = () => {
                             </div>
                         </div>
                         
-                        <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-brand-dark">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-[#0A0A0A]">
                             <VisualFinancialTable data={financialData[activeFinancialTab]} />
                         </div>
                     </Card>
@@ -292,8 +292,8 @@ const RealTimeData: React.FC = () => {
                 <div className="xl:col-span-1 flex flex-col gap-6 min-h-0">
                     
                     {/* Economic Radar */}
-                    <Card className="flex-1 flex flex-col !p-0 border border-gray-200 dark:border-brand-border-dark shadow-lg overflow-hidden">
-                        <div className="p-4 border-b border-gray-200 dark:border-brand-border-dark bg-gray-50 dark:bg-brand-darkest/50">
+                    <Card className="flex-1 flex flex-col !p-0 border border-gray-200 dark:border-[#1A1A1A] shadow-lg overflow-hidden">
+                        <div className="p-4 border-b border-gray-200 dark:border-[#1A1A1A] bg-gray-50 dark:bg-[#000000]/50">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <svg className="w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                 Economic Radar
@@ -305,8 +305,8 @@ const RealTimeData: React.FC = () => {
                     </Card>
 
                     {/* Flash Feed */}
-                    <Card className="flex-1 flex flex-col !p-0 border border-gray-200 dark:border-brand-border-dark shadow-lg overflow-hidden">
-                        <div className="p-4 border-b border-gray-200 dark:border-brand-border-dark bg-gray-50 dark:bg-brand-darkest/50">
+                    <Card className="flex-1 flex flex-col !p-0 border border-gray-200 dark:border-[#1A1A1A] shadow-lg overflow-hidden">
+                        <div className="p-4 border-b border-gray-200 dark:border-[#1A1A1A] bg-gray-50 dark:bg-[#000000]/50">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                 Flash Feed

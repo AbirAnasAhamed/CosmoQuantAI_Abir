@@ -63,20 +63,20 @@ const GodModeLiquidationView: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full gap-4 overflow-hidden animate-fade-in-up">
-            <div className="bg-brand-darkest text-center text-rose-500 font-mono text-[10px] py-0.5 border-b border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.3)] tracking-widest uppercase flex-shrink-0 z-10 flex justify-between px-4">
+            <div className="bg-[#000000] text-center text-rose-500 font-mono text-[10px] py-0.5 border-b border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.3)] tracking-widest uppercase flex-shrink-0 z-10 flex justify-between px-4">
                 <span>SYSTEM OVERRIDE: GOD MODE ACTIVATED // INSTITUTIONAL DATA UNCAPPED</span>
                 <span className={isConnected ? "text-emerald-500" : "text-yellow-500"}>{isConnected ? "LIVE" : "RECONNECTING"}</span>
             </div>
             
             {/* Global Vulnerability Marquee */}
-            <div className="flex-shrink-0 flex items-center bg-[#0B1120] border border-rose-500/30 rounded-xl p-1.5 overflow-hidden shadow-[0_0_20px_rgba(244,63,94,0.15)] mx-4 z-10">
+            <div className="flex-shrink-0 flex items-center bg-[#000000] border border-rose-500/30 rounded-xl p-1.5 overflow-hidden shadow-[0_0_20px_rgba(244,63,94,0.15)] mx-4 z-10">
                 <span className="text-[10px] font-bold text-white bg-rose-600 px-3 py-1 rounded shadow-[0_0_10px_rgba(225,29,72,0.8)] uppercase whitespace-nowrap z-10 relative flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></div>
                     Vulnerability Scan
                 </span>
                 <div className="flex-1 overflow-hidden relative min-w-0 flex items-center">
-                    <div className="absolute left-0 w-8 h-full bg-gradient-to-r from-[#0B1120] to-transparent z-10"></div>
-                    <div className="absolute right-0 w-8 h-full bg-gradient-to-l from-[#0B1120] to-transparent z-10"></div>
+                    <div className="absolute left-0 w-8 h-full bg-gradient-to-r from-[#000000] to-transparent z-10"></div>
+                    <div className="absolute right-0 w-8 h-full bg-gradient-to-l from-[#000000] to-transparent z-10"></div>
                      <div className="flex animate-marquee whitespace-nowrap min-w-max pl-[10%] gap-8 text-[11px] font-mono text-gray-400">
                         {state.vulnerability.map((item, i) => (
                             <div key={item.coin + i} className="flex items-center gap-2">
@@ -99,7 +99,7 @@ const GodModeLiquidationView: React.FC = () => {
                 
                 {/* LEFT HUD: Cross-Exchange & Arbitrage Radar */}
                 <div className="col-span-12 lg:col-span-3 flex flex-col gap-4 min-h-0">
-                    <Card className="flex-1 overflow-hidden bg-gradient-to-b from-[#0F172A] to-[#0B1120] border-rose-500/10 p-0 relative group flex flex-col">
+                    <Card className="flex-1 overflow-hidden bg-gradient-to-b from-[#0A0A0A] to-[#000000] border-rose-500/10 p-0 relative group flex flex-col">
                         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(244,63,94,0.1)_0%,transparent_70%)] pointer-events-none"></div>
                         <div className="p-4 border-b border-white/5 flex items-center justify-between z-10">
                             <h3 className="text-xs font-bold font-mono text-white tracking-widest uppercase flex items-center gap-2">
@@ -131,7 +131,7 @@ const GodModeLiquidationView: React.FC = () => {
                         </div>
                     </Card>
 
-                    <Card className="h-64 bg-[#0F172A]/80 border-rose-500/10 p-4 relative overflow-hidden flex flex-col items-center justify-center group flex-shrink-0">
+                    <Card className="h-64 bg-[#0A0A0A]/80 border-rose-500/10 p-4 relative overflow-hidden flex flex-col items-center justify-center group flex-shrink-0">
                         <div className="absolute inset-0 bg-gradient-to-t from-rose-500/5 to-transparent pointer-events-none"></div>
                         <h3 className="text-xs font-bold font-mono text-gray-400 tracking-widest uppercase mb-4 absolute top-4 left-4 z-10 flex items-center gap-2">
                              Pain Threshold
@@ -238,7 +238,7 @@ const GodModeLiquidationView: React.FC = () => {
 
                 {/* RIGHT HUD: Smart vs Dumb Money & Advanced Feed */}
                 <div className="col-span-12 lg:col-span-3 flex flex-col gap-4 min-h-0">
-                    <Card className="h-48 bg-[#0F172A]/80 border-emerald-500/10 p-0 relative overflow-hidden flex flex-col group flex-shrink-0">
+                    <Card className="h-48 bg-[#0A0A0A]/80 border-emerald-500/10 p-0 relative overflow-hidden flex flex-col group flex-shrink-0">
                         <div className="p-4 border-b border-white/5 bg-black/20 text-[10px] sm:text-xs font-bold font-mono text-gray-400 tracking-widest uppercase flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]"></span>
                             Smart vs Dumb Money
@@ -276,7 +276,7 @@ const GodModeLiquidationView: React.FC = () => {
                         </div>
                     </Card>
 
-                    <Card className="flex-1 overflow-hidden bg-gradient-to-b from-[#0F172A] to-[#0B1120] border-rose-500/10 p-0 relative group flex flex-col min-h-0">
+                    <Card className="flex-1 overflow-hidden bg-gradient-to-b from-[#0A0A0A] to-[#000000] border-rose-500/10 p-0 relative group flex flex-col min-h-0">
                          <div className="p-4 border-b border-white/5 bg-black/20 text-xs font-bold font-mono text-rose-400 tracking-widest uppercase flex items-center gap-2">
                             <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7v1.53a4.004 4.004 0 0 0 .994 2.634L7.96 16H6a1 1 0 0 0 0 2h12a1 1 0 0 0 0-2h-1.96l1.966-2.836A4.004 4.004 0 0 0 19 10.53V9a7 7 0 0 0-7-7Zm-2.5 7a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z" /><path d="M8 20a1 1 0 0 0 0 2h8a1 1 0 0 0 0-2H8Z" /></svg>
                             Whale Kill Feed

@@ -48,7 +48,7 @@ const LoginTransition: React.FC<LoginTransitionProps> = ({ onAnimationComplete }
     }, [onAnimationComplete]);
 
     return (
-        <div className="fixed inset-0 bg-[#050b14] flex flex-col items-center justify-center z-[100] overflow-hidden font-sans">
+        <div className="fixed inset-0 bg-[#000000] flex flex-col items-center justify-center z-[100] overflow-hidden font-sans">
             {/* Background Effects */}
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-primary/10 rounded-full blur-[100px] animate-pulse"></div>

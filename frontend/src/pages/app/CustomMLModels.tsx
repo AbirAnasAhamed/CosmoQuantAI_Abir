@@ -89,7 +89,7 @@ const UploadModelModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-backdrop-fade-in" onClick={onClose}>
-            <div className="bg-[#0B1120] w-full max-w-lg rounded-3xl shadow-2xl border border-gray-800 flex flex-col overflow-hidden animate-modal-content-slide-down relative" onClick={e => e.stopPropagation()}>
+            <div className="bg-[#000000] w-full max-w-lg rounded-3xl shadow-2xl border border-gray-800 flex flex-col overflow-hidden animate-modal-content-slide-down relative" onClick={e => e.stopPropagation()}>
                 {/* Decoration */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-primary via-purple-500 to-brand-primary"></div>
 
@@ -169,7 +169,7 @@ const ModelCard: React.FC<{
 
     return (
         <div
-            className="relative group bg-white dark:bg-[#0F172A]/80 backdrop-blur-md border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden hover:border-brand-primary/50 transition-all duration-500 animate-fade-in-slide-up shadow-lg hover:shadow-2xl hover:shadow-brand-primary/10"
+            className="relative group bg-white dark:bg-[#0A0A0A]/80 backdrop-blur-md border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden hover:border-brand-primary/50 transition-all duration-500 animate-fade-in-slide-up shadow-lg hover:shadow-2xl hover:shadow-brand-primary/10"
             style={{ animationDelay: `${animationDelay}ms` }}
         >
             {/* Top Glow */}
@@ -198,7 +198,7 @@ const ModelCard: React.FC<{
                 </div>
 
                 {/* Performance HUD */}
-                <div className="bg-gray-50 dark:bg-[#0B1120] rounded-xl p-4 border border-gray-200 dark:border-gray-800 mb-6 relative overflow-hidden">
+                <div className="bg-gray-50 dark:bg-[#000000] rounded-xl p-4 border border-gray-200 dark:border-gray-800 mb-6 relative overflow-hidden">
                     {/* Scanline */}
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-0 pointer-events-none bg-[length:100%_2px,3px_100%] opacity-30"></div>
 
@@ -318,7 +318,7 @@ const CustomMLModels: React.FC = () => {
             {modalState.isOpen && <UploadModelModal onClose={() => setModalState({ isOpen: false })} onUpload={handleUpload} existingModel={modalState.modelToUpdate} />}
 
             <div className="relative z-10 flex flex-col gap-8">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/80 dark:bg-[#0F172A]/60 backdrop-blur-lg border border-gray-200 dark:border-gray-800 p-6 rounded-2xl shadow-lg">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/80 dark:bg-[#0A0A0A]/60 backdrop-blur-lg border border-gray-200 dark:border-gray-800 p-6 rounded-2xl shadow-lg">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-gradient-to-br from-brand-primary to-purple-600 rounded-xl shadow-lg shadow-brand-primary/20 text-white">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>

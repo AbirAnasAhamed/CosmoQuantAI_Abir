@@ -525,7 +525,7 @@ export const FloatingTVChartButton: React.FC<FloatingTVChartButtonProps> = ({
 
             {/* ── SYMBOL + INTERVAL SELECTOR ───────────────────────────── */}
             <div
-              className="flex-shrink-0 bg-[#0A0F1C] border-b border-white/[0.05] px-3 py-2 flex flex-col gap-1.5"
+              className="flex-shrink-0 bg-[#000000] border-b border-white/[0.05] px-3 py-2 flex flex-col gap-1.5"
               onMouseDown={e => e.stopPropagation()}
             >
               {/* Symbol + Timeframe on same row, side by side */}
@@ -561,7 +561,7 @@ export const FloatingTVChartButton: React.FC<FloatingTVChartButtonProps> = ({
                     {showEmaPick && (
                       <MotionDiv initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.1 }}
-                        className="absolute top-full left-0 mt-1 bg-[#0A0F1C] border border-white/10 rounded-xl shadow-2xl p-1 z-50 flex gap-0.5">
+                        className="absolute top-full left-0 mt-1 bg-[#000000] border border-white/10 rounded-xl shadow-2xl p-1 z-50 flex gap-0.5">
                         {EMA_PERIODS.map(p => (
                           <button key={p}
                             onClick={() => { setInd(prev => ({ ...prev, emaPeriod: p, showEMA: true })); setShowEmaPick(false); }}

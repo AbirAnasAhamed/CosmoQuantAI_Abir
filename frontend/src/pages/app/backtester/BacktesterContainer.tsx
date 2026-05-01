@@ -301,7 +301,7 @@ export const BacktesterContainer: React.FC = () => {
         <div className="space-y-8 staggered-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2"><span className="text-brand-primary">⚡</span> Algo Backtester</h1>
-                <div className="flex bg-gray-200 dark:bg-brand-dark p-1 rounded-lg flex-wrap">
+                <div className="flex bg-gray-200 dark:bg-[#0A0A0A] p-1 rounded-lg flex-wrap">
                     {[{ id: 'single', icon: PlayIcon, label: 'Single' }, { id: 'batch', icon: LayoutGrid, label: 'Batch' }, { id: 'optimization', icon: Layers, label: 'Optimize' }, { id: 'walk_forward', icon: GitMerge, label: 'WFA' }, { id: 'editor', icon: CodeIcon, label: 'Editor' }].map(tab => (
                         <button key={tab.id} onClick={() => handleTabChange(tab.id as any)} className={`flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-colors ${activeTab === tab.id ? 'bg-white dark:bg-brand-primary text-slate-900 dark:text-white shadow' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}><tab.icon size={14} /> {tab.label}</button>
                     ))}
@@ -346,7 +346,7 @@ export const BacktesterContainer: React.FC = () => {
                         selectedIndicatorId={selectedIndicatorId}
                         setSelectedIndicatorId={setSelectedIndicatorId}
                     />
-                    <div className="mt-8 pt-6 border-t border-brand-border-light dark:border-brand-border-dark">
+                    <div className="mt-8 pt-6 border-t border-brand-border-light dark:border-[#1A1A1A]">
                         {isLoading && (
                             <div className="w-full mt-4 animate-fade-in">
                                 <div className="flex justify-between text-xs text-blue-400 mb-1 font-mono uppercase"><span>{statusMessage || 'Processing...'}</span><span>{progress}%</span></div>

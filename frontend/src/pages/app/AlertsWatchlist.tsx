@@ -99,7 +99,7 @@ const CreateAlertModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-modal-fade-in" onClick={onClose}>
-            <div className="w-full max-w-lg bg-white dark:bg-brand-dark rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-modal-content-slide-down" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full max-w-lg bg-white dark:bg-[#0A0A0A] rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-modal-content-slide-down" onClick={(e) => e.stopPropagation()}>
                 <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white">Set New Sentinel</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors">
@@ -285,7 +285,7 @@ const AlertsWatchlist: React.FC = () => {
                     <div ref={dropdownRef} className="relative z-20">
                          <button 
                             onClick={() => setIsWatchlistDropdownOpen(!isWatchlistDropdownOpen)} 
-                            className="w-full flex items-center justify-between bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark p-4 rounded-2xl shadow-sm hover:border-brand-primary/50 transition-all"
+                            className="w-full flex items-center justify-between bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] p-4 rounded-2xl shadow-sm hover:border-brand-primary/50 transition-all"
                         >
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
@@ -300,7 +300,7 @@ const AlertsWatchlist: React.FC = () => {
                         </button>
 
                         {isWatchlistDropdownOpen && (
-                            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-brand-dark rounded-2xl shadow-xl border border-gray-200 dark:border-brand-border-dark overflow-hidden animate-dropdown-enter">
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#0A0A0A] rounded-2xl shadow-xl border border-gray-200 dark:border-[#1A1A1A] overflow-hidden animate-dropdown-enter">
                                 {watchlists.map(w => (
                                     <button 
                                         key={w.id} 
@@ -328,7 +328,7 @@ const AlertsWatchlist: React.FC = () => {
                             return (
                                 <div 
                                     key={asset} 
-                                    className="relative overflow-hidden bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 group hover:-translate-y-1 staggered-fade-in"
+                                    className="relative overflow-hidden bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 group hover:-translate-y-1 staggered-fade-in"
                                     style={{ animationDelay: `${index * 50}ms` }}
                                 >
                                     <AssetSparkline data={priceData.history} isPositive={isPositive} id={asset} />
@@ -355,7 +355,7 @@ const AlertsWatchlist: React.FC = () => {
 
                 {/* Alerts Grid Section */}
                 <div className="lg:col-span-2 flex flex-col gap-4 staggered-fade-in" style={{ animationDelay: '300ms' }}>
-                    <div className="bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark rounded-2xl p-6 flex-1 flex flex-col shadow-sm">
+                    <div className="bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] rounded-2xl p-6 flex-1 flex flex-col shadow-sm">
                          <div className="flex items-center gap-3 mb-6">
                             <div className="p-2 bg-brand-primary/10 rounded-lg text-brand-primary">
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
@@ -373,12 +373,12 @@ const AlertsWatchlist: React.FC = () => {
                                 return (
                                     <div 
                                         key={alert.id} 
-                                        className={`relative group p-5 bg-gray-50 dark:bg-brand-darkest/30 border border-gray-200 dark:border-brand-border-dark rounded-2xl transition-all duration-300 hover:shadow-lg hover:border-brand-primary/30 ${animationClass} ${flashClass}`}
+                                        className={`relative group p-5 bg-gray-50 dark:bg-[#000000]/30 border border-gray-200 dark:border-[#1A1A1A] rounded-2xl transition-all duration-300 hover:shadow-lg hover:border-brand-primary/30 ${animationClass} ${flashClass}`}
                                     >
                                         <div className="flex justify-between items-start mb-3">
                                             <div className="flex items-center gap-2">
                                                 <span className="font-bold text-slate-900 dark:text-white">{alert.asset}</span>
-                                                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-brand-dark border border-gray-200 dark:border-brand-border-dark rounded text-gray-500">{alert.triggerType}</span>
+                                                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1A1A1A] rounded text-gray-500">{alert.triggerType}</span>
                                             </div>
                                             <div className={`relative flex items-center justify-center w-3 h-3`}>
                                                 {isActive && <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75 animate-ping"></span>}
@@ -391,7 +391,7 @@ const AlertsWatchlist: React.FC = () => {
                                         <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-white/5">
                                             <div className="flex gap-1">
                                                 {alert.notificationChannels.map(channel => (
-                                                    <span key={channel} className="text-[10px] bg-white dark:bg-brand-dark border border-gray-200 dark:border-white/10 px-2 py-1 rounded text-gray-500">{channel}</span>
+                                                    <span key={channel} className="text-[10px] bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 px-2 py-1 rounded text-gray-500">{channel}</span>
                                                 ))}
                                             </div>
                                             <button 
