@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Button from '@/components/common/Button';
 import { Logo } from '@/constants';
-import HomePage from './HomePage';
+import HomePage, { CosmicStarBackground } from './HomePage';
 import ServicesPage from './ServicesPage';
 import PricingPage from './PricingPage';
 import BlogPage from './BlogPage';
@@ -128,7 +128,7 @@ const PublicHeader: React.FC<{
 };
 
 const PublicFooter: React.FC = () => (
-    <footer className="relative bg-[#020610] border-t border-white/5 pt-16 pb-8 overflow-hidden">
+    <footer className="relative bg-transparent border-t border-white/5 pt-16 pb-8 overflow-hidden">
         {/* Background glow */}
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-violet-500/5 rounded-full blur-[120px] pointer-events-none" />
@@ -215,9 +215,10 @@ const PublicWebsite: React.FC<PublicWebsiteProps> = ({ onLogin, onSignUp }) => {
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#020610] text-white selection:bg-cyan-500/30">
+        <div className="flex flex-col min-h-screen bg-transparent text-white selection:bg-cyan-500/30">
+            <CosmicStarBackground />
             <PublicHeader onLogin={onLogin} onSignUp={onSignUp} currentView={currentView} setCurrentView={setCurrentView} />
-            <main className="flex-grow pt-20">
+            <main className="flex-grow pt-20 relative z-10">
                 {renderContent()}
             </main>
             {currentView === 'Home' && <PublicFooter />}

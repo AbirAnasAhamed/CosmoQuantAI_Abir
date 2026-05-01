@@ -35,7 +35,7 @@ const useScrollAnimation = (threshold = 0.1) => {
 // ============================
 // Cosmic Star Background (Warp Speed / Back Window View)
 // ============================
-const CosmicStarBackground: React.FC = () => {
+export const CosmicStarBackground: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
@@ -845,7 +845,6 @@ const HomePage: React.FC<{ onLogin: () => void; onSignUp: () => void; }> = ({ on
 
     return (
         <div className="relative overflow-hidden bg-transparent">
-            <CosmicStarBackground />
             {/* ========== HERO ========== */}
             <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-transparent">
                 <div className="container mx-auto px-4 relative z-10 flex flex-col items-center text-center pt-24 pb-32">

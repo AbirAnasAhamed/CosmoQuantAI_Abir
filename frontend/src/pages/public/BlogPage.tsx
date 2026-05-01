@@ -121,7 +121,7 @@ const BlogPage: React.FC = () => {
     const categories: Category[] = ['All', 'Strategies', 'Tutorials', 'Market Analysis', 'AI & ML'];
 
     return (
-        <div className="bg-[#020610] min-h-screen selection:bg-cyan-500/30 selection:text-cyan-200">
+        <div className="bg-transparent min-h-screen selection:bg-cyan-500/30 selection:text-cyan-200">
 
             {/* Header Background */}
             <div className="relative pt-32 pb-48 overflow-hidden">

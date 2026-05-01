@@ -89,7 +89,7 @@ const PortfolioPage: React.FC<PortfolioPageProps> = ({ onSignUp }) => {
     const infraSkills = ['Docker & Kubernetes', 'AWS / GCP', 'WebSocket APIs', 'Low Latency Systems', 'PostgreSQL / TimescaleDB'];
 
     return (
-        <div className="bg-[#020610] min-h-screen selection:bg-cyan-500/30 selection:text-cyan-200">
+        <div className="bg-transparent min-h-screen selection:bg-cyan-500/30 selection:text-cyan-200">
             
             {/* Hero Section */}
             <div className="relative pt-32 pb-20 overflow-hidden">

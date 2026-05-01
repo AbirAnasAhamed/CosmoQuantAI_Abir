@@ -69,7 +69,7 @@ const PricingPage: React.FC = () => {
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
     return (
-        <div className="bg-[#020610] min-h-screen font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
+        <div className="bg-transparent min-h-screen font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
             {/* Hero Section */}
             <div className="relative pt-32 pb-20 overflow-hidden">
                 {/* Cyber background elements */}

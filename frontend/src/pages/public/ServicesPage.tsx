@@ -83,7 +83,7 @@ const ServicesPage: React.FC = () => {
     ];
 
     return (
-        <div className="relative bg-[#020610] min-h-screen overflow-hidden selection:bg-cyan-500/30 selection:text-cyan-200">
+        <div className="relative bg-transparent min-h-screen overflow-hidden selection:bg-cyan-500/30 selection:text-cyan-200">
             
             {/* Decorative Background Elements */}
             <div className="absolute inset-0 z-0 pointer-events-none">
