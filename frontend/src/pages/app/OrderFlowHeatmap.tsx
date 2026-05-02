@@ -241,12 +241,12 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
             }
         });
 
-        const emaSeries = chart.addSeries(LineSeries, { color: '#f59e0b', lineWidth: 2, crosshairMarkerVisible: false, lastValueVisible: false, priceScaleId: 'right' });
-        const bbUpperSeries = chart.addSeries(LineSeries, { color: 'rgba(56, 189, 248, 0.5)', lineWidth: 1, crosshairMarkerVisible: false, lastValueVisible: false, priceScaleId: 'right' });
-        const bbMiddleSeries = chart.addSeries(LineSeries, { color: 'rgba(56, 189, 248, 0.8)', lineWidth: 1, crosshairMarkerVisible: false, lastValueVisible: false, priceScaleId: 'right' });
-        const bbLowerSeries = chart.addSeries(LineSeries, { color: 'rgba(56, 189, 248, 0.5)', lineWidth: 1, crosshairMarkerVisible: false, lastValueVisible: false, priceScaleId: 'right' });
-        const utBotSeries = chart.addSeries(LineSeries, { color: '#00ffff', lineWidth: 1, lineStyle: LineStyle.Solid, crosshairMarkerVisible: false, lastValueVisible: false, priceScaleId: 'right' });
-        const rsiSeries = chart.addSeries(LineSeries, { color: '#db2777', lineWidth: 2, priceScaleId: 'left', crosshairMarkerVisible: false, lastValueVisible: false });
+        const emaSeries = chart.addSeries(LineSeries, { color: '#f59e0b', lineWidth: 2, crosshairMarkerVisible: false, lastValueVisible: false, priceScaleId: 'right', visible: indicatorSettings.showEMA });
+        const bbUpperSeries = chart.addSeries(LineSeries, { color: 'rgba(56, 189, 248, 0.5)', lineWidth: 1, crosshairMarkerVisible: false, lastValueVisible: false, priceScaleId: 'right', visible: indicatorSettings.showBB });
+        const bbMiddleSeries = chart.addSeries(LineSeries, { color: 'rgba(56, 189, 248, 0.8)', lineWidth: 1, crosshairMarkerVisible: false, lastValueVisible: false, priceScaleId: 'right', visible: indicatorSettings.showBB });
+        const bbLowerSeries = chart.addSeries(LineSeries, { color: 'rgba(56, 189, 248, 0.5)', lineWidth: 1, crosshairMarkerVisible: false, lastValueVisible: false, priceScaleId: 'right', visible: indicatorSettings.showBB });
+        const utBotSeries = chart.addSeries(LineSeries, { color: '#00ffff', lineWidth: 1, lineStyle: LineStyle.Solid, crosshairMarkerVisible: false, lastValueVisible: false, priceScaleId: 'right', visible: indicatorSettings.showUTBot });
+        const rsiSeries = chart.addSeries(LineSeries, { color: '#db2777', lineWidth: 2, priceScaleId: 'left', crosshairMarkerVisible: false, lastValueVisible: false, visible: indicatorSettings.showRSI });
 
         const volumeSeries = chart.addSeries(HistogramSeries, {
             color: '#26a69a',
@@ -254,6 +254,7 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
                 type: 'volume',
             },
             priceScaleId: 'volume', // Give it a separate scale
+            visible: indicatorSettings.showVolume,
         });
 
         // Configure the volume price scale
