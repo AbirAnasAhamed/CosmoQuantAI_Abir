@@ -10,6 +10,7 @@ from app import models
 import traceback
 from datetime import datetime, timedelta
 import joblib
+from app.services.ml_utils import extract_feature_importance, calculate_classification_metrics, calculate_regression_metrics
 
 def fetch_l2_data(symbol: str, db: Session, lookback_hours: int = 6, timeframe: str = None) -> pd.DataFrame:
     from app.models.orderbook_snapshot import OrderBookSnapshot
@@ -106,7 +107,13 @@ def train_model_task(job_id: str, db: Session):
             
             # L2 doesn't need TA-Lib indicators, we use micro-features
             features = ["obi", "spread", "microprice"]
-            df['Target'] = df['Close'].shift(-1)
+            
+            prediction_target = config.get("prediction_target", "classification")
+            if prediction_target == "classification":
+                df['Target'] = (df['Close'].shift(-1) > df['Close']).astype(int)
+            else:
+                df['Target'] = df['Close'].shift(-1)
+                
             df.dropna(inplace=True)
             
         else:
@@ -127,7 +134,12 @@ def train_model_task(job_id: str, db: Session):
             if "BBANDS" in indicators:
                 df.ta.bbands(append=True)
                 
-            df['Target'] = df['Close'].shift(-1)
+            prediction_target = config.get("prediction_target", "classification")
+            if prediction_target == "classification":
+                df['Target'] = (df['Close'].shift(-1) > df['Close']).astype(int)
+            else:
+                df['Target'] = df['Close'].shift(-1)
+                
             df.dropna(inplace=True)
             
             features = [col for col in df.columns if col not in ['Target', 'Open', 'High', 'Low', 'Close', 'Volume', 'Adj Close']]
@@ -159,25 +171,54 @@ def train_model_task(job_id: str, db: Session):
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
         
         epochs = int(config.get("epochs", 10))
+        learning_rate = float(config.get("learning_rate", 0.1))
+        max_depth = int(config.get("max_depth", 6))
+        prediction_target = config.get("prediction_target", "classification")
         
         # 4. Train Model
         if job.algorithm == "Random Forest":
-            add_log("Training Random Forest Regressor...")
-            from sklearn.ensemble import RandomForestRegressor
-            model = RandomForestRegressor(n_estimators=epochs, random_state=42)
-            model.fit(X_train, y_train.ravel())
+            add_log(f"Training Random Forest ({prediction_target.capitalize()})...")
+            if prediction_target == "classification":
+                from sklearn.ensemble import RandomForestClassifier
+                model = RandomForestClassifier(n_estimators=epochs, max_depth=max_depth, random_state=42)
+                model.fit(X_train, y_train.ravel())
+                y_pred = model.predict(X_test)
+                add_log(calculate_classification_metrics(y_test.ravel(), y_pred))
+            else:
+                from sklearn.ensemble import RandomForestRegressor
+                model = RandomForestRegressor(n_estimators=epochs, max_depth=max_depth, random_state=42)
+                model.fit(X_train, y_train.ravel())
+                y_pred = model.predict(X_test)
+                add_log(calculate_regression_metrics(y_test.ravel(), y_pred))
+                
             job.progress = 80.0
             joblib.dump(model, model_path)
-            add_log(f"Random Forest training complete. R2 Score: {model.score(X_test, y_test.ravel()):.4f}")
+            
+            fi_log = extract_feature_importance(model, features)
+            if fi_log: add_log(fi_log)
+            add_log(f"Random Forest training complete.")
             
         elif job.algorithm == "XGBoost":
-            add_log("Training XGBoost Regressor...")
-            from xgboost import XGBRegressor
-            model = XGBRegressor(n_estimators=epochs, learning_rate=0.1, random_state=42)
-            model.fit(X_train, y_train.ravel(), eval_set=[(X_test, y_test.ravel())], verbose=False)
+            add_log(f"Training XGBoost ({prediction_target.capitalize()})...")
+            if prediction_target == "classification":
+                from xgboost import XGBClassifier
+                model = XGBClassifier(n_estimators=epochs, learning_rate=learning_rate, max_depth=max_depth, random_state=42)
+                model.fit(X_train, y_train.ravel(), eval_set=[(X_test, y_test.ravel())], verbose=False)
+                y_pred = model.predict(X_test)
+                add_log(calculate_classification_metrics(y_test.ravel(), y_pred))
+            else:
+                from xgboost import XGBRegressor
+                model = XGBRegressor(n_estimators=epochs, learning_rate=learning_rate, max_depth=max_depth, random_state=42)
+                model.fit(X_train, y_train.ravel(), eval_set=[(X_test, y_test.ravel())], verbose=False)
+                y_pred = model.predict(X_test)
+                add_log(calculate_regression_metrics(y_test.ravel(), y_pred))
+                
             job.progress = 80.0
             joblib.dump(model, model_path)
-            add_log(f"XGBoost training complete. R2 Score: {model.score(X_test, y_test.ravel()):.4f}")
+            
+            fi_log = extract_feature_importance(model, features)
+            if fi_log: add_log(fi_log)
+            add_log(f"XGBoost training complete.")
             
         elif job.algorithm == "LSTM":
             add_log("Initializing PyTorch LSTM network...")
@@ -203,8 +244,13 @@ def train_model_task(job_id: str, db: Session):
             y_train_t = torch.FloatTensor(y_train)
             
             model = SimpleLSTM(input_size=X_train.shape[1], hidden_size=64, num_layers=2, output_size=1)
-            criterion = nn.MSELoss()
-            optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+            
+            if prediction_target == "classification":
+                criterion = nn.BCEWithLogitsLoss()
+            else:
+                criterion = nn.MSELoss()
+                
+            optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
             
             add_log(f"Starting LSTM training for {epochs} epochs...")
             for epoch in range(epochs):
@@ -224,6 +270,18 @@ def train_model_task(job_id: str, db: Session):
             model_filename = model_filename.replace(".pkl", ".pt")
             model_path = model_path.replace(".pkl", ".pt")
             torch.save(model.state_dict(), model_path)
+            
+            # Simple eval
+            model.eval()
+            with torch.no_grad():
+                X_test_t = torch.FloatTensor(X_test).unsqueeze(1)
+                preds = model(X_test_t).numpy()
+                if prediction_target == "classification":
+                    preds_class = (1 / (1 + np.exp(-preds)) > 0.5).astype(int)
+                    add_log(calculate_classification_metrics(y_test, preds_class))
+                else:
+                    add_log(calculate_regression_metrics(y_test, preds))
+                    
             add_log("PyTorch LSTM training complete.")
             
         else:
@@ -264,10 +322,12 @@ def train_model_task(job_id: str, db: Session):
             registry_id = target_model_id
         else:
             # We are creating a new model from scratch
+            custom_model_name = config.get("model_name", "").strip()
+            
             registry_id = f"model_{timestamp}"
             db_model = models.CustomMLModel(
                 id=registry_id,
-                name=f"{job.symbol} {job.algorithm} Auto",
+                name=custom_model_name if custom_model_name else f"{job.symbol} {job.algorithm} Auto",
                 model_type=job.algorithm,
                 user_id=job.user_id,
                 active_version_id=None,

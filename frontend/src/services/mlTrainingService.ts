@@ -28,6 +28,11 @@ export interface TrainingConfig {
         data_lookback_hours?: number;
         ohlcv_period?: string;
         resample_l2?: boolean;
+        prediction_target?: string;
+        learning_rate?: number;
+        max_depth?: number;
+        model_name?: string;
+        exchange?: string;
     };
 }
 

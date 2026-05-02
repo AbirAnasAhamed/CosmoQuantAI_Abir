@@ -154,6 +154,8 @@ const Sidebar: React.FC<{
                 { view: AppView.BOT_LAB, icon: <BotLabIcon />, label: 'Bot Laboratory' },
                 { view: AppView.ORDER_FLOW_HEATMAP, icon: <Activity />, label: 'Order Flow Heatmap' },
                 { view: AppView.AI_FOUNDRY, icon: <AIFoundryIcon />, label: 'AI Foundry' },
+                { view: AppView.CUSTOM_ML_MODELS, icon: <MLModelIcon />, label: 'ML Registry' },
+                { view: AppView.MODEL_TRAINING_STUDIO, icon: <Activity />, label: 'Training Studio' },
             ]
         },
         {
@@ -180,8 +182,6 @@ const Sidebar: React.FC<{
             title: 'Developer Studio',
             items: [
                 { view: AppView.NURAL_CORE, icon: <Cpu size={20} />, label: 'Neural Core' },
-                { view: AppView.CUSTOM_ML_MODELS, icon: <MLModelIcon />, label: 'ML Registry' },
-                { view: AppView.MODEL_TRAINING_STUDIO, icon: <Activity />, label: 'Training Studio' },
                 { view: AppView.ML_MODEL_MARKETPLACE, icon: <MLModelMarketplaceIcon />, label: 'Algo Marketplace' },
                 { view: AppView.CUSTOM_INDICATOR_STUDIO, icon: <IndicatorStudioIcon />, label: 'Indicator Studio' },
                 { view: AppView.PINE_SCRIPT_STUDIO, icon: <PineScriptIcon />, label: 'Pine Editor' },

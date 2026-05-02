@@ -3,9 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BrainCircuit, Play, Square, Settings, Database, Activity, Terminal, CheckCircle2, XCircle, Loader2, Trash2 } from 'lucide-react';
 import { mlTrainingService, TrainingJob } from '@/services/mlTrainingService';
 import apiClient from '@/services/client';
+import TargetSelection from '@/components/ml/TargetSelection';
+import AdvancedHyperparameters from '@/components/ml/AdvancedHyperparameters';
+import FeatureImportanceChart from '@/components/ml/FeatureImportanceChart';
+import { HeatmapSymbolSelector } from '../../components/features/market/HeatmapSymbolSelector';
 
 const ModelTrainingStudio: React.FC = () => {
     const [symbol, setSymbol] = useState('BTC/USDT');
+    const [exchange, setExchange] = useState('binance');
     const [timeframe, setTimeframe] = useState('1d');
     const [algorithm, setAlgorithm] = useState('Random Forest');
     const [epochs, setEpochs] = useState(10);
@@ -16,6 +21,12 @@ const ModelTrainingStudio: React.FC = () => {
     const [dataLookback, setDataLookback] = useState(6);
     const [ohlcvPeriod, setOhlcvPeriod] = useState('2y');
     const [isResampleL2, setIsResampleL2] = useState(true);
+    
+    // New Feature States
+    const [predictionTarget, setPredictionTarget] = useState('classification');
+    const [learningRate, setLearningRate] = useState(0.1);
+    const [maxDepth, setMaxDepth] = useState(6);
+    const [modelName, setModelName] = useState('');
     
     const [isTraining, setIsTraining] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
@@ -75,7 +86,12 @@ const ModelTrainingStudio: React.FC = () => {
                     retrain_interval_hours: isAutoRetrain ? retrainInterval : undefined,
                     data_lookback_hours: dataLookback,
                     ohlcv_period: dataSource === 'ohlcv' ? ohlcvPeriod : undefined,
-                    resample_l2: dataSource === 'l2_orderbook' ? isResampleL2 : undefined
+                    resample_l2: dataSource === 'l2_orderbook' ? isResampleL2 : undefined,
+                    prediction_target: predictionTarget,
+                    learning_rate: learningRate,
+                    max_depth: maxDepth,
+                    model_name: modelName,
+                    exchange: exchange
                 }
             });
             setCurrentJob(job);
@@ -130,16 +146,34 @@ const ModelTrainingStudio: React.FC = () => {
 
                     <div className="space-y-5 flex-1">
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1">Asset Symbol</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">Asset & Exchange</label>
+                            <div className={isTraining ? 'opacity-50 pointer-events-none' : ''}>
+                                <HeatmapSymbolSelector 
+                                    symbol={symbol} 
+                                    exchange={exchange} 
+                                    onSymbolChange={setSymbol} 
+                                    onExchangeChange={setExchange} 
+                                />
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">Custom Model Name (Optional)</label>
                             <input 
                                 type="text" 
-                                value={symbol} 
-                                onChange={e => setSymbol(e.target.value.toUpperCase())}
+                                value={modelName} 
+                                onChange={e => setModelName(e.target.value)}
                                 disabled={isTraining}
-                                className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 outline-none transition-all disabled:opacity-50 placeholder-white/30 shadow-inner"
-                                placeholder="e.g., BTC/USDT or AAPL"
+                                className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-purple-500/50 focus:border-purple-400 outline-none transition-all disabled:opacity-50 placeholder-white/30 shadow-inner"
+                                placeholder="e.g., BTC_Scalper_V1"
                             />
                         </div>
+
+                        <TargetSelection 
+                            predictionTarget={predictionTarget}
+                            setPredictionTarget={setPredictionTarget}
+                            isTraining={isTraining}
+                        />
 
                         {(dataSource === 'ohlcv' || isResampleL2) && (
                             <div>
@@ -187,6 +221,14 @@ const ModelTrainingStudio: React.FC = () => {
                                 min={1}
                                 max={500}
                                 className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-purple-500/50 focus:border-purple-400 outline-none transition-all disabled:opacity-50 shadow-inner"
+                            />
+                            
+                            <AdvancedHyperparameters 
+                                learningRate={learningRate}
+                                setLearningRate={setLearningRate}
+                                maxDepth={maxDepth}
+                                setMaxDepth={setMaxDepth}
+                                isTraining={isTraining}
                             />
                         </div>
 
@@ -402,8 +444,37 @@ const ModelTrainingStudio: React.FC = () => {
                             <div className="space-y-1.5 pb-8">
                                 <AnimatePresence>
                                     {currentJob.logs.map((log, idx) => {
-                                        // Highlight specific keywords for terminal feel
-                                        let coloredLog = log;
+                                        // Ignore raw timestamps for JSON extraction
+                                        const cleanLog = log.replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/, '');
+                                        
+                                        if (cleanLog.startsWith('[METRICS]')) {
+                                            try {
+                                                const metrics = JSON.parse(cleanLog.replace('[METRICS]', '').trim());
+                                                return (
+                                                    <motion.div key={idx} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="mt-4 mb-4 p-4 bg-gradient-to-br from-emerald-900/40 to-cyan-900/20 border border-emerald-500/30 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+                                                        <h4 className="text-emerald-400 font-bold text-xs mb-2 tracking-widest flex items-center gap-2">
+                                                            <Activity className="w-4 h-4" /> PERFORMANCE METRICS
+                                                        </h4>
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            {Object.entries(metrics).map(([k, v]) => (
+                                                                <div key={k} className="bg-black/40 rounded-lg p-3 border border-emerald-500/10">
+                                                                    <div className="text-emerald-100/50 text-[10px] uppercase font-bold tracking-wider">{k}</div>
+                                                                    <div className="text-emerald-400 text-lg font-black mt-1 drop-shadow-[0_0_5px_#10b981]">{Number(v).toFixed(4)}</div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </motion.div>
+                                                );
+                                            } catch (e) { return null; }
+                                        }
+
+                                        if (cleanLog.startsWith('[FEATURE_IMPORTANCE]')) {
+                                            try {
+                                                const featureData = JSON.parse(cleanLog.replace('[FEATURE_IMPORTANCE]', '').trim());
+                                                return <FeatureImportanceChart key={idx} data={featureData} />;
+                                            } catch (e) { return null; }
+                                        }
+
                                         let textColor = "text-gray-300";
                                         
                                         if (log.includes("ERROR")) textColor = "text-red-400 drop-shadow-[0_0_5px_#ef4444]";
@@ -419,7 +490,7 @@ const ModelTrainingStudio: React.FC = () => {
                                                 className={`break-words ${textColor}`}
                                             >
                                                 <span className="text-cyan-800 mr-3 opacity-50 select-none">root@core:~#</span>
-                                                {coloredLog}
+                                                {log}
                                             </motion.div>
                                         );
                                     })}
