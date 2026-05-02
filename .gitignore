@@ -88,3 +88,6 @@ Desktop.ini
 backend/static/avatars/
 verify_export_feature.py
 celerybeat-schedule
+
+# ML Models
+backend/uploads/models/

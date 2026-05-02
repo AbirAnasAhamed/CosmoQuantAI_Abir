@@ -1,11 +1,24 @@
 import api from './api';
 import { CustomMLModel } from '@/types';
 
+const mapModel = (data: any): CustomMLModel => {
+    return {
+        ...data,
+        modelType: data.model_type,
+        activeVersionId: data.active_version_id,
+        versions: data.versions?.map((v: any) => ({
+            ...v,
+            fileName: v.file_path?.split('/').pop() || v.file_path,
+            uploadDate: v.upload_date,
+        })) || []
+    };
+};
+
 export const mlModelsService = {
     // Get all custom models for the user
     getModels: async (): Promise<CustomMLModel[]> => {
         const response = await api.get('/ml-models');
-        return response.data;
+        return response.data.map(mapModel);
     },
 
     // Create a new model and upload its first version
@@ -28,7 +41,7 @@ export const mlModelsService = {
                 'Content-Type': 'multipart/form-data',
             },
         });
-        return response.data;
+        return mapModel(response.data);
     },
 
     // Upload a new version for an existing model
@@ -48,7 +61,7 @@ export const mlModelsService = {
                 'Content-Type': 'multipart/form-data',
             },
         });
-        return response.data;
+        return mapModel(response.data);
     },
 
     // Set active version for a model
@@ -56,7 +69,7 @@ export const mlModelsService = {
         const response = await api.put(`/ml-models/${modelId}/active-version`, {
             active_version_id: versionId
         });
-        return response.data;
+        return mapModel(response.data);
     },
 
     // Delete a model
