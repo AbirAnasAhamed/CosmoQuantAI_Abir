@@ -1795,6 +1795,15 @@ class WallHunterBot:
                                     support = oib_ratio if side == "buy" else (1-oib_ratio)
                                     self.logger.info(f"📈 [OIB Filter] Orderbook supports {side.upper()} with {support*100:.1f}% dominance.")
 
+                            # --- AI Model Filter (L2 Predictor) ---
+                            if getattr(self, 'ml_predictor', None):
+                                is_ai_valid = self.ml_predictor.predict(orderbook, mid_price, side)
+                                if not is_ai_valid:
+                                    self.logger.info(f"🚫 [AI Filter] Instant Snipe at {price} rejected! L2 Model predicts adverse movement.")
+                                    continue
+                                else:
+                                    self.logger.info(f"🤖 [AI Filter] Model confirmed {side.upper()} order flow!")
+
                             self.logger.info(f"🟢 Instant Snipe at {price} (Spoof Detect is 0s) {'[HVN Confirmed]' if self.vpvr_enabled else ''}. Executing!")
                             if self.enable_proxy_wall:
                                 try:
@@ -1967,6 +1976,15 @@ class WallHunterBot:
                                     else:
                                         support = oib_ratio if side == "buy" else (1-oib_ratio)
                                         self.logger.info(f"📈 [OIB Filter] Confirmed! Orderbook supports {side.upper()} with {support*100:.1f}% dominance.")
+
+                                # --- AI Model Filter (L2 Predictor) ---
+                                if getattr(self, 'ml_predictor', None):
+                                    is_ai_valid = self.ml_predictor.predict(orderbook, mid_price, side)
+                                    if not is_ai_valid:
+                                        self.logger.info(f"🚫 [AI Filter] Confirmed Snipe at {price} rejected! L2 Model predicts adverse movement.")
+                                        continue
+                                    else:
+                                        self.logger.info(f"🤖 [AI Filter] Model confirmed {side.upper()} order flow!")
 
                                 self.logger.info(f"🟢 Genuine Wall detected at {price} (Alive for {time_alive:.1f}s) {'[HVN Confirmed]' if self.vpvr_enabled else ''}. Executing Snipe!")
                                 if self.enable_proxy_wall:

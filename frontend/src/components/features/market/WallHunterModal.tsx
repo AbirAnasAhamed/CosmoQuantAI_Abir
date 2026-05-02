@@ -6,6 +6,8 @@ import { marketDepthService } from '../../../services/marketDepthService';
 import { portfolioService } from '../../../services/portfolioService';
 import { calculateATR } from '../../../utils/indicators';
 import { HeatmapSymbolSelector } from './HeatmapSymbolSelector';
+import { mlModelsService } from '../../../services/mlModelsService';
+import { CustomMLModel } from '../../../types';
 
 export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol: string; exchange?: string; bids?: any[]; asks?: any[]; onDeploySuccess?: (botId: number) => void }> = ({ isOpen, onClose, symbol, exchange = 'binance', bids = [], asks = [], onDeploySuccess }) => {
     const [savedKeys, setSavedKeys] = useState<any[]>([]);
@@ -14,6 +16,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
     const [activeTab, setActiveTab] = useState('basic');
     const [useNativeTokenFee, setUseNativeTokenFee] = useState(false);
     const [liveFeeRate, setLiveFeeRate] = useState<number | null>(null);
+    const [mlModels, setMlModels] = useState<CustomMLModel[]>([]);
     
     // --- NEW: Trading Mode State ---
     const [tradingMode, setTradingMode] = useState<'spot' | 'futures'>('spot');
@@ -196,7 +199,11 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         enableAutoFiboTp: true,
         autoFiboTargetLevel: 0.236,
         autoFiboTimeframe: '5m',
-        autoFiboLookback: 50
+        autoFiboLookback: 50,
+
+        // --- L2 ML Filter ---
+        enableMlFilter: false,
+        mlModelId: ''
     });
 
     const [existingBot, setExistingBot] = useState<any>(null);
@@ -245,6 +252,10 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                 if (typeof fetchApiKeys === 'function') {
                     fetchApiKeys().then((keys: any) => setSavedKeys(keys || [])).catch(() => { });
                 }
+
+                mlModelsService.getModels().then(models => {
+                    setMlModels(models || []);
+                }).catch(() => {});
 
                 botService.getAllBots().then((bots: any) => {
                     const activeWallHunter = bots.find((b: any) => b.market === symbol && b.strategy === 'wall_hunter' && b.status === 'active');
@@ -399,9 +410,11 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             
                             // Auto Fibo TP
                             enableAutoFiboTp: c.enable_auto_fibo_tp !== undefined ? c.enable_auto_fibo_tp : true,
-                            autoFiboTargetLevel: c.auto_fibo_target_level || 0.236,
                             autoFiboTimeframe: c.auto_fibo_timeframe || '5m',
-                            autoFiboLookback: c.auto_fibo_lookback || 50
+                            autoFiboLookback: c.auto_fibo_lookback || 50,
+
+                            enableMlFilter: c.enable_ml_filter !== undefined ? c.enable_ml_filter : false,
+                            mlModelId: c.ai_model_id || ''
                         }));
                     } else {
                         setExistingBot(null);
@@ -767,7 +780,10 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     enable_auto_fibo_tp: form.enableAutoFiboTp,
                     auto_fibo_target_level: form.autoFiboTargetLevel,
                     auto_fibo_timeframe: form.autoFiboTimeframe,
-                    auto_fibo_lookback: form.autoFiboLookback
+                    auto_fibo_lookback: form.autoFiboLookback,
+
+                    enable_ml_filter: form.enableMlFilter,
+                    ai_model_id: form.mlModelId
                 }
             };
 
@@ -1570,6 +1586,55 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                     <p className="text-[8px] text-gray-500 mt-1 italic">Only trigger if orderbook also shows {form.obImbalanceRatio}x imbalance.</p>
                                                 </div>
                                             )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* --- L2 MACHINE LEARNING FILTER --- */}
+                            <div className={`border rounded-xl p-4 transition-colors cursor-pointer mb-4 ${form.enableMlFilter ? 'bg-blue-500/5 border-blue-500/50' : 'bg-transparent border-white/10 hover:border-white/30'}`} onClick={() => handleFormChange('enableMlFilter', !form.enableMlFilter)}>
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-5 rounded-full p-1 transition-colors duration-200 flex items-center ${form.enableMlFilter ? 'bg-blue-500' : 'bg-gray-700'}`}>
+                                            <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform duration-200 ${form.enableMlFilter ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                        </div>
+                                        <div className="flex items-center gap-3 ml-2">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${form.enableMlFilter ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-gray-500'}`}>
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-black text-white uppercase tracking-wider">L2 Machine Learning Filter</h4>
+                                                <p className="text-[10px] text-gray-400">Validate Orderbook Walls with Pre-Trained AI Models</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {form.enableMlFilter && (
+                                    <div className="mt-4 animate-fadeIn" onClick={e => e.stopPropagation()}>
+                                        <div className="bg-black/40 p-3 rounded-xl border border-blue-500/20">
+                                            <label className="text-[10px] font-bold text-blue-400 uppercase mb-2 flex items-center gap-2">
+                                                Select L2 Trained Model
+                                            </label>
+                                            {mlModels.length === 0 ? (
+                                                <p className="text-xs text-gray-500 italic">No models found in Registry. Train an AI model first.</p>
+                                            ) : (
+                                                <select 
+                                                    className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-blue-500 text-sm font-bold" 
+                                                    value={form.mlModelId} 
+                                                    onChange={(e) => handleFormChange('mlModelId', e.target.value)}
+                                                >
+                                                    <option value="" disabled>-- Select a Model --</option>
+                                                    {mlModels.map(m => (
+                                                        <option key={m.id} value={m.id}>
+                                                            {m.name} ({m.modelType}) - v{m.versions?.find(v => v.id === m.activeVersionId)?.version || '1.0'}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            )}
+                                            <p className="text-[9px] text-gray-500 mt-2 italic leading-tight">
+                                                When enabled, the WallHunter will extract L2 state features (Bids/Asks, Imbalance, Spread) and pass them to your Custom AI. It will only fire if the AI predicts "BULLISH" for Longs or "BEARISH" for Shorts. This is the ultimate defense against spoofed walls.
+                                            </p>
                                         </div>
                                     </div>
                                 )}

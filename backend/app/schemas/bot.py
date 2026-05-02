@@ -178,6 +178,7 @@ class StrategyConfig(BaseModel):
 
     # --- AI Model Execution ---
     ai_model_id: Optional[str] = None
+    enable_ml_filter: Optional[bool] = False
 
     @validator('stop_loss')
     def validate_stop_loss(cls, v):

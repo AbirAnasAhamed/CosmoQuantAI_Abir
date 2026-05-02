@@ -136,6 +136,17 @@ class WallHunterFuturesStrategy:
         self.enable_dynamic_liq = self.config.get("enable_dynamic_liq", False)
         self.dynamic_liq_multiplier = self.config.get("dynamic_liq_multiplier", 1.0)
         
+        # --- ML L2 Filter ---
+        self.enable_ml_filter = self.config.get("enable_ml_filter", False)
+        self.ai_model_id = self.config.get("ai_model_id", "")
+        self.ml_predictor = None
+        if self.enable_ml_filter and self.ai_model_id:
+            try:
+                from app.strategies.helpers.ml_l2_predictor import MLL2Predictor
+                self.ml_predictor = MLL2Predictor(self.ai_model_id)
+            except Exception as e:
+                self.logger.error(f"Failed to initialize ML Predictor: {e}")
+        
         # --- Tape Reading / Imbalance ---
         self.enable_ob_imbalance = self.config.get("enable_ob_imbalance", False)
         self.ob_imbalance_ratio = self.config.get("ob_imbalance_ratio", 1.5)
@@ -1348,6 +1359,17 @@ class WallHunterFuturesStrategy:
                                 else:
                                     support = oib_ratio if target_side == "buy" else (1-oib_ratio)
                                     self.logger.info(f"📈 [OIB Filter] Orderbook supports {target_side.upper()} with {support*100:.1f}% dominance.")
+
+                            # --- AI Model Filter (L2 Predictor) ---
+                            if getattr(self, 'ml_predictor', None):
+                                is_ai_valid = self.ml_predictor.predict(orderbook, mid_price, target_side)
+                                if not is_ai_valid:
+                                    if should_log_alert:
+                                        self.logger.info(f"🚫 [AI Filter] Snipe at {best_wall['price']} rejected! L2 Model predicts adverse movement.")
+                                    continue
+                                else:
+                                    self.logger.info(f"🤖 [AI Filter] Model confirmed {target_side.upper()} order flow!")
+                                    reason += " (AI Validated)"
 
                             if self.enable_proxy_wall:
                                 try:
