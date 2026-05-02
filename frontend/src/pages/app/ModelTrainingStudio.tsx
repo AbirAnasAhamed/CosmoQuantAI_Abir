@@ -100,51 +100,57 @@ const ModelTrainingStudio: React.FC = () => {
     };
 
     return (
-        <div className="h-full flex flex-col space-y-6">
-            <header className="flex items-center justify-between">
+        <div className="h-full flex flex-col space-y-6 relative">
+            {/* Background Neon Orbs */}
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-primary/20 blur-[120px] rounded-full pointer-events-none"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full pointer-events-none"></div>
+
+            <header className="flex items-center justify-between relative z-10">
                 <div>
-                    <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-orange-400 flex items-center gap-3">
-                        <BrainCircuit className="w-8 h-8 text-red-500" />
-                        Model Training Studio
+                    <h2 className="text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 flex items-center gap-4 drop-shadow-[0_0_15px_rgba(56,189,248,0.4)]">
+                        <div className="p-3 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 shadow-[0_0_20px_rgba(56,189,248,0.2)]">
+                            <BrainCircuit className="w-8 h-8 text-cyan-400" />
+                        </div>
+                        MACHINE LEARNING ENGINE CORE
                     </h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">Train machine learning models with real market data natively.</p>
+                    <p className="text-slate-400 mt-2 text-sm font-medium tracking-wide ml-16">Advanced L2/OHLCV Machine Learning Synchronization Studio.</p>
                 </div>
             </header>
 
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 relative z-10">
                 {/* Configuration Panel (Left) */}
-                <div className="lg:col-span-4 flex flex-col bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden h-full overflow-y-auto custom-scrollbar">
+                <div className="lg:col-span-4 flex flex-col bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative overflow-hidden h-full overflow-y-auto custom-scrollbar">
                     {/* Glass reflection */}
-                    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+                    <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
                     
-                    <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                        <Settings className="w-5 h-5 text-brand-primary" />
-                        Training Configuration
+                    <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3 tracking-wide">
+                        <Settings className="w-5 h-5 text-cyan-400" />
+                        TRAINING CONFIGURATION
                     </h3>
 
                     <div className="space-y-5 flex-1">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Asset Symbol</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">Asset Symbol</label>
                             <input 
                                 type="text" 
                                 value={symbol} 
                                 onChange={e => setSymbol(e.target.value.toUpperCase())}
                                 disabled={isTraining}
-                                className="w-full bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary outline-none transition-all disabled:opacity-50"
+                                className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 outline-none transition-all disabled:opacity-50 placeholder-white/30 shadow-inner"
                                 placeholder="e.g., BTC/USDT or AAPL"
                             />
                         </div>
 
                         {(dataSource === 'ohlcv' || isResampleL2) && (
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Candle Interval</label>
+                                <label className="block text-sm font-medium text-slate-300 mb-1">Candle Interval</label>
                                 <div className="grid grid-cols-5 gap-2">
                                 {TIMEFRAMES.map(tf => (
                                     <button
                                         key={tf}
                                         disabled={isTraining}
                                         onClick={() => setTimeframe(tf)}
-                                        className={`py-2 rounded-xl text-sm font-medium transition-all ${timeframe === tf ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/20' : 'bg-gray-50 dark:bg-white/5 text-slate-500 hover:bg-gray-100 dark:hover:bg-white/10 border border-transparent'}`}
+                                        className={`py-2 rounded-xl text-sm font-bold transition-all duration-300 ${timeframe === tf ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-400/50 shadow-[0_0_15px_rgba(34,211,238,0.3)]' : 'bg-white/5 text-slate-400 hover:bg-white/10 border border-white/5 hover:text-white hover:border-white/20'}`}
                                     >
                                         {tf}
                                     </button>
@@ -154,27 +160,25 @@ const ModelTrainingStudio: React.FC = () => {
                         )}
 
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Algorithm</label>
-                            <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-300 mb-2">Algorithm Engine</label>
+                            <div className="space-y-3">
                                 {ALGORITHMS.map(algo => (
-                                    <label key={algo} className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all ${algorithm === algo ? 'border-brand-primary bg-brand-primary/5' : 'border-gray-200 dark:border-white/10 bg-transparent hover:bg-gray-50 dark:hover:bg-white/5'}`}>
-                                        <input 
-                                            type="radio" 
-                                            name="algorithm" 
-                                            value={algo}
-                                            checked={algorithm === algo}
-                                            onChange={() => setAlgorithm(algo)}
-                                            disabled={isTraining}
-                                            className="text-brand-primary focus:ring-brand-primary bg-gray-800 border-gray-600"
-                                        />
-                                        <span className="ml-3 text-sm text-slate-700 dark:text-slate-200 font-medium">{algo}</span>
-                                    </label>
+                                    <div 
+                                        key={algo} 
+                                        onClick={() => !isTraining && setAlgorithm(algo)}
+                                        className={`flex items-center p-3.5 rounded-xl border cursor-pointer transition-all duration-300 ${algorithm === algo ? 'border-purple-500 bg-purple-500/10 shadow-[0_0_20px_rgba(168,85,247,0.15)]' : 'border-white/10 bg-white/5 hover:bg-white/10'} ${isTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${algorithm === algo ? 'border-purple-400' : 'border-white/30'}`}>
+                                            {algorithm === algo && <div className="w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_5px_#a855f7]"></div>}
+                                        </div>
+                                        <span className="ml-3 text-sm text-slate-200 font-semibold tracking-wide">{algo}</span>
+                                    </div>
                                 ))}
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Epochs / Trees</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">Epochs / Trees</label>
                             <input 
                                 type="number" 
                                 value={epochs} 
@@ -182,62 +186,62 @@ const ModelTrainingStudio: React.FC = () => {
                                 disabled={isTraining}
                                 min={1}
                                 max={500}
-                                className="w-full bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary outline-none transition-all disabled:opacity-50"
+                                className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-purple-500/50 focus:border-purple-400 outline-none transition-all disabled:opacity-50 shadow-inner"
                             />
                         </div>
 
                         <div>
-                            <div className="flex items-center justify-between mb-2">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                                    <Database className="w-4 h-4" /> Data Source
+                            <div className="flex items-center justify-between mb-3">
+                                <label className="block text-sm font-medium text-white flex items-center gap-2">
+                                    <Database className="w-4 h-4 text-cyan-400" /> Data Source Engine
                                 </label>
                                 <button 
                                     onClick={handleClearL2Cache}
                                     disabled={isTraining || isClearing}
-                                    className="text-xs text-red-500 hover:text-red-600 flex items-center gap-1 bg-red-500/10 px-2 py-1 rounded transition-all"
+                                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-lg transition-all hover:bg-red-500/20 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)]"
                                 >
-                                    {isClearing ? <Loader2 className="w-3 h-3 animate-spin"/> : <Trash2 className="w-3 h-3" />}
+                                    {isClearing ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Trash2 className="w-3.5 h-3.5" />}
                                     Clear L2 Cache
                                 </button>
                             </div>
-                            <div className="grid grid-cols-2 gap-2 mb-4">
+                            <div className="grid grid-cols-2 gap-3 mb-5">
                                 <button
                                     onClick={() => setDataSource('ohlcv')}
                                     disabled={isTraining}
-                                    className={`py-2 rounded-xl text-sm font-medium transition-all ${dataSource === 'ohlcv' ? 'bg-brand-primary text-white' : 'bg-gray-50 dark:bg-white/5 text-slate-500 hover:bg-gray-100 dark:hover:bg-white/10'}`}
+                                    className={`py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${dataSource === 'ohlcv' ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-[0_0_15px_rgba(56,189,248,0.4)]' : 'bg-white/5 text-slate-400 hover:bg-white/10 border border-white/5 hover:text-white'}`}
                                 >
                                     Standard OHLCV
                                 </button>
                                 <button
                                     onClick={() => setDataSource('l2_orderbook')}
                                     disabled={isTraining}
-                                    className={`py-2 rounded-xl text-sm font-medium transition-all ${dataSource === 'l2_orderbook' ? 'bg-brand-primary text-white' : 'bg-gray-50 dark:bg-white/5 text-slate-500 hover:bg-gray-100 dark:hover:bg-white/10'}`}
+                                    className={`py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${dataSource === 'l2_orderbook' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'bg-white/5 text-slate-400 hover:bg-white/10 border border-white/5 hover:text-white'}`}
                                 >
                                     Level 2 Orderbook
                                 </button>
                             </div>
                             
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Training Data Lookback (Hours)</label>
+                                <label className="block text-sm font-medium text-slate-300 mb-1">Training Data Lookback (Hours)</label>
                                 <select 
                                     value={dataLookback}
                                     onChange={(e) => setDataLookback(Number(e.target.value))}
                                     disabled={isTraining}
-                                    className="w-full bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary outline-none transition-all disabled:opacity-50"
+                                    className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-purple-500/50 focus:border-purple-400 outline-none transition-all disabled:opacity-50"
                                 >
-                                    <option value={1}>Last 1 Hour</option>
-                                    <option value={6}>Last 6 Hours</option>
-                                    <option value={12}>Last 12 Hours</option>
-                                    <option value={24}>Last 24 Hours</option>
+                                    <option className="bg-gray-900 text-white" value={1}>Last 1 Hour</option>
+                                    <option className="bg-gray-900 text-white" value={6}>Last 6 Hours</option>
+                                    <option className="bg-gray-900 text-white" value={12}>Last 12 Hours</option>
+                                    <option className="bg-gray-900 text-white" value={24}>Last 24 Hours</option>
                                 </select>
-                                <p className="text-xs text-slate-500 mt-1 ml-1">Amount of historical data to use for training.</p>
+                                <p className="text-xs text-slate-500 mt-1.5 ml-1 font-medium">Amount of historical data to use for training.</p>
                             </div>
 
                             {dataSource === 'l2_orderbook' && (
-                                <div className="flex items-center justify-between p-3 bg-brand-primary/5 rounded-xl border border-brand-primary/10">
+                                <div className="flex items-center justify-between p-4 bg-purple-500/5 rounded-xl border border-purple-500/20 shadow-inner">
                                     <div>
-                                        <h4 className="text-sm font-medium text-brand-primary">Resample to Candle Interval</h4>
-                                        <p className="text-xs text-slate-500 mt-0.5">Group High-Frequency tick data into {timeframe} candles.</p>
+                                        <h4 className="text-sm font-bold text-purple-400">Resample to Candle Interval</h4>
+                                        <p className="text-xs text-slate-400 mt-0.5 font-medium">Group High-Frequency tick data into {timeframe} candles.</p>
                                     </div>
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input 
@@ -247,7 +251,7 @@ const ModelTrainingStudio: React.FC = () => {
                                             onChange={() => setIsResampleL2(!isResampleL2)}
                                             disabled={isTraining}
                                         />
-                                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-brand-primary"></div>
+                                        <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all border-white/5 peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-pink-500 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"></div>
                                     </label>
                                 </div>
                             )}
@@ -256,38 +260,38 @@ const ModelTrainingStudio: React.FC = () => {
                         {dataSource === 'ohlcv' && (
                             <>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Historical Period (OHLCV)</label>
-                                <select 
-                                    value={ohlcvPeriod}
-                                    onChange={(e) => setOhlcvPeriod(e.target.value)}
-                                    disabled={isTraining}
-                                    className="w-full bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary outline-none transition-all disabled:opacity-50"
-                                >
-                                    {timeframe === '1d' ? (
-                                        <>
-                                            <option value="1mo">1 Month</option>
-                                            <option value="3mo">3 Months</option>
-                                            <option value="6mo">6 Months</option>
-                                            <option value="1y">1 Year</option>
-                                            <option value="2y">2 Years</option>
-                                            <option value="5y">5 Years</option>
-                                            <option value="max">Max Available</option>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <option value="1d">1 Day</option>
-                                            <option value="5d">5 Days</option>
-                                            <option value="1mo">1 Month</option>
-                                            <option value="60d">60 Days (Max for Intraday)</option>
-                                        </>
-                                    )}
-                                </select>
-                                <p className="text-xs text-slate-500 mt-1 ml-1">Total history to download from Yahoo Finance.</p>
-                            </div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-1">Historical Period (OHLCV)</label>
+                                    <select 
+                                        value={ohlcvPeriod}
+                                        onChange={(e) => setOhlcvPeriod(e.target.value)}
+                                        disabled={isTraining}
+                                        className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 outline-none transition-all disabled:opacity-50"
+                                    >
+                                        {timeframe === '1d' ? (
+                                            <>
+                                                <option className="bg-gray-900 text-white" value="1mo">1 Month</option>
+                                                <option className="bg-gray-900 text-white" value="3mo">3 Months</option>
+                                                <option className="bg-gray-900 text-white" value="6mo">6 Months</option>
+                                                <option className="bg-gray-900 text-white" value="1y">1 Year</option>
+                                                <option className="bg-gray-900 text-white" value="2y">2 Years</option>
+                                                <option className="bg-gray-900 text-white" value="5y">5 Years</option>
+                                                <option className="bg-gray-900 text-white" value="max">Max Available</option>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <option className="bg-gray-900 text-white" value="1d">1 Day</option>
+                                                <option className="bg-gray-900 text-white" value="5d">5 Days</option>
+                                                <option className="bg-gray-900 text-white" value="1mo">1 Month</option>
+                                                <option className="bg-gray-900 text-white" value="60d">60 Days (Max for Intraday)</option>
+                                            </>
+                                        )}
+                                    </select>
+                                    <p className="text-xs text-slate-500 mt-1.5 ml-1 font-medium">Total history to download from Yahoo Finance.</p>
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
-                                    <Activity className="w-4 h-4" /> Feature Engineering
+                            <div className="mt-4">
+                                <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                                    <Activity className="w-4 h-4 text-cyan-400" /> Feature Engineering
                                 </label>
                                 <div className="flex flex-wrap gap-2">
                                     {INDICATORS.map(ind => (
@@ -295,7 +299,7 @@ const ModelTrainingStudio: React.FC = () => {
                                             key={ind}
                                             disabled={isTraining}
                                             onClick={() => handleToggleIndicator(ind)}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${selectedIndicators.includes(ind) ? 'bg-brand-primary text-white border-brand-primary' : 'bg-transparent text-slate-500 border-gray-200 dark:border-gray-700 hover:border-gray-400'}`}
+                                            className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all duration-300 ${selectedIndicators.includes(ind) ? 'bg-cyan-500/20 text-cyan-400 border-cyan-400/50 shadow-[0_0_10px_rgba(34,211,238,0.2)]' : 'bg-white/5 text-slate-400 border-white/5 hover:border-white/20 hover:text-white hover:bg-white/10'}`}
                                         >
                                             {ind}
                                         </button>
@@ -306,11 +310,13 @@ const ModelTrainingStudio: React.FC = () => {
                         )}
 
 
-                        <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 space-y-4">
+                        <div className="p-5 bg-gradient-to-br from-purple-900/20 to-blue-900/10 rounded-2xl border border-white/10 shadow-inner">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <h4 className="text-sm font-semibold text-slate-800 dark:text-white">Auto Retrain</h4>
-                                    <p className="text-xs text-slate-500 mt-0.5">Keep model updated with fresh data automatically</p>
+                                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                        <BrainCircuit className="w-4 h-4 text-purple-400" /> Auto Retrain
+                                    </h4>
+                                    <p className="text-xs text-slate-400 mt-1 font-medium">Keep model updated with fresh data automatically</p>
                                 </div>
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input 
@@ -320,60 +326,64 @@ const ModelTrainingStudio: React.FC = () => {
                                         onChange={() => setIsAutoRetrain(!isAutoRetrain)}
                                         disabled={isTraining}
                                     />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-primary"></div>
+                                    <div className="w-12 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all border-white/5 peer-checked:bg-gradient-to-r peer-checked:from-cyan-500 peer-checked:to-blue-500 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"></div>
                                 </label>
                             </div>
                             
                             {isAutoRetrain && (
-                                <div>
-                                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Retrain Interval (Hours)</label>
+                                <div className="mt-4 pt-4 border-t border-white/5">
+                                    <label className="block text-xs font-semibold text-slate-300 mb-2">Retrain Interval (Hours)</label>
                                     <select 
                                         value={retrainInterval}
                                         onChange={(e) => setRetrainInterval(Number(e.target.value))}
                                         disabled={isTraining}
-                                        className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none"
+                                        className="w-full bg-black/50 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 outline-none transition-all shadow-inner"
                                     >
-                                        <option value={1}>Every 1 Hour</option>
-                                        <option value={6}>Every 6 Hours</option>
-                                        <option value={12}>Every 12 Hours</option>
-                                        <option value={24}>Every 24 Hours</option>
+                                        <option className="bg-gray-900 text-white" value={1}>Every 1 Hour</option>
+                                        <option className="bg-gray-900 text-white" value={6}>Every 6 Hours</option>
+                                        <option className="bg-gray-900 text-white" value={12}>Every 12 Hours</option>
+                                        <option className="bg-gray-900 text-white" value={24}>Every 24 Hours</option>
                                     </select>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    <div className="pt-6 mt-4 border-t border-gray-200 dark:border-white/10">
+                    <div className="pt-6 mt-2 relative z-10">
                         <button 
                             onClick={handleStartTraining}
                             disabled={isTraining || !symbol}
-                            className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg ${isTraining ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed shadow-none' : 'bg-gradient-to-r from-red-600 to-red-500 text-white hover:shadow-red-500/25 hover:-translate-y-0.5'}`}
+                            className={`w-full py-4 rounded-2xl font-black text-[15px] flex items-center justify-center gap-3 transition-all duration-300 shadow-xl ${isTraining ? 'bg-white/5 text-slate-500 cursor-not-allowed border border-white/5' : 'bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 text-white hover:shadow-[0_0_30px_rgba(56,189,248,0.5)] border border-white/20 hover:scale-[1.02]'}`}
                         >
-                            {isTraining ? <><Loader2 className="w-5 h-5 animate-spin" /> Training in Progress...</> : <><Play className="w-5 h-5 fill-current" /> Start Deep Training</>}
+                            {isTraining ? (
+                                <><Loader2 className="w-5 h-5 animate-spin text-cyan-500" /> INITIALIZING NEURAL NETWORK...</>
+                            ) : (
+                                <><Play className="w-5 h-5 fill-current" /> START DEEP TRAINING</>
+                            )}
                         </button>
                     </div>
                 </div>
 
                 {/* Live Execution Terminal (Right) */}
-                <div className="lg:col-span-8 flex flex-col bg-[#050505] border border-gray-800 rounded-2xl shadow-2xl overflow-hidden h-full relative">
+                <div className="lg:col-span-8 flex flex-col bg-black/60 backdrop-blur-2xl border border-cyan-500/20 rounded-3xl shadow-[0_0_50px_rgba(56,189,248,0.1)] overflow-hidden h-full relative relative z-10">
                     {/* Header */}
-                    <div className="px-4 py-3 bg-[#111111] border-b border-gray-800 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Terminal className="w-4 h-4 text-gray-400" />
-                            <span className="text-xs font-mono text-gray-400 tracking-wider">LIVE_CONSOLE_OUTPUT</span>
+                    <div className="px-6 py-4 bg-gradient-to-r from-cyan-900/40 to-blue-900/20 border-b border-cyan-500/20 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Terminal className="w-5 h-5 text-cyan-400" />
+                            <span className="text-sm font-mono text-cyan-100 tracking-widest font-bold">LIVE_CONSOLE_OUTPUT</span>
                         </div>
-                        <div className="flex gap-1.5">
-                            <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
-                            <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
-                            <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                        <div className="flex gap-2">
+                            <div className="w-3.5 h-3.5 rounded-full bg-red-500/50 border border-red-400 shadow-[0_0_10px_#ef4444]"></div>
+                            <div className="w-3.5 h-3.5 rounded-full bg-yellow-500/50 border border-yellow-400 shadow-[0_0_10px_#eab308]"></div>
+                            <div className="w-3.5 h-3.5 rounded-full bg-green-500/50 border border-green-400 shadow-[0_0_10px_#22c55e]"></div>
                         </div>
                     </div>
 
                     {/* Progress Bar */}
                     {currentJob && (
-                        <div className="h-1 bg-gray-900 w-full relative overflow-hidden">
+                        <div className="h-1.5 bg-gray-900 w-full relative overflow-hidden shadow-inner">
                             <motion.div 
-                                className={`absolute top-0 left-0 h-full ${currentJob.status === 'FAILED' ? 'bg-red-500' : currentJob.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-brand-primary'}`}
+                                className={`absolute top-0 left-0 h-full ${currentJob.status === 'FAILED' ? 'bg-red-500 shadow-[0_0_10px_#ef4444]' : currentJob.status === 'COMPLETED' ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-gradient-to-r from-cyan-400 to-purple-500 shadow-[0_0_15px_#22d3ee]'}`}
                                 initial={{ width: 0 }}
                                 animate={{ width: `${currentJob.progress}%` }}
                                 transition={{ duration: 0.5 }}
@@ -396,9 +406,9 @@ const ModelTrainingStudio: React.FC = () => {
                                         let coloredLog = log;
                                         let textColor = "text-gray-300";
                                         
-                                        if (log.includes("ERROR")) textColor = "text-red-400";
-                                        else if (log.includes("complete") || log.includes("successfully")) textColor = "text-emerald-400";
-                                        else if (log.includes("Epoch") || log.includes("Loss")) textColor = "text-cyan-400";
+                                        if (log.includes("ERROR")) textColor = "text-red-400 drop-shadow-[0_0_5px_#ef4444]";
+                                        else if (log.includes("complete") || log.includes("successfully")) textColor = "text-emerald-400 drop-shadow-[0_0_5px_#10b981]";
+                                        else if (log.includes("Epoch") || log.includes("Loss")) textColor = "text-cyan-400 drop-shadow-[0_0_5px_#22d3ee]";
                                         else if (log.includes("Fetching") || log.includes("Calculating")) textColor = "text-yellow-400";
 
                                         return (
@@ -408,7 +418,7 @@ const ModelTrainingStudio: React.FC = () => {
                                                 animate={{ opacity: 1, x: 0 }}
                                                 className={`break-words ${textColor}`}
                                             >
-                                                <span className="text-gray-600 mr-3 opacity-50 select-none">~</span>
+                                                <span className="text-cyan-800 mr-3 opacity-50 select-none">root@core:~#</span>
                                                 {coloredLog}
                                             </motion.div>
                                         );
@@ -416,9 +426,9 @@ const ModelTrainingStudio: React.FC = () => {
                                 </AnimatePresence>
                                 
                                 {isTraining && (
-                                    <div className="flex items-center gap-2 text-brand-primary mt-4 animate-pulse">
-                                        <span className="text-gray-600">~</span>
-                                        <span className="w-2 h-4 bg-brand-primary"></span>
+                                    <div className="flex items-center gap-2 text-cyan-400 mt-4 animate-pulse">
+                                        <span className="text-cyan-800">root@core:~#</span>
+                                        <span className="w-2.5 h-5 bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></span>
                                     </div>
                                 )}
                                 <div ref={logsEndRef} />
@@ -428,16 +438,16 @@ const ModelTrainingStudio: React.FC = () => {
 
                     {/* Footer Status */}
                     {currentJob && (
-                        <div className={`px-4 py-2 text-xs font-mono font-bold flex items-center justify-between ${
-                            currentJob.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500 border-t border-emerald-500/20' : 
-                            currentJob.status === 'FAILED' ? 'bg-red-500/10 text-red-500 border-t border-red-500/20' : 
-                            'bg-brand-primary/5 text-brand-primary border-t border-brand-primary/10'
+                        <div className={`px-6 py-3 text-xs font-mono font-bold flex items-center justify-between ${
+                            currentJob.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400 border-t border-emerald-500/30' : 
+                            currentJob.status === 'FAILED' ? 'bg-red-500/20 text-red-400 border-t border-red-500/30' : 
+                            'bg-cyan-500/10 text-cyan-400 border-t border-cyan-500/20'
                         }`}>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 tracking-widest">
                                 {currentJob.status === 'COMPLETED' ? <CheckCircle2 className="w-4 h-4" /> : 
                                  currentJob.status === 'FAILED' ? <XCircle className="w-4 h-4" /> : 
                                  <Loader2 className="w-4 h-4 animate-spin" />}
-                                STATUS: {currentJob.status}
+                                SYSTEM_STATUS: {currentJob.status}
                             </div>
                             <div>
                                 {currentJob.progress.toFixed(0)}%
