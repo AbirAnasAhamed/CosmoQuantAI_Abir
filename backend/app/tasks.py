@@ -944,3 +944,110 @@ def broadcast_container_logs():
             return "Broadcast skipped (disabled in settings)"
     except Exception as e:
         return f"Log broadcast failed: {str(e)}"
+
+@celery_app.task
+def prune_l2_data():
+    """
+    Periodic Task: Delete L2 OrderBook snapshots older than 6 hours to save space.
+    """
+    logger = get_task_logger("l2_pruner", "l2_pruner.log")
+    db = SessionLocal()
+    try:
+        from app.models.orderbook_snapshot import OrderBookSnapshot
+        from datetime import datetime, timedelta
+        
+        threshold = datetime.utcnow() - timedelta(hours=6)
+        
+        deleted_count = db.query(OrderBookSnapshot).filter(OrderBookSnapshot.timestamp < threshold).delete()
+        db.commit()
+        
+        msg = f"Pruned {deleted_count} L2 snapshots older than 6 hours."
+        logger.info(msg)
+        return msg
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to prune L2 data: {e}")
+        return f"Error: {str(e)}"
+    finally:
+        db.close()
+
+@celery_app.task
+def auto_retrain_models():
+    """
+    Periodic Task: Check if any CustomMLModel with auto_retrain=True needs retraining.
+    If so, dispatch the train_model_task.
+    """
+    logger = get_task_logger("auto_retrain", "auto_retrain.log")
+    db = SessionLocal()
+    try:
+        from app.models.ml_model import CustomMLModel, ModelVersion
+        from datetime import datetime, timedelta
+        from app.services.ml_training_engine import train_model_task
+        
+        now = datetime.utcnow()
+        
+        # Get all models that have auto_retrain enabled
+        models_to_check = db.query(CustomMLModel).filter(CustomMLModel.is_auto_retrain == 1).all()
+        
+        retrained_count = 0
+        for model in models_to_check:
+            # Check the last active version's upload date
+            last_version = db.query(ModelVersion).filter(
+                ModelVersion.model_id == model.id
+            ).order_by(ModelVersion.upload_date.desc()).first()
+            
+            last_trained_time = last_version.upload_date if last_version else model.created_at
+            
+            # Ensure it's timezone-naive for comparison if necessary, or both aware
+            if last_trained_time.tzinfo is not None:
+                last_trained_time = last_trained_time.replace(tzinfo=None)
+                
+            hours_since_last = (now - last_trained_time).total_seconds() / 3600
+            
+            if hours_since_last >= model.retrain_interval_hours:
+                logger.info(f"Auto-Retraining model {model.id} ({model.name}). Hours since last: {hours_since_last:.2f}")
+                # Create a Training Job first
+                from app.models import ModelTrainingJob, TrainingStatus
+                import time
+                
+                job_id = f"train_auto_{int(time.time() * 1000)}"
+                symbol = model.name.split(" ")[0] if " " in model.name else "BTC/USDT"
+                
+                job = ModelTrainingJob(
+                    id=job_id,
+                    user_id=model.user_id,
+                    symbol=symbol,
+                    timeframe="1m",
+                    algorithm=model.model_type,
+                    config={
+                        "dataset_type": "l2_orderbook",
+                        "target_model_id": model.id,
+                        "is_auto_retrain": True,
+                        "retrain_interval_hours": model.retrain_interval_hours,
+                        "data_lookback_hours": getattr(model, "data_lookback_hours", 6),
+                        "epochs": 10
+                    },
+                    status=TrainingStatus.PENDING,
+                    progress=0.0,
+                    logs=["Auto-retrain job queued..."]
+                )
+                db.add(job)
+                db.commit()
+                db.refresh(job)
+                
+                # Execute training synchronously within this Celery worker
+                try:
+                    train_model_task(job_id, db)
+                    retrained_count += 1
+                except Exception as ex:
+                    logger.error(f"Failed to auto-train model {model.id}: {ex}")
+                
+        msg = f"Auto-retrained {retrained_count} models."
+        logger.info(msg)
+        return msg
+        
+    except Exception as e:
+        logger.error(f"Auto-retrain failed: {e}")
+        return f"Error: {str(e)}"
+    finally:
+        db.close()

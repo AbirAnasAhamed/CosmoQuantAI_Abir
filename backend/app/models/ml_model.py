@@ -19,6 +19,10 @@ class CustomMLModel(Base):
     active_version_id = Column(String, ForeignKey("model_versions.id", use_alter=True, name="fk_active_version_id"), nullable=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     
+    is_auto_retrain = Column(Integer, default=0) # 0 = False, 1 = True (Using Integer for SQLite compatibility if needed, or Boolean)
+    retrain_interval_hours = Column(Integer, default=6)
+    data_lookback_hours = Column(Integer, default=6)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

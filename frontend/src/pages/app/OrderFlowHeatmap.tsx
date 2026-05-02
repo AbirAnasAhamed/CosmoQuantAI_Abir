@@ -42,6 +42,7 @@ import { BotLogsTab } from '../../components/features/market/BotLogsTab';
 import { WallHunterModal } from '../../components/features/market/WallHunterModal';
 import { ManualTradeModal } from '../../components/features/market/ManualTradeModal';
 import { FloatingTVChartButton } from '../../components/features/market/FloatingTVChartButton';
+import { AIModelDeploymentModal } from '../../components/features/market/AIModelDeploymentModal';
 import { DualEngineDashboard } from '../../components/features/market/DualEngineDashboard';
 import { WatchlistScanner } from '../../components/features/market/WatchlistScanner';
 import { DeltaProfileRenderer } from '../../components/features/market/AdvancedMetrics/DeltaProfileRenderer';
@@ -2195,6 +2196,7 @@ const OrderFlowHeatmap: React.FC = () => {
     const [isFullscreen, setIsFullscreen] = useState(false); // NEW STATE
     const [showCVD, setShowCVD] = useState(false); // NEW STATE
     const [isOrderBookModalOpen, setIsOrderBookModalOpen] = useState(false);
+    const [isAIDeploymentModalOpen, setIsAIDeploymentModalOpen] = useState(false);
     const { bids, asks, walls, currentPrice, tradeEvent } = useLevel2MarketData(symbol, exchange);
     const { volumeThreshold, setVolumeThreshold, volumeMode, setVolumeMode } = useVolumeFilter(5000000);
     const { statusData: botStatus, isConnected: botWsConnected } = useWallHunterStatus(activeWallHunterId);
@@ -2510,6 +2512,27 @@ const OrderFlowHeatmap: React.FC = () => {
             {/* MANUAL TRADE MODAL */}
             <ManualTradeModal symbol={symbol} currentPrice={currentPrice} onApiKeyChange={setSelectedApiKeyId} />
 
+            {/* FLOATING AI DEPLOYMENT BUTTON (above Level 2 Order Book) */}
+            <button
+                onClick={() => setIsAIDeploymentModalOpen(true)}
+                className="fixed bottom-[356px] right-8 w-16 h-16 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 border border-purple-400/30 text-white shadow-[0_0_24px_rgba(168,85,247,0.5)] z-[100] transition-transform hover:scale-110 focus:outline-none group"
+                title="Deploy AI Trading Model"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                {/* Replaced BrainCircuit with a generic lucide equivalent or custom svg just for the icon. Actually, let's use the Brain icon path. */}
+                <svg className="absolute w-8 h-8 group-hover:scale-110 transition-transform bg-transparent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
+                    <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
+                    <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/>
+                    <path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/>
+                    <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/>
+                    <path d="M3.477 10.896a4 4 0 0 1 .585-.396"/>
+                    <path d="M19.938 10.5a4 4 0 0 1 .585.396"/>
+                    <path d="M6 18a4 4 0 0 1-1.967-.516"/>
+                    <path d="M19.967 17.484A4 4 0 0 1 18 18"/>
+                </svg>
+            </button>
+
             {/* FLOATING LEVEL 2 ORDER BOOK BUTTON (above TVChart button) */}
             <button
                 onClick={() => setIsOrderBookModalOpen(true)}
@@ -2552,6 +2575,18 @@ const OrderFlowHeatmap: React.FC = () => {
                 onDeploySuccess={(botId) => {
                     setActiveWallHunterId(botId);
                     setIsWallHunterOpen(false);
+                }}
+            />
+
+            <AIModelDeploymentModal
+                isOpen={isAIDeploymentModalOpen}
+                onClose={() => setIsAIDeploymentModalOpen(false)}
+                symbol={symbol}
+                exchange={exchange}
+                onDeploySuccess={(botId) => {
+                    setActiveWallHunterId(Number(botId));
+                    setIsAIDeploymentModalOpen(false);
+                    setActiveTab('heatmap');
                 }}
             />
         </div >

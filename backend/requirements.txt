@@ -85,3 +85,6 @@ hmmlearn
 yfinance
 docker>=7.0.0  # Docker SDK for log monitoring
 edge-tts
+scikit-learn
+xgboost
+joblib

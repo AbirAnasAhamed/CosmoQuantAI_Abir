@@ -23,6 +23,14 @@ celery_app.conf.update(
             "task": "app.tasks.prune_database",
             "schedule": crontab(minute=0, hour=0),
         },
+        "prune-l2-data-hourly": {
+            "task": "app.tasks.prune_l2_data",
+            "schedule": crontab(minute=0), # Run every hour
+        },
+        "auto-retrain-models-hourly": {
+            "task": "app.tasks.auto_retrain_models",
+            "schedule": crontab(minute=30), # Run every hour at minute 30
+        },
         "docker-log-monitor": {
             "task": "app.tasks.monitor_docker_logs",
             "schedule": 60.0,

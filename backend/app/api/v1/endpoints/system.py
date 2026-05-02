@@ -96,6 +96,26 @@ def prune_database_manually(
     finally:
         db.close()
 
+@router.delete("/prune-l2-data", response_model=PruneResponse)
+def prune_l2_database_manually(
+    current_user: models.User = Depends(deps.get_current_active_user)
+):
+    """
+    Manually trigger L2 orderbook data pruning.
+    Deletes all L2 data cache. Requires Superuser privileges.
+    """
+    db = SessionLocal()
+    try:
+        from app.models.orderbook_snapshot import OrderBookSnapshot
+        count = db.query(OrderBookSnapshot).delete()
+        db.commit()
+        return {"deleted_count": count, "message": f"Successfully cleared {count} L2 Orderbook ticks."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        db.close()
+
 @router.get("/health", response_model=HealthResponse)
 async def health_check(
     db: Session = Depends(deps.get_db)

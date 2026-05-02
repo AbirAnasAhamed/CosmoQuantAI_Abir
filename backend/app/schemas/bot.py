@@ -176,6 +176,9 @@ class StrategyConfig(BaseModel):
     auto_fibo_timeframe: Optional[str] = "5m"
     auto_fibo_lookback: Optional[int] = 50
 
+    # --- AI Model Execution ---
+    ai_model_id: Optional[str] = None
+
     @validator('stop_loss')
     def validate_stop_loss(cls, v):
         if v is not None and (v < 0 or v > 100):

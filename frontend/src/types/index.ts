@@ -291,6 +291,9 @@ export interface CustomMLModel {
   name: string;
   modelType: 'LSTM' | 'Random Forest' | 'ARIMA' | 'Other';
   activeVersionId: string;
+  is_auto_retrain?: number;
+  retrain_interval_hours?: number;
+  data_lookback_hours?: number;
   versions: ModelVersion[];
 }
 
@@ -631,6 +634,7 @@ export enum AppView {
   TOKEN_UNLOCK_CALENDAR = 'Token Unlocks',
   ALTERNATIVE_DATA = 'Alternative Data',
   CUSTOM_ML_MODELS = 'Custom ML Models',
+  MODEL_TRAINING_STUDIO = 'Model Training Studio',
   ML_MODEL_MARKETPLACE = 'ML Model Marketplace',
   REAL_TIME_DATA = 'Real-time & Fundamental Data Tools',
   QUANT_SCREENER = 'Quant Screener',

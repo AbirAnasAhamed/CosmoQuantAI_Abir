@@ -20,6 +20,7 @@ from app.services.portfolio_price_service import portfolio_price_service # ✅ I
 from app.services.god_mode_liquidation_service import god_mode_service # ✅ Import God Mode Liquidation Service
 from app.services import exchange_pool # ✅ Import Exchange Pool (ManualTradeModal fast-path)
 from app.services.market_depth_service import market_depth_service # ✅ Import Market Depth Service (CCXT pool cleanup)
+from app.services.l2_data_collector import l2_collector # ✅ Import L2 Data Collector
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
@@ -479,6 +480,9 @@ async def startup_event():
     # Task I: Portfolio Price Service (Started on demand via WS, but we can pre-init)
     # Actually, it's started in the websocket_prices endpoint in portfolio.py
 
+    # Task L: L2 Data Collector
+    l2_collector.start()
+    
     # Task D: Active Bot PnL Broadcast
     async def broadcast_active_bot_pnl():
         print("💰 Starting Active Bot PnL Broadcast...")
@@ -589,6 +593,9 @@ async def shutdown_event():
         await market_depth_service.close_all_exchanges()
     except Exception as e:
         logger.warning(f"[Shutdown] market_depth_service.close_all_exchanges() failed (non-fatal): {e}")
+
+    # Stop L2 Data Collector
+    l2_collector.stop()
 
     print("✅ All background tasks stopped.")
 

@@ -17,6 +17,7 @@ import MarketRegimeClassifier from './MarketRegimeClassifier';
 import CorrelationMatrix from './CorrelationMatrix';
 import CustomMLModels from './CustomMLModels';
 import CustomIndicatorStudio from './CustomIndicatorStudio';
+import ModelTrainingStudio from './ModelTrainingStudio';
 import EducationHub from './EducationHub';
 import Button from '@/components/common/Button';
 import AIFoundry from './AIFoundry';
@@ -180,6 +181,7 @@ const Sidebar: React.FC<{
             items: [
                 { view: AppView.NURAL_CORE, icon: <Cpu size={20} />, label: 'Neural Core' },
                 { view: AppView.CUSTOM_ML_MODELS, icon: <MLModelIcon />, label: 'ML Registry' },
+                { view: AppView.MODEL_TRAINING_STUDIO, icon: <Activity />, label: 'Training Studio' },
                 { view: AppView.ML_MODEL_MARKETPLACE, icon: <MLModelMarketplaceIcon />, label: 'Algo Marketplace' },
                 { view: AppView.CUSTOM_INDICATOR_STUDIO, icon: <IndicatorStudioIcon />, label: 'Indicator Studio' },
                 { view: AppView.PINE_SCRIPT_STUDIO, icon: <PineScriptIcon />, label: 'Pine Editor' },
@@ -376,6 +378,7 @@ const AppDashboard: React.FC<AppDashboardProps> = ({ currentView, onNavigate, on
             case AppView.ALERTS_WATCHLIST: return <AlertsWatchlist />;
             case AppView.ANALYST_RESEARCH: return <AnalystResearch />;
             case AppView.CUSTOM_ML_MODELS: return <CustomMLModels />;
+            case AppView.MODEL_TRAINING_STUDIO: return <ModelTrainingStudio />;
             case AppView.ML_MODEL_MARKETPLACE: return <MLModelMarketplace />;
             case AppView.CUSTOM_INDICATOR_STUDIO: return <CustomIndicatorStudio />;
             case AppView.PINE_SCRIPT_STUDIO: return <PineScriptStudio />;

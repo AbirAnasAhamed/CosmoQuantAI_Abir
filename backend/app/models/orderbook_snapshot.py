@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Index
+from sqlalchemy import Column, Integer, String, DateTime, Index, Float
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.sql import func
 from app.db.base_class import Base
@@ -18,3 +18,8 @@ class OrderBookSnapshot(Base):
     # We will store the aggregated orderbook directly as JSON to save space and query time
     bids = Column(JSON, nullable=False)  # [{"price": 60000, "volume": 1.5}, ...]
     asks = Column(JSON, nullable=False)  # [{"price": 60005, "volume": 2.0}, ...]
+    
+    # Pre-computed Micro-structural Features for ML
+    obi = Column(Float, nullable=True) # Order Book Imbalance (scaled or float depending on db, we can use Float)
+    spread = Column(Float, nullable=True) 
+    microprice = Column(Float, nullable=True)

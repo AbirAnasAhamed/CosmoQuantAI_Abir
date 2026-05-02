@@ -111,3 +111,4 @@ from .research_report import ResearchReport
 from .lead_lag import LeadLagBot, LeadLagTradeLog
 from .orderbook_snapshot import OrderBookSnapshot
 from .ml_model import CustomMLModel, ModelVersion, ModelStatus
+from .model_training import ModelTrainingJob, TrainingStatus

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 # ১. sentiment ইম্পোর্ট করো
-from app.api.v1.endpoints import auth, users, market_data, strategies, backtest, bots, dashboard, trading, indicators, sentiment, education, arbitrage, system, notifications, grid_bot, analytics, on_chain, fng, market_discovery, block_trades
+from app.api.v1.endpoints import auth, users, market_data, strategies, backtest, bots, dashboard, trading, indicators, sentiment, education, arbitrage, system, notifications, grid_bot, analytics, on_chain, fng, market_discovery, block_trades, model_training
 
 api_router = APIRouter()
 from app.api.v1.endpoints import insider
@@ -67,3 +67,5 @@ api_router.include_router(advanced_metrics.router, prefix="/advanced-metrics", t
 
 from app.api.v1.endpoints import ml_models
 api_router.include_router(ml_models.router, prefix="/ml-models", tags=["ml-models"])
+
+api_router.include_router(model_training.router, prefix="/model-training", tags=["model-training"])
