@@ -21,7 +21,7 @@ def fetch_l2_data(symbol: str, db: Session, lookback_hours: int = 6, timeframe: 
     # Fetch last `lookback_hours` of L2 data
     since = datetime.utcnow() - timedelta(hours=lookback_hours)
     snapshots = db.query(OrderBookSnapshot).filter(
-        OrderBookSnapshot.symbol == symbol.upper(),
+        OrderBookSnapshot.symbol == symbol.upper().replace("/", ""),
         OrderBookSnapshot.timestamp >= since
     ).order_by(OrderBookSnapshot.timestamp.asc()).all()
     
