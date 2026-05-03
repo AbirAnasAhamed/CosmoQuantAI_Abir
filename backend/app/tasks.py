@@ -948,7 +948,7 @@ def broadcast_container_logs():
 @celery_app.task
 def prune_l2_data():
     """
-    Periodic Task: Delete L2 OrderBook snapshots older than 6 hours to save space.
+    Periodic Task: Delete L2 OrderBook snapshots older than 24 hours to save space.
     """
     logger = get_task_logger("l2_pruner", "l2_pruner.log")
     db = SessionLocal()
@@ -956,12 +956,12 @@ def prune_l2_data():
         from app.models.orderbook_snapshot import OrderBookSnapshot
         from datetime import datetime, timedelta
         
-        threshold = datetime.utcnow() - timedelta(hours=6)
+        threshold = datetime.utcnow() - timedelta(hours=24)
         
         deleted_count = db.query(OrderBookSnapshot).filter(OrderBookSnapshot.timestamp < threshold).delete()
         db.commit()
         
-        msg = f"Pruned {deleted_count} L2 snapshots older than 6 hours."
+        msg = f"Pruned {deleted_count} L2 snapshots older than 24 hours."
         logger.info(msg)
         return msg
     except Exception as e:
