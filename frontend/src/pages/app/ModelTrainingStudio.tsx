@@ -23,6 +23,11 @@ const ModelTrainingStudio: React.FC = () => {
     const [ohlcvPeriod, setOhlcvPeriod] = useState('2y');
     const [isResampleL2, setIsResampleL2] = useState(true);
     
+    // Deep Training States
+    const targetRowOptions = [1000, 10000, 50000, 100000, 500000, 1000000, 5000000, 10000000, 50000000, 100000000];
+    const [targetRowsIndex, setTargetRowsIndex] = useState(3); // Default 100k
+    const [isDeepTraining, setIsDeepTraining] = useState(false);
+    
     // New Feature States
     const [predictionTarget, setPredictionTarget] = useState('classification');
     const [learningRate, setLearningRate] = useState(0.1);
@@ -92,7 +97,9 @@ const ModelTrainingStudio: React.FC = () => {
                     learning_rate: learningRate,
                     max_depth: maxDepth,
                     model_name: modelName,
-                    exchange: exchange
+                    exchange: exchange,
+                    is_deep_training: dataSource === 'l2_orderbook' ? isDeepTraining : false,
+                    target_rows: isDeepTraining ? targetRowOptions[targetRowsIndex] : 0
                 }
             });
             setCurrentJob(job);
@@ -268,20 +275,65 @@ const ModelTrainingStudio: React.FC = () => {
                             </div>
                             
                             {dataSource === 'l2_orderbook' && (
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-1">Training Data Lookback (Hours)</label>
-                                    <select 
-                                        value={dataLookback}
-                                        onChange={(e) => setDataLookback(Number(e.target.value))}
-                                        disabled={isTraining}
-                                        className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-purple-500/50 focus:border-purple-400 outline-none transition-all disabled:opacity-50"
-                                    >
-                                        <option className="bg-gray-900 text-white" value={1}>Last 1 Hour</option>
-                                        <option className="bg-gray-900 text-white" value={6}>Last 6 Hours</option>
-                                        <option className="bg-gray-900 text-white" value={12}>Last 12 Hours</option>
-                                        <option className="bg-gray-900 text-white" value={24}>Last 24 Hours</option>
-                                    </select>
-                                    <p className="text-xs text-slate-500 mt-1.5 ml-1 font-medium">Amount of historical tick data to use.</p>
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-xl border border-purple-500/20 shadow-inner">
+                                        <div>
+                                            <h4 className="text-sm font-bold text-purple-400">Deep Training (Live Scraping)</h4>
+                                            <p className="text-xs text-slate-400 mt-0.5 font-medium">Scrape live L2 data instead of historical.</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                className="sr-only peer" 
+                                                checked={isDeepTraining}
+                                                onChange={() => setIsDeepTraining(!isDeepTraining)}
+                                                disabled={isTraining}
+                                            />
+                                            <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all border-white/5 peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-pink-500"></div>
+                                        </label>
+                                    </div>
+
+                                    {isDeepTraining ? (
+                                        <div className="p-4 bg-white/5 border border-white/10 rounded-xl">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <label className="block text-sm font-medium text-slate-300">Target Rows to Scrape</label>
+                                                <span className="text-sm font-bold text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded-lg border border-purple-500/20">
+                                                    {targetRowOptions[targetRowsIndex].toLocaleString()} Rows
+                                                </span>
+                                            </div>
+                                            <input 
+                                                type="range" 
+                                                min={0} 
+                                                max={targetRowOptions.length - 1} 
+                                                step={1}
+                                                value={targetRowsIndex}
+                                                onChange={(e) => setTargetRowsIndex(parseInt(e.target.value))}
+                                                disabled={isTraining}
+                                                className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                                            />
+                                            <div className="flex justify-between text-xs text-slate-500 mt-2 font-medium">
+                                                <span>1K</span>
+                                                <span>1M</span>
+                                                <span>100M</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-300 mb-1">Training Data Lookback (Hours)</label>
+                                            <select 
+                                                value={dataLookback}
+                                                onChange={(e) => setDataLookback(Number(e.target.value))}
+                                                disabled={isTraining}
+                                                className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-purple-500/50 focus:border-purple-400 outline-none transition-all disabled:opacity-50"
+                                            >
+                                                <option className="bg-gray-900 text-white" value={1}>Last 1 Hour</option>
+                                                <option className="bg-gray-900 text-white" value={6}>Last 6 Hours</option>
+                                                <option className="bg-gray-900 text-white" value={12}>Last 12 Hours</option>
+                                                <option className="bg-gray-900 text-white" value={24}>Last 24 Hours</option>
+                                            </select>
+                                            <p className="text-xs text-slate-500 mt-1.5 ml-1 font-medium">Amount of historical tick data to use.</p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

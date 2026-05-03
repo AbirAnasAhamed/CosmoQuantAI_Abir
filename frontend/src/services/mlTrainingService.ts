@@ -33,6 +33,8 @@ export interface TrainingConfig {
         max_depth?: number;
         model_name?: string;
         exchange?: string;
+        is_deep_training?: boolean;
+        target_rows?: number;
     };
 }
 

@@ -5,6 +5,9 @@ import pandas_ta as ta
 import ccxt
 import os
 import time
+import asyncio
+import websockets
+import json
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from app import models
@@ -83,6 +86,128 @@ def fetch_data(symbol: str, timeframe: str, period: str = None, exchange_name: s
     
     return df
 
+def _run_live_scraper(symbol: str, target_rows: int, db: Session, job: models.ModelTrainingJob, add_log_func) -> pd.DataFrame:
+    """Run the async scraper synchronously inside the celery task."""
+    try:
+        return asyncio.run(_async_live_scraper(symbol, target_rows, db, job, add_log_func))
+    except Exception as e:
+        add_log_func(f"Scraper crashed: {e}")
+        return pd.DataFrame()
+
+async def _async_live_scraper(symbol: str, target_rows: int, db: Session, job: models.ModelTrainingJob, add_log_func) -> pd.DataFrame:
+    ws_url = f"wss://stream.binance.com:9443/ws/{symbol.lower().replace('/', '')}@depth20@100ms"
+    data = []
+    scraped_count = 0
+    buffer = []
+    
+    # 100ms stream is fast. We will log every 5% progress or 1000 rows.
+    log_interval = max(100, target_rows // 20)
+    
+    from app.models.orderbook_snapshot import OrderBookSnapshot
+    
+    retry_count = 0
+    max_retries = 5
+    
+    while scraped_count < target_rows and retry_count < max_retries:
+        try:
+            async with websockets.connect(ws_url, ping_interval=30, ping_timeout=10) as ws:
+                add_log_func(f"WebSocket connected. Scraping started...")
+                retry_count = 0 # reset on successful connect
+                
+                while scraped_count < target_rows:
+                    msg = await asyncio.wait_for(ws.recv(), timeout=15)
+                    msg_data = json.loads(msg)
+                    
+                    bids = msg_data.get('bids', [])
+                    asks = msg_data.get('asks', [])
+                    if not bids or not asks:
+                        continue
+                        
+                    best_bid = float(bids[0][0])
+                    best_ask = float(asks[0][0])
+                    bid_vol = sum([float(level[1]) for level in bids])
+                    ask_vol = sum([float(level[1]) for level in asks])
+                    total_vol = bid_vol + ask_vol
+                    
+                    obi = bid_vol / total_vol if total_vol > 0 else 0.5
+                    spread = (best_ask - best_bid) / best_bid
+                    if total_vol > 0:
+                        microprice = ((bid_vol * best_ask) + (ask_vol * best_bid)) / total_vol
+                    else:
+                        microprice = (best_bid + best_ask) / 2
+                        
+                    ts = datetime.utcnow()
+                    
+                    row = {
+                        "timestamp": ts,
+                        "Close": microprice,
+                        "obi": obi,
+                        "spread": spread,
+                        "microprice": microprice
+                    }
+                    data.append(row)
+                    
+                    snapshot = OrderBookSnapshot(
+                        exchange="binance",
+                        symbol=symbol.upper(),
+                        timestamp=ts,
+                        bids=json.dumps(bids),
+                        asks=json.dumps(asks),
+                        obi=obi,
+                        spread=spread,
+                        microprice=microprice
+                    )
+                    buffer.append(snapshot)
+                    scraped_count += 1
+                    
+                    if len(buffer) >= 500:
+                        db.bulk_save_objects(buffer)
+                        db.commit()
+                        buffer.clear()
+                        
+                    if scraped_count % log_interval == 0:
+                        pct = min(100.0, (scraped_count / target_rows) * 10.0)
+                        job.progress = pct
+                        db.commit()
+                        add_log_func(f"[Scraper] Collected {scraped_count} / {target_rows} rows...")
+                        
+        except asyncio.TimeoutError:
+            add_log_func("WebSocket timeout. Reconnecting...")
+            retry_count += 1
+            await asyncio.sleep(2)
+        except websockets.exceptions.ConnectionClosed:
+            add_log_func("WebSocket connection closed. Reconnecting...")
+            retry_count += 1
+            await asyncio.sleep(2)
+        except Exception as e:
+            add_log_func(f"WebSocket error: {e}. Reconnecting...")
+            retry_count += 1
+            await asyncio.sleep(2)
+            
+    if buffer:
+        db.bulk_save_objects(buffer)
+        db.commit()
+        
+    add_log_func(f"Scraping completed. Total rows: {len(data)}")
+    
+    df = pd.DataFrame(data)
+    if not df.empty:
+        df.set_index("timestamp", inplace=True)
+        timeframe = job.config.get("timeframe", "5m")
+        resample_l2 = job.config.get("resample_l2", True)
+        if resample_l2:
+            tf_map = {"1s": "1S", "5s": "5S", "1m": "1min", "5m": "5min"}
+            pd_tf = tf_map.get(timeframe, "1min")
+            add_log_func(f"Resampling {len(df)} ticks into {timeframe} candles...")
+            df = df.resample(pd_tf).agg({
+                "Close": "last",
+                "microprice": "last",
+                "obi": "mean",
+                "spread": "mean"
+            }).dropna()
+            
+    return df
+
 def train_model_task(job_id: str, db: Session):
     job = db.query(models.ModelTrainingJob).filter(models.ModelTrainingJob.id == job_id).first()
     if not job:
@@ -108,12 +233,22 @@ def train_model_task(job_id: str, db: Session):
             resample_l2 = config.get("resample_l2", True)
             timeframe_to_pass = job.timeframe if resample_l2 else None
             
-            add_log(f"Fetching High-Frequency L2 OrderBook data for {job.symbol} (Last {lookback_hours} hours)...")
-            df = fetch_l2_data(job.symbol, db, lookback_hours, timeframe_to_pass)
-            if resample_l2:
-                add_log(f"Fetched L2 data and resampled to {job.timeframe} timeframe.")
+            is_deep_training = config.get("is_deep_training", False)
+            target_rows = config.get("target_rows", 0)
+
+            if is_deep_training and target_rows > 0:
+                add_log(f"Starting Deep Training Data Collector. Target: {target_rows} rows from Live Binance WebSocket...")
+                df = _run_live_scraper(job.symbol, target_rows, db, job, add_log)
+                if df.empty:
+                    raise Exception("Deep Training failed. Scraper returned empty dataset.")
             else:
-                add_log(f"Fetched {len(df)} ticks of raw High-Frequency L2 data.")
+                add_log(f"Fetching High-Frequency L2 OrderBook data for {job.symbol} (Last {lookback_hours} hours)...")
+                df = fetch_l2_data(job.symbol, db, lookback_hours, timeframe_to_pass)
+                if resample_l2:
+                    add_log(f"Fetched L2 data and resampled to {job.timeframe} timeframe.")
+                else:
+                    add_log(f"Fetched {len(df)} ticks of raw High-Frequency L2 data.")
+            
             job.progress = 15.0
             
             # L2 doesn't need TA-Lib indicators, we use micro-features
@@ -127,7 +262,7 @@ def train_model_task(job_id: str, db: Session):
                 
             df.dropna(inplace=True)
             if len(df) < 10:
-                raise Exception(f"Not enough L2 data to train a model. Found {len(df)} rows after processing. Please let the system run longer to collect more OrderBook snapshots.")
+                raise Exception(f"Not enough L2 data to train a model. Found {len(df)} rows after processing. Please lower timeframe or collect more data.")
                 
         else:
             ohlcv_period = config.get("ohlcv_period")
@@ -420,7 +555,8 @@ def train_model_task(job_id: str, db: Session):
 
     except Exception as e:
         job.status = models.TrainingStatus.FAILED
-        job.error_message = str(e)
-        add_log(f"ERROR: {str(e)}")
-        print(traceback.format_exc())
+        add_log(f"ERROR: {e}")
+        import traceback
+        add_log(traceback.format_exc())
+    finally:
         db.commit()
