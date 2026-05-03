@@ -426,7 +426,7 @@ const ModelTrainingStudio: React.FC = () => {
                                             <h4 className="text-sm font-black text-indigo-400 flex items-center gap-2">
                                                 <Activity className="w-4 h-4" /> AUTO-FEATURE SELECTION
                                             </h4>
-                                            <p className="text-xs text-slate-400 mt-1 font-medium">Analyze 50+ live L2 metrics to find the most predictive non-correlated features.</p>
+                                            <p className="text-xs text-slate-400 mt-1 font-medium">Analyze live L2 metrics using <span className="text-indigo-300 font-bold">Random Forest</span> & <span className="text-indigo-300 font-bold">Mutual Information</span> to find the most predictive non-correlated features.</p>
                                         </div>
                                     </div>
                                     
