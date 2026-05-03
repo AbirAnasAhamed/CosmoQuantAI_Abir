@@ -15,6 +15,7 @@ import traceback
 from datetime import datetime, timedelta
 import joblib
 from app.services.ml_utils import extract_feature_importance, calculate_classification_metrics, calculate_regression_metrics
+from app.services.auto_feature_selector import calculate_l2_advanced_features
 
 def fetch_l2_data(symbol: str, db: Session, lookback_hours: int = 6, timeframe: str = None) -> pd.DataFrame:
     from app.models.orderbook_snapshot import OrderBookSnapshot
@@ -36,23 +37,37 @@ def fetch_l2_data(symbol: str, db: Session, lookback_hours: int = 6, timeframe: 
             "Close": s.microprice, 
             "obi": s.obi,
             "spread": s.spread,
-            "microprice": s.microprice
+            "microprice": s.microprice,
+            "bids": s.bids,
+            "asks": s.asks
         })
         
     df = pd.DataFrame(data)
     df.set_index("timestamp", inplace=True)
+    
+    # Calculate advanced features on tick data
+    try:
+        df_feats, _ = calculate_l2_advanced_features(df.reset_index())
+        df_feats['timestamp'] = df.index
+        df_feats.set_index('timestamp', inplace=True)
+        # Merge back
+        for col in df_feats.columns:
+            if col not in df.columns:
+                df[col] = df_feats[col]
+    except Exception as e:
+        print(f"Failed to calc advanced features: {e}")
+        
+    # Drop raw bids/asks
+    df = df.drop(columns=['bids', 'asks'], errors='ignore')
     
     if timeframe:
         tf_map = {"5m": "5min", "15m": "15min", "1h": "1H", "4h": "4H", "1d": "1D"}
         pd_tf = tf_map.get(timeframe)
         if pd_tf:
             # Resample tick data into candles
-            df = df.resample(pd_tf).agg({
-                "Close": "last",
-                "microprice": "last",
-                "obi": "mean",
-                "spread": "mean"
-            }).dropna()
+            agg_dict = {col: "mean" for col in df.columns if col not in ["Close"]}
+            agg_dict["Close"] = "last"
+            df = df.resample(pd_tf).agg(agg_dict).dropna()
             
     return df
 
@@ -143,7 +158,9 @@ async def _async_live_scraper(symbol: str, target_rows: int, db: Session, job: m
                         "Close": microprice,
                         "obi": obi,
                         "spread": spread,
-                        "microprice": microprice
+                        "microprice": microprice,
+                        "bids": bids,
+                        "asks": asks
                     }
                     data.append(row)
                     
@@ -193,18 +210,31 @@ async def _async_live_scraper(symbol: str, target_rows: int, db: Session, job: m
     df = pd.DataFrame(data)
     if not df.empty:
         df.set_index("timestamp", inplace=True)
+        
+        # Calculate advanced features
+        try:
+            df_feats, _ = calculate_l2_advanced_features(df.reset_index())
+            df_feats['timestamp'] = df.index
+            df_feats.set_index('timestamp', inplace=True)
+            for col in df_feats.columns:
+                if col not in df.columns:
+                    df[col] = df_feats[col]
+        except Exception as e:
+            add_log_func(f"Failed to calc advanced features: {e}")
+            
+        df = df.drop(columns=['bids', 'asks'], errors='ignore')
+        
         timeframe = job.config.get("timeframe", "5m")
         resample_l2 = job.config.get("resample_l2", True)
         if resample_l2:
             tf_map = {"1s": "1S", "5s": "5S", "1m": "1min", "5m": "5min"}
             pd_tf = tf_map.get(timeframe, "1min")
             add_log_func(f"Resampling {len(df)} ticks into {timeframe} candles...")
-            df = df.resample(pd_tf).agg({
-                "Close": "last",
-                "microprice": "last",
-                "obi": "mean",
-                "spread": "mean"
-            }).dropna()
+            
+            agg_dict = {col: "mean" for col in df.columns if col not in ["Close"]}
+            agg_dict["Close"] = "last"
+            
+            df = df.resample(pd_tf).agg(agg_dict).dropna()
             
     return df
 
@@ -251,8 +281,13 @@ def train_model_task(job_id: str, db: Session):
             
             job.progress = 15.0
             
-            # L2 doesn't need TA-Lib indicators, we use micro-features
-            features = ["obi", "spread", "microprice"]
+            # Use L2 specific features chosen by user, default to basics
+            features = config.get("l2_features", ["obi", "spread", "microprice"])
+            available_feats = [f for f in features if f in df.columns]
+            if not available_feats:
+                available_feats = ["Close"]
+            features = available_feats
+            add_log(f"Using {len(features)} L2 features for training.")
             
             prediction_target = config.get("prediction_target", "classification")
             if prediction_target == "classification":

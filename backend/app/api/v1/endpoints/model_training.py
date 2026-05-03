@@ -7,6 +7,12 @@ from app import models, schemas
 from app.api import deps
 from app.db.session import get_db
 from app.services.ml_training_engine import train_model_task
+from app.services.auto_feature_selector import suggest_optimal_features
+from pydantic import BaseModel
+
+class SuggestFeaturesRequest(BaseModel):
+    symbol: str
+
 
 router = APIRouter()
 
@@ -71,3 +77,17 @@ def get_training_job_status(
     if not job:
         raise HTTPException(status_code=404, detail="Training job not found")
     return job
+
+@router.post("/suggest-features")
+def suggest_l2_features(
+    request: SuggestFeaturesRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Analyzes live L2 orderbook data and suggests optimal features to avoid overfitting.
+    """
+    result = suggest_optimal_features(request.symbol, db)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result

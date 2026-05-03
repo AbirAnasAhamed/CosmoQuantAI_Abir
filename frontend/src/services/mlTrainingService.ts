@@ -35,6 +35,7 @@ export interface TrainingConfig {
         exchange?: string;
         is_deep_training?: boolean;
         target_rows?: number;
+        l2_features?: string[];
     };
 }
 

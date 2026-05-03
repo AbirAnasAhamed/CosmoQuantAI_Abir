@@ -36,6 +36,13 @@ const ModelTrainingStudio: React.FC = () => {
     
     const [isTraining, setIsTraining] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
+    
+    // Auto-Suggest States
+    const [isSuggesting, setIsSuggesting] = useState(false);
+    const [suggestedFeatures, setSuggestedFeatures] = useState<any[]>([]);
+    const [selectedL2Features, setSelectedL2Features] = useState<string[]>(['obi', 'spread', 'microprice']);
+    const [analysisStats, setAnalysisStats] = useState<{rows: number, features: number} | null>(null);
+    
     const [currentJob, setCurrentJob] = useState<TrainingJob | null>(null);
     const logsEndRef = useRef<HTMLDivElement>(null);
 
@@ -99,7 +106,8 @@ const ModelTrainingStudio: React.FC = () => {
                     model_name: modelName,
                     exchange: exchange,
                     is_deep_training: dataSource === 'l2_orderbook' ? isDeepTraining : false,
-                    target_rows: isDeepTraining ? targetRowOptions[targetRowsIndex] : 0
+                    target_rows: isDeepTraining ? targetRowOptions[targetRowsIndex] : 0,
+                    l2_features: selectedL2Features
                 }
             });
             setCurrentJob(job);
@@ -121,6 +129,32 @@ const ModelTrainingStudio: React.FC = () => {
         } finally {
             setIsClearing(false);
         }
+    };
+
+    const handleSuggestFeatures = async () => {
+        try {
+            setIsSuggesting(true);
+            setSuggestedFeatures([]);
+            const res = await apiClient.post('/model-training/suggest-features', { symbol });
+            if (res.data.success) {
+                setSuggestedFeatures(res.data.suggestions);
+                setAnalysisStats({
+                    rows: res.data.rows_scanned,
+                    features: res.data.analyzed_count
+                });
+            }
+        } catch (error: any) {
+            console.error("Failed to suggest features", error);
+            alert("Failed to analyze features: " + (error.response?.data?.detail || error.message));
+        } finally {
+            setIsSuggesting(false);
+        }
+    };
+
+    const handleToggleL2Feature = (featureInternal: string) => {
+        setSelectedL2Features(prev => 
+            prev.includes(featureInternal) ? prev.filter(f => f !== featureInternal) : [...prev, featureInternal]
+        );
     };
 
     return (
@@ -353,6 +387,75 @@ const ModelTrainingStudio: React.FC = () => {
                                         />
                                         <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all border-white/5 peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-pink-500 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"></div>
                                     </label>
+                                </div>
+                            )}
+
+                            {dataSource === 'l2_orderbook' && (
+                                <div className="mt-4 p-4 bg-indigo-900/20 border border-indigo-500/30 rounded-2xl shadow-inner relative overflow-hidden">
+                                    {/* Background glow */}
+                                    <div className="absolute top-[-50%] right-[-50%] w-[100%] h-[100%] bg-indigo-500/10 blur-[50px] rounded-full pointer-events-none"></div>
+                                    
+                                    <div className="flex items-center justify-between mb-4 relative z-10">
+                                        <div>
+                                            <h4 className="text-sm font-black text-indigo-400 flex items-center gap-2">
+                                                <Activity className="w-4 h-4" /> AUTO-FEATURE SELECTION
+                                            </h4>
+                                            <p className="text-xs text-slate-400 mt-1 font-medium">Analyze 50+ live L2 metrics to find the most predictive non-correlated features.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <button 
+                                        onClick={handleSuggestFeatures}
+                                        disabled={isTraining || isSuggesting}
+                                        className={`w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-md relative z-10 ${isSuggesting ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 cursor-wait' : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-[0_0_15px_rgba(79,70,229,0.4)] border border-indigo-400/50 hover:scale-[1.02]'}`}
+                                    >
+                                        {isSuggesting ? (
+                                            <><Loader2 className="w-4 h-4 animate-spin" /> SCANNING 50+ METRICS...</>
+                                        ) : (
+                                            <><BrainCircuit className="w-4 h-4" /> SUGGEST OPTIMAL METRICS</>
+                                        )}
+                                    </button>
+
+                                    <AnimatePresence>
+                                        {suggestedFeatures.length > 0 && (
+                                            <motion.div 
+                                                initial={{ opacity: 0, height: 0 }} 
+                                                animate={{ opacity: 1, height: 'auto' }} 
+                                                className="mt-4 space-y-2 relative z-10"
+                                            >
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <p className="text-xs font-semibold text-emerald-400">Top Recommended Features:</p>
+                                                    {analysisStats && (
+                                                        <span className="text-[10px] bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                                                            Analyzed {analysisStats.rows} rows × {analysisStats.features} features
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {suggestedFeatures.map((feat, idx) => (
+                                                    <div 
+                                                        key={idx} 
+                                                        onClick={() => !isTraining && handleToggleL2Feature(feat.internal)}
+                                                        className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${selectedL2Features.includes(feat.internal) ? 'bg-emerald-500/10 border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.15)]' : 'bg-black/40 border-white/10 hover:border-white/20'}`}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedL2Features.includes(feat.internal) ? 'bg-emerald-500 border-emerald-400' : 'border-white/30'}`}>
+                                                                {selectedL2Features.includes(feat.internal) && <CheckCircle2 className="w-3 h-3 text-black" />}
+                                                            </div>
+                                                            <span className={`text-xs font-bold ${selectedL2Features.includes(feat.internal) ? 'text-emerald-100' : 'text-slate-300'}`}>
+                                                                {feat.name}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30">
+                                                                Score: {feat.score}%
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <p className="text-[10px] text-slate-500 mt-2 text-center">Click a feature to include/exclude it from training.</p>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                             )}
                         </div>
