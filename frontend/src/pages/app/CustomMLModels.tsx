@@ -114,7 +114,21 @@ const UploadModelModal: React.FC<{
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Architecture</label>
                                 <select value={modelType} onChange={(e) => setModelType(e.target.value as any)} className={inputBaseClasses}>
-                                    <option>LSTM</option> <option>ARIMA</option> <option>Random Forest</option> <option>Other</option>
+                                    <optgroup label="Indicator & Tabular Engines">
+                                        <option>Random Forest</option> <option>XGBoost</option> <option>LightGBM</option> <option>CatBoost</option>
+                                    </optgroup>
+                                    <optgroup label="Trend & Sequence Memory">
+                                        <option>LSTM</option> <option>GRU</option>
+                                    </optgroup>
+                                    <optgroup label="Micro-Pattern & Scalping">
+                                        <option>1D-CNN</option> <option>DeepLOB</option> <option>Transformer</option>
+                                    </optgroup>
+                                    <optgroup label="Autonomous Agents">
+                                        <option>PPO-RL</option>
+                                    </optgroup>
+                                    <optgroup label="Other">
+                                        <option>ARIMA</option> <option>Other</option>
+                                    </optgroup>
                                 </select>
                             </div>
                         </div>
@@ -160,6 +174,14 @@ const ModelCard: React.FC<{
     const modelIcons: Record<CustomMLModel['modelType'], React.ReactNode> = {
         'LSTM': <LstmIcon className="w-8 h-8" />,
         'Random Forest': <RandomForestIcon className="w-8 h-8" />,
+        'XGBoost': <OtherModelIcon className="w-8 h-8" />,
+        'LightGBM': <OtherModelIcon className="w-8 h-8" />,
+        'CatBoost': <OtherModelIcon className="w-8 h-8" />,
+        'GRU': <OtherModelIcon className="w-8 h-8" />,
+        '1D-CNN': <OtherModelIcon className="w-8 h-8" />,
+        'DeepLOB': <OtherModelIcon className="w-8 h-8" />,
+        'Transformer': <OtherModelIcon className="w-8 h-8" />,
+        'PPO-RL': <OtherModelIcon className="w-8 h-8" />,
         'ARIMA': <ArimaIcon className="w-8 h-8" />,
         'Other': <OtherModelIcon className="w-8 h-8" />,
     };

@@ -88,3 +88,7 @@ edge-tts
 scikit-learn
 xgboost
 joblib
+lightgbm
+catboost
+stable-baselines3
+gymnasium

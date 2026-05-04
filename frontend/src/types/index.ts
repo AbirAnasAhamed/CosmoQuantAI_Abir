@@ -292,7 +292,7 @@ export interface ModelVersion {
 export interface CustomMLModel {
   id: string;
   name: string;
-  modelType: 'LSTM' | 'Random Forest' | 'ARIMA' | 'Other';
+  modelType: 'LSTM' | 'Random Forest' | 'XGBoost' | 'LightGBM' | 'CatBoost' | 'GRU' | '1D-CNN' | 'DeepLOB' | 'Transformer' | 'PPO-RL' | 'ARIMA' | 'Other';
   activeVersionId: string;
   is_auto_retrain?: number;
   retrain_interval_hours?: number;

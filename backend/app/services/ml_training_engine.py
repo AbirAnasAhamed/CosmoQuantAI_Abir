@@ -505,6 +505,345 @@ def train_model_task(job_id: str, db: Session):
                     
             add_log("PyTorch LSTM training complete.")
             
+        elif job.algorithm == "LightGBM":
+            add_log(f"Training LightGBM ({prediction_target.capitalize()})...")
+            import lightgbm as lgb
+            if prediction_target == "classification":
+                model = lgb.LGBMClassifier(n_estimators=epochs, learning_rate=learning_rate, max_depth=max_depth, random_state=42)
+                model.fit(X_train, y_train.ravel(), eval_set=[(X_test, y_test.ravel())])
+                start_time = time.time()
+                y_pred = model.predict(X_test)
+                end_time = time.time()
+                final_latency = max(1.0, (end_time - start_time) / max(1, len(X_test)) * 1000)
+                process_metrics(calculate_classification_metrics(y_test.ravel(), y_pred), True)
+            else:
+                model = lgb.LGBMRegressor(n_estimators=epochs, learning_rate=learning_rate, max_depth=max_depth, random_state=42)
+                model.fit(X_train, y_train.ravel(), eval_set=[(X_test, y_test.ravel())])
+                start_time = time.time()
+                y_pred = model.predict(X_test)
+                end_time = time.time()
+                final_latency = max(1.0, (end_time - start_time) / max(1, len(X_test)) * 1000)
+                process_metrics(calculate_regression_metrics(y_test.ravel(), y_pred), False)
+                
+            job.progress = 80.0
+            joblib.dump(model, model_path)
+            
+            fi_log = extract_feature_importance(model, features)
+            if fi_log: add_log(fi_log)
+            add_log("LightGBM training complete.")
+
+        elif job.algorithm == "CatBoost":
+            add_log(f"Training CatBoost ({prediction_target.capitalize()})...")
+            import catboost as cb
+            if prediction_target == "classification":
+                model = cb.CatBoostClassifier(iterations=epochs, learning_rate=learning_rate, depth=max_depth, random_seed=42, verbose=False)
+                model.fit(X_train, y_train.ravel(), eval_set=(X_test, y_test.ravel()))
+                start_time = time.time()
+                y_pred = model.predict(X_test)
+                end_time = time.time()
+                final_latency = max(1.0, (end_time - start_time) / max(1, len(X_test)) * 1000)
+                process_metrics(calculate_classification_metrics(y_test.ravel(), y_pred), True)
+            else:
+                model = cb.CatBoostRegressor(iterations=epochs, learning_rate=learning_rate, depth=max_depth, random_seed=42, verbose=False)
+                model.fit(X_train, y_train.ravel(), eval_set=(X_test, y_test.ravel()))
+                start_time = time.time()
+                y_pred = model.predict(X_test)
+                end_time = time.time()
+                final_latency = max(1.0, (end_time - start_time) / max(1, len(X_test)) * 1000)
+                process_metrics(calculate_regression_metrics(y_test.ravel(), y_pred), False)
+                
+            job.progress = 80.0
+            joblib.dump(model, model_path)
+            
+            fi_log = extract_feature_importance(model, features)
+            if fi_log: add_log(fi_log)
+            add_log("CatBoost training complete.")
+
+        elif job.algorithm == "GRU":
+            add_log("Initializing PyTorch GRU network...")
+            import torch
+            import torch.nn as nn
+            
+            class SimpleGRU(nn.Module):
+                def __init__(self, input_size, hidden_size, num_layers, output_size):
+                    super(SimpleGRU, self).__init__()
+                    self.hidden_size = hidden_size
+                    self.num_layers = num_layers
+                    self.gru = nn.GRU(input_size, hidden_size, num_layers, batch_first=True)
+                    self.fc = nn.Linear(hidden_size, output_size)
+                    
+                def forward(self, x):
+                    h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+                    out, _ = self.gru(x, h0)
+                    out = self.fc(out[:, -1, :])
+                    return out
+                    
+            X_train_t = torch.FloatTensor(X_train).unsqueeze(1)
+            y_train_t = torch.FloatTensor(y_train)
+            
+            model = SimpleGRU(input_size=X_train.shape[1], hidden_size=64, num_layers=2, output_size=1)
+            
+            if prediction_target == "classification":
+                criterion = nn.BCEWithLogitsLoss()
+            else:
+                criterion = nn.MSELoss()
+                
+            optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+            
+            add_log(f"Starting GRU training for {epochs} epochs...")
+            for epoch in range(epochs):
+                outputs = model(X_train_t)
+                optimizer.zero_grad()
+                loss = criterion(outputs.squeeze(), y_train_t)
+                loss.backward()
+                optimizer.step()
+                
+            model_filename = model_path.replace(".pkl", ".pt")
+            torch.save(model.state_dict(), model_filename)
+            
+            model.eval()
+            with torch.no_grad():
+                X_test_t = torch.FloatTensor(X_test).unsqueeze(1)
+                start_time = time.time()
+                preds = model(X_test_t).numpy()
+                end_time = time.time()
+                final_latency = max(1.0, (end_time - start_time) / max(1, len(X_test)) * 1000)
+                if prediction_target == "classification":
+                    preds_class = (1 / (1 + np.exp(-preds)) > 0.5).astype(int)
+                    process_metrics(calculate_classification_metrics(y_test, preds_class), True)
+                else:
+                    process_metrics(calculate_regression_metrics(y_test, preds), False)
+            add_log("PyTorch GRU training complete.")
+
+        elif job.algorithm == "1D-CNN":
+            add_log("Initializing PyTorch 1D-CNN network...")
+            import torch
+            import torch.nn as nn
+            
+            class CNN1D(nn.Module):
+                def __init__(self, input_size, output_size):
+                    super(CNN1D, self).__init__()
+                    self.conv1 = nn.Conv1d(in_channels=1, out_channels=16, kernel_size=3, padding=1)
+                    self.relu = nn.ReLU()
+                    self.pool = nn.MaxPool1d(kernel_size=2)
+                    pool_out_size = input_size // 2
+                    self.fc1 = nn.Linear(16 * pool_out_size, 32)
+                    self.fc2 = nn.Linear(32, output_size)
+                    
+                def forward(self, x):
+                    x = x.unsqueeze(1)
+                    out = self.conv1(x)
+                    out = self.relu(out)
+                    out = self.pool(out)
+                    out = out.view(out.size(0), -1)
+                    out = self.relu(self.fc1(out))
+                    out = self.fc2(out)
+                    return out
+                    
+            X_train_t = torch.FloatTensor(X_train)
+            y_train_t = torch.FloatTensor(y_train)
+            
+            model = CNN1D(input_size=X_train.shape[1], output_size=1)
+            
+            if prediction_target == "classification":
+                criterion = nn.BCEWithLogitsLoss()
+            else:
+                criterion = nn.MSELoss()
+                
+            optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+            
+            for epoch in range(epochs):
+                outputs = model(X_train_t)
+                optimizer.zero_grad()
+                loss = criterion(outputs.squeeze(), y_train_t)
+                loss.backward()
+                optimizer.step()
+                
+            model_filename = model_path.replace(".pkl", ".pt")
+            torch.save(model.state_dict(), model_filename)
+            
+            model.eval()
+            with torch.no_grad():
+                X_test_t = torch.FloatTensor(X_test)
+                start_time = time.time()
+                preds = model(X_test_t).numpy()
+                end_time = time.time()
+                final_latency = max(1.0, (end_time - start_time) / max(1, len(X_test)) * 1000)
+                if prediction_target == "classification":
+                    preds_class = (1 / (1 + np.exp(-preds)) > 0.5).astype(int)
+                    process_metrics(calculate_classification_metrics(y_test, preds_class), True)
+                else:
+                    process_metrics(calculate_regression_metrics(y_test, preds), False)
+            add_log("PyTorch 1D-CNN training complete.")
+
+        elif job.algorithm == "DeepLOB":
+            add_log("Initializing PyTorch DeepLOB architecture...")
+            import torch
+            import torch.nn as nn
+            
+            class DeepLOB(nn.Module):
+                def __init__(self, input_size, output_size):
+                    super(DeepLOB, self).__init__()
+                    self.conv1 = nn.Conv1d(1, 16, kernel_size=2, padding=1)
+                    self.relu = nn.ReLU()
+                    self.lstm = nn.LSTM(16, 32, 1, batch_first=True)
+                    self.fc = nn.Linear(32, output_size)
+                    
+                def forward(self, x):
+                    x = x.unsqueeze(1)
+                    x = self.relu(self.conv1(x))
+                    x = x.transpose(1, 2)
+                    out, _ = self.lstm(x)
+                    out = self.fc(out[:, -1, :])
+                    return out
+
+            X_train_t = torch.FloatTensor(X_train)
+            y_train_t = torch.FloatTensor(y_train)
+            model = DeepLOB(input_size=X_train.shape[1], output_size=1)
+            
+            if prediction_target == "classification":
+                criterion = nn.BCEWithLogitsLoss()
+            else:
+                criterion = nn.MSELoss()
+                
+            optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+            
+            for epoch in range(epochs):
+                outputs = model(X_train_t)
+                optimizer.zero_grad()
+                loss = criterion(outputs.squeeze(), y_train_t)
+                loss.backward()
+                optimizer.step()
+                
+            model_filename = model_path.replace(".pkl", ".pt")
+            torch.save(model.state_dict(), model_filename)
+            
+            model.eval()
+            with torch.no_grad():
+                X_test_t = torch.FloatTensor(X_test)
+                start_time = time.time()
+                preds = model(X_test_t).numpy()
+                end_time = time.time()
+                final_latency = max(1.0, (end_time - start_time) / max(1, len(X_test)) * 1000)
+                if prediction_target == "classification":
+                    preds_class = (1 / (1 + np.exp(-preds)) > 0.5).astype(int)
+                    process_metrics(calculate_classification_metrics(y_test, preds_class), True)
+                else:
+                    process_metrics(calculate_regression_metrics(y_test, preds), False)
+            add_log("PyTorch DeepLOB training complete.")
+
+        elif job.algorithm == "Transformer":
+            add_log("Initializing PyTorch Time-Series Transformer...")
+            import torch
+            import torch.nn as nn
+            
+            class TimeSeriesTransformer(nn.Module):
+                def __init__(self, input_size, output_size):
+                    super(TimeSeriesTransformer, self).__init__()
+                    self.encoder_layer = nn.TransformerEncoderLayer(d_model=input_size, nhead=1, batch_first=True)
+                    self.transformer = nn.TransformerEncoder(self.encoder_layer, num_layers=1)
+                    self.fc = nn.Linear(input_size, output_size)
+                    
+                def forward(self, x):
+                    x = x.unsqueeze(1)
+                    out = self.transformer(x)
+                    out = self.fc(out[:, -1, :])
+                    return out
+
+            X_train_t = torch.FloatTensor(X_train)
+            y_train_t = torch.FloatTensor(y_train)
+            model = TimeSeriesTransformer(input_size=X_train.shape[1], output_size=1)
+            
+            if prediction_target == "classification":
+                criterion = nn.BCEWithLogitsLoss()
+            else:
+                criterion = nn.MSELoss()
+                
+            optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+            
+            for epoch in range(epochs):
+                outputs = model(X_train_t)
+                optimizer.zero_grad()
+                loss = criterion(outputs.squeeze(), y_train_t)
+                loss.backward()
+                optimizer.step()
+                
+            model_filename = model_path.replace(".pkl", ".pt")
+            torch.save(model.state_dict(), model_filename)
+            
+            model.eval()
+            with torch.no_grad():
+                X_test_t = torch.FloatTensor(X_test)
+                start_time = time.time()
+                preds = model(X_test_t).numpy()
+                end_time = time.time()
+                final_latency = max(1.0, (end_time - start_time) / max(1, len(X_test)) * 1000)
+                if prediction_target == "classification":
+                    preds_class = (1 / (1 + np.exp(-preds)) > 0.5).astype(int)
+                    process_metrics(calculate_classification_metrics(y_test, preds_class), True)
+                else:
+                    process_metrics(calculate_regression_metrics(y_test, preds), False)
+            add_log("PyTorch Transformer training complete.")
+
+        elif job.algorithm == "PPO-RL":
+            add_log("Initializing Stable-Baselines3 PPO RL Agent...")
+            import gymnasium as gym
+            from gymnasium import spaces
+            from stable_baselines3 import PPO
+            import numpy as np
+            
+            class TradingEnv(gym.Env):
+                def __init__(self, X, y):
+                    super(TradingEnv, self).__init__()
+                    self.X = X
+                    self.y = y
+                    self.current_step = 0
+                    self.max_steps = len(X) - 1
+                    self.action_space = spaces.Discrete(2)
+                    self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(X.shape[1],), dtype=np.float32)
+                    
+                def reset(self, seed=None, options=None):
+                    self.current_step = 0
+                    return self.X[self.current_step].astype(np.float32), {}
+                    
+                def step(self, action):
+                    reward = 0
+                    if action == 1 and self.y[self.current_step] > 0:
+                        reward = 1
+                    elif action == 1 and self.y[self.current_step] <= 0:
+                        reward = -1
+                        
+                    self.current_step += 1
+                    done = self.current_step >= self.max_steps
+                    obs = self.X[self.current_step].astype(np.float32) if not done else np.zeros(self.observation_space.shape, dtype=np.float32)
+                    return obs, float(reward), done, False, {}
+
+            env = TradingEnv(X_train, y_train)
+            model = PPO("MlpPolicy", env, verbose=0, learning_rate=learning_rate)
+            model.learn(total_timesteps=epochs * len(X_train))
+            
+            model_path_rl = model_path.replace(".pkl", ".zip")
+            model.save(model_path_rl)
+            
+            test_env = TradingEnv(X_test, y_test)
+            obs, _ = test_env.reset()
+            start_time = time.time()
+            preds = []
+            for _ in range(len(X_test)):
+                action, _ = model.predict(obs, deterministic=True)
+                preds.append(action)
+                obs, _, done, _, _ = test_env.step(action)
+                if done: break
+            end_time = time.time()
+            final_latency = max(1.0, (end_time - start_time) / max(1, len(X_test)) * 1000)
+            
+            if prediction_target == "classification":
+                process_metrics(calculate_classification_metrics(y_test[:len(preds)], preds), True)
+            else:
+                process_metrics(calculate_regression_metrics(y_test[:len(preds)], preds), False)
+                
+            add_log("Stable-Baselines3 PPO training complete.")
+
         else:
             raise ValueError(f"Unsupported algorithm: {job.algorithm}")
             

@@ -6,6 +6,7 @@ import numpy as np
 import logging
 from app.db.session import SessionLocal
 from app.models.ml_model import CustomMLModel, ModelVersion
+from app.services.ml_architectures import SimpleLSTM, SimpleGRU, CNN1D, DeepLOB, TimeSeriesTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,10 @@ class MLL2Predictor:
             # L2 Predictor defaults to classification for spoofing detection
             self.prediction_target = "classification"
 
+            # Use .zip for PPO
+            if self.model_type == "PPO-RL":
+                file_path = file_path.replace(".pkl", ".zip").replace(".pt", ".zip")
+
             if not os.path.exists(file_path):
                 logger.error(f"MLL2Predictor: Model file not found at {file_path}")
                 return
@@ -63,7 +68,7 @@ class MLL2Predictor:
             
             # Attempt to load metadata (features list)
             self.model_features = None
-            metadata_path = file_path.replace(".pkl", ".json").replace(".pt", ".json")
+            metadata_path = file_path.replace(".zip", ".json").replace(".pkl", ".json").replace(".pt", ".json")
             if os.path.exists(metadata_path):
                 import json
                 try:
@@ -73,34 +78,38 @@ class MLL2Predictor:
                 except Exception as e:
                     logger.warning(f"MLL2Predictor: Failed to load metadata: {e}")
 
-            if self.model_type in ["Random Forest", "XGBoost"]:
+            if self.model_type in ["Random Forest", "XGBoost", "LightGBM", "CatBoost"]:
                 self.model = joblib.load(file_path)
                 self.is_loaded = True
-            elif self.model_type == "LSTM":
-                class SimpleLSTM(nn.Module):
-                    def __init__(self, input_size, hidden_size, num_layers, output_size):
-                        super(SimpleLSTM, self).__init__()
-                        self.hidden_size = hidden_size
-                        self.num_layers = num_layers
-                        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-                        self.fc = nn.Linear(hidden_size, output_size)
-                        
-                    def forward(self, x):
-                        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-                        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-                        out, _ = self.lstm(x, (h0, c0))
-                        out = self.fc(out[:, -1, :])
-                        return out
-                
+            elif self.model_type in ["LSTM", "GRU", "1D-CNN", "DeepLOB", "Transformer"]:
                 # Determine input size
                 input_size = len(self.model_features) if self.model_features else 3
-                self.model = SimpleLSTM(input_size=input_size, hidden_size=64, num_layers=2, output_size=1)
+                
+                if self.model_type == "LSTM":
+                    self.model = SimpleLSTM(input_size=input_size, hidden_size=64, num_layers=2, output_size=1)
+                elif self.model_type == "GRU":
+                    self.model = SimpleGRU(input_size=input_size, hidden_size=64, num_layers=2, output_size=1)
+                elif self.model_type == "1D-CNN":
+                    self.model = CNN1D(input_size=input_size, output_size=1)
+                elif self.model_type == "DeepLOB":
+                    self.model = DeepLOB(input_size=input_size, output_size=1)
+                elif self.model_type == "Transformer":
+                    self.model = TimeSeriesTransformer(input_size=input_size, output_size=1)
+                
                 try:
                     self.model.load_state_dict(torch.load(file_path))
                     self.model.eval()
                     self.is_loaded = True
                 except Exception as e:
-                    logger.error(f"MLL2Predictor: Error loading LSTM state_dict: {e}. Feature count might not match 3.")
+                    logger.error(f"MLL2Predictor: Error loading {self.model_type} state_dict: {e}. Feature count might not match.")
+                    self.model = None
+            elif self.model_type == "PPO-RL":
+                try:
+                    from stable_baselines3 import PPO
+                    self.model = PPO.load(file_path)
+                    self.is_loaded = True
+                except Exception as e:
+                    logger.error(f"MLL2Predictor: Error loading PPO-RL model: {e}")
                     self.model = None
 
             if self.is_loaded:
@@ -118,8 +127,6 @@ class MLL2Predictor:
         target_side: "long" | "short"
         """
         if not self.is_loaded or self.model is None:
-            # If model failed to load, we fail-open or fail-closed?
-            # Let's fail-open (allow trade) but log it so it doesn't break bots completely.
             logger.warning("MLL2Predictor: Model is not loaded. Allowing trade by default.")
             return True
 
@@ -150,20 +157,14 @@ class MLL2Predictor:
             bid_vol_all = sum(x[1] for x in bids)
             ask_vol_all = sum(x[1] for x in asks)
 
-            # Feature 1: obi
             obi = bid_vol_10 / (total_vol_10 + 1e-9)
-
-            # Feature 2: spread
             spread = (best_ask - best_bid) / (best_bid + 1e-9)
-
-            # Feature 3: microprice
             total_vol = bid_vol_10 + ask_vol_10
             if total_vol > 0:
                 microprice = ((bid_vol_10 * best_ask) + (ask_vol_10 * best_bid)) / total_vol
             else:
                 microprice = (best_bid + best_ask) / 2
 
-            # Feature 4: OFI_Acceleration (needs prev tick state)
             if self._prev_bb_p is not None:
                 if best_bid >= self._prev_bb_p: e_b = best_bid_v
                 elif best_bid == self._prev_bb_p: e_b = best_bid_v - self._prev_bb_v
@@ -178,21 +179,13 @@ class MLL2Predictor:
                 ofi = 0.0
             ofi_acceleration = ofi - self._ofi_prev
 
-            # Feature 5: Imbalance_Momentum
             level1_imb = best_bid_v / (best_bid_v + best_ask_v + 1e-9)
             imbalance_momentum = level1_imb - self._prev_level1_imb
-
-            # Feature 6: Depth_Ratio
             depth_ratio = bid_vol_all / (ask_vol_all + 1e-9)
-
-            # Feature 7: CVD_Proxy (cumulative OFI)
             self._cumulative_ofi += ofi
             cvd_proxy = self._cumulative_ofi
-
-            # Feature 8: Multi_Level_Imbalance_Top5
             multi_level_imb_top5 = bid_vol_5 / (total_vol_5 + 1e-9)
 
-            # Update state for next tick
             self._prev_bb_p = best_bid
             self._prev_bb_v = best_bid_v
             self._prev_ba_p = best_ask
@@ -200,30 +193,19 @@ class MLL2Predictor:
             self._ofi_prev = ofi
             self._prev_level1_imb = level1_imb
 
-            # 1.5 Prepare Features Array
             if self.model_features:
-                # NEW WAY: Use exact features from metadata
                 calculated_features = {
-                    "obi": obi,
-                    "spread": spread,
-                    "microprice": microprice,
-                    "ofi_acceleration": ofi_acceleration,
-                    "imbalance_momentum": imbalance_momentum,
-                    "depth_ratio": depth_ratio,
-                    "cvd_proxy": cvd_proxy,
-                    "multi_level_imb_top5": multi_level_imb_top5,
-                    "Close": microprice  # fallback for Close if used
+                    "obi": obi, "spread": spread, "microprice": microprice,
+                    "ofi_acceleration": ofi_acceleration, "imbalance_momentum": imbalance_momentum,
+                    "depth_ratio": depth_ratio, "cvd_proxy": cvd_proxy,
+                    "multi_level_imb_top5": multi_level_imb_top5, "Close": microprice
                 }
                 features_list = [calculated_features.get(f, 0.0) for f in self.model_features]
             else:
-                # OLD WAY: Fallback for older models without metadata
                 features_list = [
-                    obi, spread, microprice,
-                    ofi_acceleration, imbalance_momentum,
+                    obi, spread, microprice, ofi_acceleration, imbalance_momentum,
                     depth_ratio, cvd_proxy, multi_level_imb_top5
                 ]
-                
-                # Check if model expects more/fewer features
                 if hasattr(self.model, 'n_features_in_'):
                     expected_features = self.model.n_features_in_
                     if expected_features > len(features_list):
@@ -240,13 +222,20 @@ class MLL2Predictor:
             features = np.array(features_list).reshape(1, -1)
 
             # 2. Predict
-            if self.model_type in ["Random Forest", "XGBoost"]:
+            if self.model_type in ["Random Forest", "XGBoost", "LightGBM", "CatBoost"]:
                 pred = self.model.predict(features)[0]
-            elif self.model_type == "LSTM":
-                # Reshape for LSTM: (batch, seq_len, input_size) -> (1, 1, 3)
+            elif self.model_type in ["LSTM", "GRU"]:
                 X_t = torch.FloatTensor(features).unsqueeze(1)
                 with torch.no_grad():
                     pred = self.model(X_t).item()
+            elif self.model_type in ["1D-CNN", "DeepLOB", "Transformer"]:
+                X_t = torch.FloatTensor(features)
+                with torch.no_grad():
+                    pred = self.model(X_t).item()
+            elif self.model_type == "PPO-RL":
+                action, _ = self.model.predict(features[0].astype(np.float32), deterministic=True)
+                # action: 1 = Buy/Up, 0 = Sell/Down
+                pred = 1.0 if action == 1 else 0.0
             else:
                 return True
 
@@ -254,21 +243,17 @@ class MLL2Predictor:
             is_bullish = False
             
             if self.prediction_target == "classification":
-                # Assuming 1 = Up (Bullish), 0 = Down (Bearish)
                 is_bullish = (pred > 0.5)
             else:
-                # Regression: Model predicts next price
-                # If predicted next price > current price -> Bullish
                 is_bullish = (pred > current_price)
 
             logger.info(f"🤖 MLL2Predictor: Target={target_side.upper()}, Bullish={is_bullish}, Pred={pred:.4f}")
 
-            # Normalize: accept both "buy"/"long" and "sell"/"short"
             normalized_side = target_side.lower()
             is_long = normalized_side in ("long", "buy")
             if is_long:
                 return is_bullish
-            else:  # short / sell
+            else:
                 return not is_bullish
 
         except Exception as e:

@@ -150,7 +150,7 @@ class SMACrossoverStrategy(BaseLiveStrategy):
 
 class CustomMLStrategy(BaseLiveStrategy):
     """
-    AI Model Strategy: Loads a trained model (.pkl or .pt) from the ML Registry and runs prediction.
+    AI Model Strategy: Loads a trained model (.pkl, .pt, or .zip) from the ML Registry and runs prediction.
     Buy if prediction suggests UP, Sell if prediction suggests DOWN.
     """
     def __init__(self, config):
@@ -180,44 +180,51 @@ class CustomMLStrategy(BaseLiveStrategy):
             self.model_type = db_model.model_type
             file_path = db_version.file_path
             
+            if self.model_type == "PPO-RL":
+                file_path = file_path.replace(".pkl", ".zip").replace(".pt", ".zip")
+            
             if not os.path.exists(file_path):
                 print(f"❌ CustomMLStrategy Error: Model file not found at {file_path}")
                 return
                 
             print(f"🤖 Loading AI Model {self.model_type} from {file_path}...")
-            if self.model_type in ["Random Forest", "XGBoost"]:
+            
+            if self.model_type in ["Random Forest", "XGBoost", "LightGBM", "CatBoost"]:
                 self.model = joblib.load(file_path)
-            elif self.model_type == "LSTM":
-                # We need to recreate the SimpleLSTM class structure to load weights
-                class SimpleLSTM(nn.Module):
-                    def __init__(self, input_size, hidden_size, num_layers, output_size):
-                        super(SimpleLSTM, self).__init__()
-                        self.hidden_size = hidden_size
-                        self.num_layers = num_layers
-                        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-                        self.fc = nn.Linear(hidden_size, output_size)
-                        
-                    def forward(self, x):
-                        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-                        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-                        out, _ = self.lstm(x, (h0, c0))
-                        out = self.fc(out[:, -1, :])
-                        return out
+            elif self.model_type in ["LSTM", "GRU", "1D-CNN", "DeepLOB", "Transformer"]:
+                from app.services.ml_architectures import SimpleLSTM, SimpleGRU, CNN1D, DeepLOB, TimeSeriesTransformer
                 
                 # Assume input size is exactly what it was during training (OHLCV + RSI + MACD) = ~7-9 features
-                # Since we don't know the exact number of features without config, we'll try to infer or fallback.
-                # In ml_training_engine we excluded ['Target', 'Open', 'High', 'Low', 'Close', 'Volume', 'Adj Close']
-                # Wait, if we excluded those, what features did it use? It used indicators!
                 # Let's assume input_size=5 for now (we might need to handle this more robustly)
-                self.model = SimpleLSTM(input_size=5, hidden_size=64, num_layers=2, output_size=1)
+                input_size = 5
+                
+                if self.model_type == "LSTM":
+                    self.model = SimpleLSTM(input_size=input_size, hidden_size=64, num_layers=2, output_size=1)
+                elif self.model_type == "GRU":
+                    self.model = SimpleGRU(input_size=input_size, hidden_size=64, num_layers=2, output_size=1)
+                elif self.model_type == "1D-CNN":
+                    self.model = CNN1D(input_size=input_size, output_size=1)
+                elif self.model_type == "DeepLOB":
+                    self.model = DeepLOB(input_size=input_size, output_size=1)
+                elif self.model_type == "Transformer":
+                    self.model = TimeSeriesTransformer(input_size=input_size, output_size=1)
+                    
                 try:
                     self.model.load_state_dict(torch.load(file_path))
                     self.model.eval()
                 except Exception as e:
-                    print(f"⚠️ Error loading LSTM state_dict: {e}. Ensure feature count matches.")
+                    print(f"⚠️ Error loading {self.model_type} state_dict: {e}. Ensure feature count matches.")
+                    self.model = None
+            elif self.model_type == "PPO-RL":
+                try:
+                    from stable_baselines3 import PPO
+                    self.model = PPO.load(file_path)
+                except Exception as e:
+                    print(f"⚠️ Error loading PPO-RL model: {e}")
                     self.model = None
             
-            print(f"✅ AI Model {self.model_type} loaded successfully.")
+            if self.model is not None:
+                print(f"✅ AI Model {self.model_type} loaded successfully.")
             
         finally:
             db.close()
@@ -261,16 +268,26 @@ class CustomMLStrategy(BaseLiveStrategy):
         
         # Predict
         try:
-            if self.model_type in ["Random Forest", "XGBoost"]:
+            if self.model_type in ["Random Forest", "XGBoost", "LightGBM", "CatBoost"]:
                 pred_scaled = self.model.predict(scaled_features)[0]
-            elif self.model_type == "LSTM":
+            elif self.model_type in ["LSTM", "GRU"]:
                 X_t = torch.FloatTensor(scaled_features).unsqueeze(1)
                 pred_scaled = self.model(X_t).item()
+            elif self.model_type in ["1D-CNN", "DeepLOB", "Transformer"]:
+                X_t = torch.FloatTensor(scaled_features)
+                pred_scaled = self.model(X_t).item()
+            elif self.model_type == "PPO-RL":
+                action, _ = self.model.predict(scaled_features[0].astype(np.float32), deterministic=True)
+                # Ensure the threshold logic works (pred_scaled > current_close_scaled + threshold)
+                # For RL, we'll bypass that logic and return immediately:
+                if action == 1:
+                    return "BUY", "RL Agent Predicts UP", current_price
+                else:
+                    return "SELL", "RL Agent Predicts DOWN", current_price
             else:
                 return "HOLD", "Unsupported Model Type", current_price
                 
             # The model predicts the next scaled Close price.
-            # We don't necessarily need to unscale it if we just compare it to the current scaled Close.
             current_close_scaled = (current_price - np.min(df_copy['close'].tail(100))) / max(1, np.max(df_copy['close'].tail(100)) - np.min(df_copy['close'].tail(100)))
             
             # Simple Logic: If predicted next close > current close + threshold -> BUY

@@ -49,7 +49,12 @@ const ModelTrainingStudio: React.FC = () => {
     const logsEndRef = useRef<HTMLDivElement>(null);
 
     const INDICATORS = ['RSI', 'MACD', 'BBANDS'];
-    const ALGORITHMS = ['Random Forest', 'XGBoost', 'LSTM'];
+    const ALGORITHM_CATEGORIES = [
+        { name: "Indicator & Tabular Engines", desc: "Fastest. Best for Technical Indicators & L2 Snapshots", algos: ['Random Forest', 'XGBoost', 'LightGBM', 'CatBoost'] },
+        { name: "Trend & Sequence Memory", desc: "Best for tracking long-term trends & historical patterns", algos: ['LSTM', 'GRU'] },
+        { name: "Micro-Pattern & Scalping", desc: "Best for raw Orderbook flow & spatial feature extraction", algos: ['1D-CNN', 'DeepLOB', 'Transformer'] },
+        { name: "Autonomous Agents", desc: "Self-learning environments (Reward-based)", algos: ['PPO-RL'] }
+    ];
     const TIMEFRAMES = ['5m', '15m', '1h', '4h', '1d'];
 
     const ALL_L2_FEATURES = [
@@ -267,17 +272,27 @@ const ModelTrainingStudio: React.FC = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-2">Algorithm Engine</label>
-                            <div className="space-y-3">
-                                {ALGORITHMS.map(algo => (
-                                    <div 
-                                        key={algo} 
-                                        onClick={() => !isTraining && setAlgorithm(algo)}
-                                        className={`flex items-center p-3.5 rounded-xl border cursor-pointer transition-all duration-300 ${algorithm === algo ? 'border-purple-500 bg-purple-500/10 shadow-[0_0_20px_rgba(168,85,247,0.15)]' : 'border-white/10 bg-white/5 hover:bg-white/10'} ${isTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                    >
-                                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${algorithm === algo ? 'border-purple-400' : 'border-white/30'}`}>
-                                            {algorithm === algo && <div className="w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_5px_#a855f7]"></div>}
+                            <div className="space-y-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                                {ALGORITHM_CATEGORIES.map(category => (
+                                    <div key={category.name} className="space-y-2">
+                                        <div>
+                                            <h4 className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">{category.name}</h4>
+                                            <p className="text-[10px] text-slate-500 font-medium">{category.desc}</p>
                                         </div>
-                                        <span className="ml-3 text-sm text-slate-200 font-semibold tracking-wide">{algo}</span>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {category.algos.map(algo => (
+                                                <div 
+                                                    key={algo} 
+                                                    onClick={() => !isTraining && setAlgorithm(algo)}
+                                                    className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all duration-300 ${algorithm === algo ? 'border-purple-500 bg-purple-500/10 shadow-[0_0_15px_rgba(168,85,247,0.15)]' : 'border-white/10 bg-white/5 hover:bg-white/10'} ${isTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                >
+                                                    <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0 ${algorithm === algo ? 'border-purple-400' : 'border-white/30'}`}>
+                                                        {algorithm === algo && <div className="w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_5px_#a855f7]"></div>}
+                                                    </div>
+                                                    <span className="ml-3 text-sm text-slate-200 font-semibold tracking-wide">{algo}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
