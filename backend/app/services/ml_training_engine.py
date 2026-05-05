@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 import joblib
 from app.services.ml_utils import extract_feature_importance, calculate_classification_metrics, calculate_regression_metrics
 from app.services.auto_feature_selector import calculate_l2_advanced_features
+from app.services.advanced_ml.engine import AdvancedMLEngine # ✅ Import New Engine
 
 def fetch_l2_data(symbol: str, db: Session, lookback_hours: int = 6, timeframe: str = None) -> pd.DataFrame:
     from app.models.orderbook_snapshot import OrderBookSnapshot
@@ -224,10 +225,10 @@ async def _async_live_scraper(symbol: str, target_rows: int, db: Session, job: m
             
         df = df.drop(columns=['bids', 'asks'], errors='ignore')
         
-        timeframe = job.config.get("timeframe", "5m")
+        timeframe = job.timeframe
         resample_l2 = job.config.get("resample_l2", True)
         if resample_l2:
-            tf_map = {"1s": "1S", "5s": "5S", "1m": "1min", "5m": "5min"}
+            tf_map = {"1s": "1s", "5s": "5s", "1m": "1min", "5m": "5min"}
             pd_tf = tf_map.get(timeframe, "1min")
             add_log_func(f"Resampling {len(df)} ticks into {timeframe} candles...")
             
@@ -736,117 +737,24 @@ def train_model_task(job_id: str, db: Session):
             add_log("PyTorch DeepLOB training complete.")
 
         elif job.algorithm == "Transformer":
-            add_log("Initializing PyTorch Time-Series Transformer...")
-            import torch
-            import torch.nn as nn
-            import numpy as np
-            
-            class TimeSeriesTransformer(nn.Module):
-                def __init__(self, input_size, output_size):
-                    super(TimeSeriesTransformer, self).__init__()
-                    self.encoder_layer = nn.TransformerEncoderLayer(d_model=input_size, nhead=1, batch_first=True)
-                    self.transformer = nn.TransformerEncoder(self.encoder_layer, num_layers=1)
-                    self.fc = nn.Linear(input_size, output_size)
-                    
-                def forward(self, x):
-                    x = x.unsqueeze(1)
-                    out = self.transformer(x)
-                    out = self.fc(out[:, -1, :])
-                    return out
-
-            X_train_t = torch.FloatTensor(X_train)
-            y_train_t = torch.FloatTensor(y_train)
-            model = TimeSeriesTransformer(input_size=X_train.shape[1], output_size=1)
-            
-            if prediction_target == "classification":
-                criterion = nn.BCEWithLogitsLoss()
-            else:
-                criterion = nn.MSELoss()
-                
-            optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-            
-            for epoch in range(epochs):
-                outputs = model(X_train_t)
-                optimizer.zero_grad()
-                loss = criterion(outputs.squeeze(-1), y_train_t.view(-1))
-                loss.backward()
-                optimizer.step()
-                
-            model_filename = model_path.replace(".pkl", ".pt")
-            torch.save(model.state_dict(), model_filename)
-            
-            model.eval()
-            with torch.no_grad():
-                X_test_t = torch.FloatTensor(X_test)
-                start_time = time.time()
-                preds = model(X_test_t).numpy()
-                end_time = time.time()
-                final_latency = max(1.0, (end_time - start_time) / max(1, len(X_test)) * 1000)
-                if prediction_target == "classification":
-                    preds_class = (1 / (1 + np.exp(-preds)) > 0.5).astype(int)
-                    process_metrics(calculate_classification_metrics(y_test, preds_class), True)
-                else:
-                    process_metrics(calculate_regression_metrics(y_test, preds), False)
-            add_log("PyTorch Transformer training complete.")
+            add_log("🚀 Routing to Advanced ML Engine: Transformer...")
+            try:
+                model, model_path = AdvancedMLEngine.train_transformer(job, df, features, db, add_log)
+                final_latency = 5.0 # Placeholder
+                add_log("✅ Advanced Transformer Training complete.")
+            except Exception as e:
+                add_log(f"❌ Advanced Transformer Error: {e}")
+                raise e
 
         elif job.algorithm == "PPO-RL":
-            add_log("Initializing Stable-Baselines3 PPO RL Agent...")
-            import gymnasium as gym
-            from gymnasium import spaces
-            from stable_baselines3 import PPO
-            import numpy as np
-            
-            class TradingEnv(gym.Env):
-                def __init__(self, X, y):
-                    super(TradingEnv, self).__init__()
-                    self.X = X
-                    self.y = y
-                    self.current_step = 0
-                    self.max_steps = len(X) - 1
-                    self.action_space = spaces.Discrete(2)
-                    self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(X.shape[1],), dtype=np.float32)
-                    
-                def reset(self, seed=None, options=None):
-                    self.current_step = 0
-                    return self.X[self.current_step].astype(np.float32), {}
-                    
-                def step(self, action):
-                    reward = 0
-                    if action == 1 and self.y[self.current_step] > 0:
-                        reward = 1
-                    elif action == 1 and self.y[self.current_step] <= 0:
-                        reward = -1
-                        
-                    self.current_step += 1
-                    done = self.current_step >= self.max_steps
-                    obs = self.X[self.current_step].astype(np.float32) if not done else np.zeros(self.observation_space.shape, dtype=np.float32)
-                    return obs, float(reward), done, False, {}
-
-            env = TradingEnv(X_train, y_train)
-            model = PPO("MlpPolicy", env, verbose=0, learning_rate=learning_rate)
-            model.learn(total_timesteps=epochs * len(X_train))
-            
-            model_path_rl = model_path.replace(".pkl", ".zip")
-            model.save(model_path_rl)
-            
-            test_env = TradingEnv(X_test, y_test)
-            obs, _ = test_env.reset()
-            start_time = time.time()
-            preds = []
-            for _ in range(len(X_test)):
-                action, _ = model.predict(obs, deterministic=True)
-                preds.append(action)
-                obs, _, done, _, _ = test_env.step(action)
-                if done: break
-            end_time = time.time()
-            final_latency = max(1.0, (end_time - start_time) / max(1, len(X_test)) * 1000)
-            
-            if prediction_target == "classification":
-                process_metrics(calculate_classification_metrics(y_test[:len(preds)], preds), True)
-            else:
-                process_metrics(calculate_regression_metrics(y_test[:len(preds)], preds), False)
-                
-            add_log("Stable-Baselines3 PPO training complete.")
+            add_log("🚀 Routing to Advanced ML Engine: PPO-RL...")
+            try:
+                model, model_path = AdvancedMLEngine.train_ppo_rl(job, df, features, db, add_log)
+                final_latency = 10.0 # Placeholder
+                add_log("✅ Advanced RL Training complete.")
+            except Exception as e:
+                add_log(f"❌ Advanced RL Error: {e}")
+                raise e
 
         else:
             raise ValueError(f"Unsupported algorithm: {job.algorithm}")

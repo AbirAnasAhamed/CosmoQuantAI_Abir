@@ -36,6 +36,9 @@ export interface TrainingConfig {
         is_deep_training?: boolean;
         target_rows?: number;
         l2_features?: string[];
+        initial_balance?: number; // ✅ New
+        commission?: number;      // ✅ New
+        sequence_length?: number; // ✅ New
     };
 }
 

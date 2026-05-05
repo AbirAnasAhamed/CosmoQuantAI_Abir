@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BrainCircuit, Play, Square, Settings, Database, Activity, Terminal, CheckCircle2, XCircle, Loader2, Trash2 } from 'lucide-react';
+import { BrainCircuit, Play, Square, Settings, Database, Activity, Terminal, CheckCircle2, XCircle, Loader2, Trash2, Zap } from 'lucide-react';
 import { mlTrainingService, TrainingJob } from '@/services/mlTrainingService';
 import apiClient from '@/services/client';
 import TargetSelection from '@/components/ml/TargetSelection';
@@ -9,6 +9,7 @@ import FeatureImportanceChart from '@/components/ml/FeatureImportanceChart';
 import { HeatmapSymbolSelector } from '../../components/features/market/HeatmapSymbolSelector';
 import LiveMarketPulse from '@/components/ml/LiveMarketPulse';
 import { FloatingTVChartButton } from '@/components/features/market/FloatingTVChartButton';
+import EquityCurveChart from '@/components/ml/EquityCurveChart'; // ✅ New
 
 const ModelTrainingStudio: React.FC = () => {
     const [symbol, setSymbol] = useState('BTC/USDT');
@@ -34,6 +35,9 @@ const ModelTrainingStudio: React.FC = () => {
     const [learningRate, setLearningRate] = useState(0.1);
     const [maxDepth, setMaxDepth] = useState(6);
     const [modelName, setModelName] = useState('');
+    const [initialBalance, setInitialBalance] = useState(10000); // ✅ New
+    const [tradingFees, setTradingFees] = useState(0.001); // ✅ New
+    const [sequenceLength, setSequenceLength] = useState(30); // ✅ New
     
     const [isTraining, setIsTraining] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
@@ -55,7 +59,7 @@ const ModelTrainingStudio: React.FC = () => {
         { name: "Micro-Pattern & Scalping", desc: "Best for raw Orderbook flow & spatial feature extraction", algos: ['1D-CNN', 'DeepLOB', 'Transformer'] },
         { name: "Autonomous Agents", desc: "Self-learning environments (Reward-based)", algos: ['PPO-RL'] }
     ];
-    const TIMEFRAMES = ['5m', '15m', '1h', '4h', '1d'];
+    const TIMEFRAMES = ['1s', '5s', '1m', '5m', '15m', '1h', '4h', '1d'];
 
     const ALL_L2_FEATURES = [
         { internal: "Effective_Spread", name: "Effective Spread" },
@@ -136,6 +140,9 @@ const ModelTrainingStudio: React.FC = () => {
                     learning_rate: learningRate,
                     max_depth: maxDepth,
                     model_name: modelName,
+                    initial_balance: initialBalance, // ✅ New
+                    commission: tradingFees, // ✅ New
+                    sequence_length: sequenceLength, // ✅ New
                     exchange: exchange,
                     is_deep_training: dataSource === 'l2_orderbook' ? isDeepTraining : false,
                     target_rows: isDeepTraining ? targetRowOptions[targetRowsIndex] : 0,
@@ -317,6 +324,55 @@ const ModelTrainingStudio: React.FC = () => {
                                 setMaxDepth={setMaxDepth}
                                 isTraining={isTraining}
                             />
+
+                            {/* ✅ Advanced RL & Transformer Settings */}
+                            {(algorithm === 'PPO-RL' || algorithm === 'Transformer') && (
+                                <motion.div 
+                                    initial={{ opacity: 0, height: 0 }} 
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    className="mt-4 p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-2xl space-y-4"
+                                >
+                                    <h4 className="text-xs font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                                        <Zap className="w-3.5 h-3.5" /> Engine Specific Settings
+                                    </h4>
+                                    
+                                    {algorithm === 'Transformer' && (
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Sequence Length (Window)</label>
+                                            <input 
+                                                type="number" 
+                                                value={sequenceLength} 
+                                                onChange={e => setSequenceLength(parseInt(e.target.value))}
+                                                className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {algorithm === 'PPO-RL' && (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Initial Balance ($)</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={initialBalance} 
+                                                    onChange={e => setInitialBalance(parseInt(e.target.value))}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Trading Fees (%)</label>
+                                                <input 
+                                                    type="number" 
+                                                    step="0.0001"
+                                                    value={tradingFees} 
+                                                    onChange={e => setTradingFees(parseFloat(e.target.value))}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            )}
                         </div>
 
                         <div>
@@ -711,6 +767,13 @@ const ModelTrainingStudio: React.FC = () => {
                                                         </div>
                                                     </motion.div>
                                                 );
+                                            } catch (e) { return null; }
+                                        }
+
+                                        if (cleanLog.startsWith('[EQUITY_CURVE]')) {
+                                            try {
+                                                const equityData = JSON.parse(cleanLog.replace('[EQUITY_CURVE]', '').trim());
+                                                return <EquityCurveChart key={idx} data={equityData} />;
                                             } catch (e) { return null; }
                                         }
 
