@@ -563,6 +563,7 @@ def train_model_task(job_id: str, db: Session):
             add_log("Initializing PyTorch GRU network...")
             import torch
             import torch.nn as nn
+            import numpy as np
             
             class SimpleGRU(nn.Module):
                 def __init__(self, input_size, hidden_size, num_layers, output_size):
@@ -594,7 +595,7 @@ def train_model_task(job_id: str, db: Session):
             for epoch in range(epochs):
                 outputs = model(X_train_t)
                 optimizer.zero_grad()
-                loss = criterion(outputs.squeeze(), y_train_t)
+                loss = criterion(outputs.squeeze(-1), y_train_t.view(-1))
                 loss.backward()
                 optimizer.step()
                 
@@ -619,6 +620,7 @@ def train_model_task(job_id: str, db: Session):
             add_log("Initializing PyTorch 1D-CNN network...")
             import torch
             import torch.nn as nn
+            import numpy as np
             
             class CNN1D(nn.Module):
                 def __init__(self, input_size, output_size):
@@ -655,7 +657,7 @@ def train_model_task(job_id: str, db: Session):
             for epoch in range(epochs):
                 outputs = model(X_train_t)
                 optimizer.zero_grad()
-                loss = criterion(outputs.squeeze(), y_train_t)
+                loss = criterion(outputs.squeeze(-1), y_train_t.view(-1))
                 loss.backward()
                 optimizer.step()
                 
@@ -680,6 +682,7 @@ def train_model_task(job_id: str, db: Session):
             add_log("Initializing PyTorch DeepLOB architecture...")
             import torch
             import torch.nn as nn
+            import numpy as np
             
             class DeepLOB(nn.Module):
                 def __init__(self, input_size, output_size):
@@ -711,7 +714,7 @@ def train_model_task(job_id: str, db: Session):
             for epoch in range(epochs):
                 outputs = model(X_train_t)
                 optimizer.zero_grad()
-                loss = criterion(outputs.squeeze(), y_train_t)
+                loss = criterion(outputs.squeeze(-1), y_train_t.view(-1))
                 loss.backward()
                 optimizer.step()
                 
@@ -736,6 +739,7 @@ def train_model_task(job_id: str, db: Session):
             add_log("Initializing PyTorch Time-Series Transformer...")
             import torch
             import torch.nn as nn
+            import numpy as np
             
             class TimeSeriesTransformer(nn.Module):
                 def __init__(self, input_size, output_size):
@@ -764,7 +768,7 @@ def train_model_task(job_id: str, db: Session):
             for epoch in range(epochs):
                 outputs = model(X_train_t)
                 optimizer.zero_grad()
-                loss = criterion(outputs.squeeze(), y_train_t)
+                loss = criterion(outputs.squeeze(-1), y_train_t.view(-1))
                 loss.backward()
                 optimizer.step()
                 
