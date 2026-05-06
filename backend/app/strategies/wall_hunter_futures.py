@@ -20,6 +20,8 @@ from app.strategies.helpers.trading_session_filter import TradingSessionTracker
 from app.strategies.helpers.wick_sr_tracker import WickSRTracker
 from app.strategies.helpers.wick_sr_standalone_listener import WickSRStandaloneListener
 from app.strategies.helpers.fibo_tp_calculator import calculate_fibo_extension_tp
+from app.strategies.helpers.vwap_sd_tracker import VWAPSDTracker
+from app.strategies.helpers.vwap_sd_standalone_listener import VWAPSDStandaloneListener
 
 logger = logging.getLogger(__name__)
 
@@ -289,6 +291,17 @@ class WallHunterFuturesStrategy:
         ) if self.enable_wick_sr else None
         
         self.wick_sr_listener = WickSRStandaloneListener(self)
+        
+        # --- NEW: VWAP SD Sniper ---
+        self.enable_vwap_sd_snipe = self.config.get("enable_vwap_sd_snipe", False)
+        self.vwap_sd_anchor = self.config.get("vwap_sd_anchor", "Daily")
+        self.vwap_sd_multiplier = self.config.get("vwap_sd_multiplier", 3.0)
+        self.vwap_sd_min_wall = self.config.get("vwap_sd_min_wall", 500000.0) # Confluence Wall Size
+        self.vwap_sd_tracker = VWAPSDTracker(
+            anchor=self.vwap_sd_anchor,
+            mult3=self.vwap_sd_multiplier
+        ) if self.enable_vwap_sd_snipe else None
+        self.vwap_sd_listener = VWAPSDStandaloneListener(self) if self.enable_vwap_sd_snipe else None
         # ----------------------------------------
         
         # State
@@ -665,6 +678,11 @@ class WallHunterFuturesStrategy:
             else:
                 self._wick_sr_task = None
                 
+            if self.enable_vwap_sd_snipe:
+                self._vwap_sd_task = asyncio.create_task(self.vwap_sd_listener.start())
+            else:
+                self._vwap_sd_task = None
+                
             # --- Start Session Monitor ---
             await self.session_tracker.start_monitor()
             
@@ -733,7 +751,7 @@ class WallHunterFuturesStrategy:
 
         
         # --- FIX: Task Memory Leak / CPU Spike Prevention ---
-        for task_attr in ['_main_task', '_heartbeat_task', '_vpvr_task', '_atr_task', '_liq_task', '_trades_task', '_btc_task', '_utbot_task', '_ut_standalone_task', '_supertrend_task', '_supertrend_standalone_task', '_dual_engine_task', '_dual_engine_standalone_task', '_native_price_task', '_wick_sr_task']:
+        for task_attr in ['_main_task', '_heartbeat_task', '_vpvr_task', '_atr_task', '_liq_task', '_trades_task', '_btc_task', '_utbot_task', '_ut_standalone_task', '_supertrend_task', '_supertrend_standalone_task', '_dual_engine_task', '_dual_engine_standalone_task', '_native_price_task', '_wick_sr_task', '_vwap_sd_task']:
             task = getattr(self, task_attr, None)
             if task and not task.done():
                 try:

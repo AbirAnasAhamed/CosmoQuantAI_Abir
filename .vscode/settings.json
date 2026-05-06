@@ -1,3 +1,10 @@
 {
-    "css.lint.unknownAtRules": "ignore"
+    "css.lint.unknownAtRules": "ignore",
+    "python.analysis.ignore": [
+        "d:\\__pyrefly_virtual__\\**",
+        "__pyrefly_virtual__/**"
+    ],
+    "pyrefly.diagnostics.ignore": [
+        "d:\\__pyrefly_virtual__\\**"
+    ]
 }

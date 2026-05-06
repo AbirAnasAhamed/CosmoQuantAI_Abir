@@ -201,6 +201,12 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         autoFiboTimeframe: '5m',
         autoFiboLookback: 50,
 
+        // --- NEW: VWAP SD Snipe ---
+        enableVWAPSDSnipe: false,
+        vwapSDAnchor: 'Daily',
+        vwapSDMultiplier: 3.0,
+        vwapSDMinWall: 500000,
+
         // --- L2 ML Filter ---
         enableMlFilter: false,
         mlModelId: ''
@@ -412,6 +418,12 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             enableAutoFiboTp: c.enable_auto_fibo_tp !== undefined ? c.enable_auto_fibo_tp : true,
                             autoFiboTimeframe: c.auto_fibo_timeframe || '5m',
                             autoFiboLookback: c.auto_fibo_lookback || 50,
+
+                            // VWAP SD Snipe
+                            enableVWAPSDSnipe: c.enable_vwap_sd_snipe !== undefined ? c.enable_vwap_sd_snipe : false,
+                            vwapSDAnchor: c.vwap_sd_anchor || 'Daily',
+                            vwapSDMultiplier: c.vwap_sd_multiplier || 3.0,
+                            vwapSDMinWall: c.vwap_sd_min_wall || 500000,
 
                             enableMlFilter: c.enable_ml_filter !== undefined ? c.enable_ml_filter : false,
                             mlModelId: c.ai_model_id || ''
@@ -781,6 +793,12 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     auto_fibo_target_level: form.autoFiboTargetLevel,
                     auto_fibo_timeframe: form.autoFiboTimeframe,
                     auto_fibo_lookback: form.autoFiboLookback,
+
+                    // VWAP SD Snipe
+                    enable_vwap_sd_snipe: form.enableVWAPSDSnipe,
+                    vwap_sd_anchor: form.vwapSDAnchor,
+                    vwap_sd_multiplier: form.vwapSDMultiplier,
+                    vwap_sd_min_wall: form.vwapSDMinWall,
 
                     enable_ml_filter: form.enableMlFilter,
                     ai_model_id: form.mlModelId
@@ -1433,6 +1451,51 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                     </div>
                                 )}
                             </div>
+
+                                        {/* VWAP SD SNIPE TRIGGER */}
+                                        <div className={`mt-3 p-3 rounded-lg border transition-all ${form.enableVWAPSDSnipe ? 'bg-pink-500/10 border-pink-500/50' : 'bg-black/20 border-white/5'}`}>
+                                            <div className="flex items-center justify-between cursor-pointer" onClick={() => handleFormChange('enableVWAPSDSnipe', !form.enableVWAPSDSnipe)}>
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-10 h-5 rounded-full p-1 transition-colors flex items-center ${form.enableVWAPSDSnipe ? 'bg-pink-500' : 'bg-gray-700'}`}>
+                                                        <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${form.enableVWAPSDSnipe ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                                    </div>
+                                                    <span className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1">
+                                                        🎯 VWAP SD Confluence Snipe
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {form.enableVWAPSDSnipe && (
+                                                <div className="mt-3 space-y-3 animate-fadeIn">
+                                                    <p className="text-[8px] text-gray-400 italic">Snipes extremely oversold/overbought prices at the 3rd SD band if an orderbook wall confluence exists.</p>
+                                                    <div className="flex gap-2">
+                                                        <div className="flex-1">
+                                                            <div className="flex justify-between items-end mb-1">
+                                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Anchor</label>
+                                                            </div>
+                                                            <select className="w-full bg-black/40 border border-white/10 p-1 rounded text-white text-xs" value={form.vwapSDAnchor} onChange={(e) => handleFormChange('vwapSDAnchor', e.target.value)}>
+                                                                <option value="Session">Session</option>
+                                                                <option value="Daily">Daily</option>
+                                                                <option value="Weekly">Weekly</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="flex justify-between items-end mb-1">
+                                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Multiplier</label>
+                                                                <span className="text-[10px] font-mono text-pink-400">{form.vwapSDMultiplier}x</span>
+                                                            </div>
+                                                            <input type="number" min="1.0" max="5.0" step="0.1" className="w-full bg-black/40 border border-white/10 p-1 rounded text-white text-xs font-mono text-center" value={form.vwapSDMultiplier} onChange={(e) => handleFormChange('vwapSDMultiplier', parseFloat(e.target.value))} />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex justify-between items-end mb-1">
+                                                            <label className="text-[9px] font-bold text-gray-400 uppercase">Min. Confluence Wall ($)</label>
+                                                            <span className="text-[10px] font-mono text-pink-400">${form.vwapSDMinWall.toLocaleString()}</span>
+                                                        </div>
+                                                        <input type="number" step="1000" className="w-full bg-black/40 border border-white/10 p-1 rounded text-white text-xs font-mono text-center" value={form.vwapSDMinWall} onChange={(e) => handleFormChange('vwapSDMinWall', parseInt(e.target.value))} />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
 
                                         {/* ICEBERG / HIDDEN WALL TRIGGER */}
                                         <div className={`mt-3 p-3 rounded-lg border transition-all ${form.enableIcebergTrigger ? 'bg-purple-500/10 border-purple-500/50' : 'bg-black/20 border-white/5'}`}>

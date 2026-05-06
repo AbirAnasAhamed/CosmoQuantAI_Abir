@@ -22,6 +22,8 @@ from app.strategies.helpers.trading_session_filter import TradingSessionTracker
 from app.strategies.helpers.wick_sr_tracker import WickSRTracker
 from app.strategies.helpers.wick_sr_standalone_listener import WickSRStandaloneListener
 from app.strategies.helpers.fibo_tp_calculator import calculate_fibo_extension_tp
+from app.strategies.helpers.vwap_sd_tracker import VWAPSDTracker
+from app.strategies.helpers.vwap_sd_standalone_listener import VWAPSDStandaloneListener
 
 try:
     from app.core.security import decrypt_key
@@ -282,6 +284,18 @@ class WallHunterBot:
         ) if self.enable_wick_sr else None
         
         self.wick_sr_listener = WickSRStandaloneListener(self)
+        
+        # --- NEW: VWAP SD Confluence Snipe ---
+        self.enable_vwap_sd_snipe = config.get("enable_vwap_sd_snipe", False)
+        self.vwap_sd_anchor = config.get("vwap_sd_anchor", "Daily")
+        self.vwap_sd_multiplier = config.get("vwap_sd_multiplier", 3.0)
+        self.vwap_sd_min_wall = config.get("vwap_sd_min_wall", 500000.0)
+        
+        self.vwap_sd_tracker = VWAPSDTracker(
+            anchor=self.vwap_sd_anchor,
+            mult3=self.vwap_sd_multiplier
+        ) if self.enable_vwap_sd_snipe else None
+        self.vwap_sd_listener = VWAPSDStandaloneListener(self) if self.enable_vwap_sd_snipe else None
         # ----------------------------------------
         
         # --- ML L2 Filter ---
@@ -936,6 +950,41 @@ class WallHunterBot:
         if "auto_fibo_lookback" in new_config and new_config["auto_fibo_lookback"] != getattr(self, "auto_fibo_lookback", 30):
             self.auto_fibo_lookback = new_config.get("auto_fibo_lookback", 30)
             updates.append(f"Auto-Fibo Lookback: {self.auto_fibo_lookback}")
+            
+        # --- VWAP SD Config Updates ---
+        if "enable_vwap_sd_snipe" in new_config and new_config["enable_vwap_sd_snipe"] != getattr(self, "enable_vwap_sd_snipe", False):
+            self.enable_vwap_sd_snipe = new_config.get("enable_vwap_sd_snipe", False)
+            updates.append(f"VWAP SD Snipe: {'ON' if self.enable_vwap_sd_snipe else 'OFF'}")
+            
+            if self.enable_vwap_sd_snipe:
+                if not getattr(self, "vwap_sd_tracker", None):
+                    self.vwap_sd_tracker = VWAPSDTracker(
+                        anchor=getattr(self, "vwap_sd_anchor", "Daily"),
+                        mult3=getattr(self, "vwap_sd_multiplier", 3.0)
+                    )
+                if not getattr(self, "vwap_sd_listener", None):
+                    self.vwap_sd_listener = VWAPSDStandaloneListener(self)
+                if hasattr(self, '_vwap_sd_task') and not self._vwap_sd_task:
+                    self._vwap_sd_task = asyncio.create_task(self.vwap_sd_listener.start())
+            else:
+                if hasattr(self, 'vwap_sd_listener') and self.vwap_sd_listener.running:
+                    self.vwap_sd_listener.running = False
+
+        if "vwap_sd_anchor" in new_config and new_config["vwap_sd_anchor"] != getattr(self, "vwap_sd_anchor", "Daily"):
+            self.vwap_sd_anchor = new_config.get("vwap_sd_anchor", "Daily")
+            updates.append(f"VWAP SD Anchor: {self.vwap_sd_anchor}")
+            if getattr(self, "vwap_sd_tracker", None):
+                self.vwap_sd_tracker.anchor = self.vwap_sd_anchor
+
+        if "vwap_sd_multiplier" in new_config and new_config["vwap_sd_multiplier"] != getattr(self, "vwap_sd_multiplier", 3.0):
+            self.vwap_sd_multiplier = new_config.get("vwap_sd_multiplier", 3.0)
+            updates.append(f"VWAP SD Multiplier: {self.vwap_sd_multiplier}")
+            if getattr(self, "vwap_sd_tracker", None):
+                self.vwap_sd_tracker.mult3 = self.vwap_sd_multiplier
+
+        if "vwap_sd_min_wall" in new_config and new_config["vwap_sd_min_wall"] != getattr(self, "vwap_sd_min_wall", 500000.0):
+            self.vwap_sd_min_wall = new_config.get("vwap_sd_min_wall", 500000.0)
+            updates.append(f"VWAP SD Min Wall: {self.vwap_sd_min_wall}")
 
         # Update internal config dictionary
         self.config.update(new_config)
@@ -1299,6 +1348,11 @@ class WallHunterBot:
         else:
             self._wick_sr_task = None
             
+        if self.enable_vwap_sd_snipe:
+            self._vwap_sd_task = asyncio.create_task(self.vwap_sd_listener.start())
+        else:
+            self._vwap_sd_task = None
+            
         await self.session_tracker.start_monitor()
         
         mode = "Live Trading" if not self.is_paper_trading else "Paper Trading"
@@ -1372,7 +1426,16 @@ class WallHunterBot:
         self.logger.info(f"🛑 [WallHunter {self.bot_id}] Stopping...")
         if getattr(self, 'session_tracker', None):
             await self.session_tracker.stop_monitor()
-            
+        # --- FIX: Task Memory Leak / CPU Spike Prevention ---
+        for task_attr in ['_main_task', '_heartbeat_task', '_vpvr_task', '_atr_task', '_liq_task', '_trades_task', '_btc_task', '_utbot_task', '_ut_standalone_task', '_supertrend_task', '_supertrend_standalone_task', '_dual_engine_task', '_dual_engine_standalone_task', '_native_price_task', '_wick_sr_task', '_vwap_sd_task']:
+            task = getattr(self, task_attr, None)
+            if task and not task.done():
+                try:
+                    task.cancel()
+                except Exception as e:
+                    self.logger.error(f"Error cancelling task {task_attr}: {e}")
+        # ----------------------------------------------------
+        
         try:
             if getattr(self, 'public_exchange', None):
                 await self.public_exchange.close()

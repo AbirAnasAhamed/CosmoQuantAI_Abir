@@ -17,6 +17,7 @@ import joblib
 from app.services.ml_utils import extract_feature_importance, calculate_classification_metrics, calculate_regression_metrics
 from app.services.auto_feature_selector import calculate_l2_advanced_features
 from app.services.advanced_ml.engine import AdvancedMLEngine # ✅ Import New Engine
+from app.services.helpers.vwap_calculator import calculate_vwap_sd_features
 
 def fetch_l2_data(symbol: str, db: Session, lookback_hours: int = 6, timeframe: str = None) -> pd.DataFrame:
     from app.models.orderbook_snapshot import OrderBookSnapshot
@@ -318,6 +319,9 @@ def train_model_task(job_id: str, db: Session):
                 df.ta.macd(append=True)
             if "BBANDS" in indicators:
                 df.ta.bbands(append=True)
+            if "VWAP_SD" in indicators:
+                vwap_feats = calculate_vwap_sd_features(df, anchor='Daily')
+                df['VWAP_Z_Score'] = vwap_feats['VWAP_Z_Score']
                 
             prediction_target = config.get("prediction_target", "classification")
             if prediction_target == "classification":
