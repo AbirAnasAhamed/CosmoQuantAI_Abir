@@ -700,7 +700,7 @@ export const IndicatorSelector: React.FC<IndicatorSelectorProps> = ({ settings, 
                              <label className="flex items-center cursor-pointer flex-1">
                                  <input
                                      type="checkbox"
-                                     checked={settings.showVWAPSD}
+                                     checked={settings.showVWAPSD || false}
                                      onChange={() => toggleIndicator('showVWAPSD')}
                                      className="w-4 h-4 text-brand-primary bg-gray-100 border-gray-300 rounded focus:ring-brand-primary dark:focus:ring-brand-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                                  />
@@ -726,21 +726,21 @@ export const IndicatorSelector: React.FC<IndicatorSelectorProps> = ({ settings, 
                                     <div className="grid grid-cols-3 gap-2 text-[10px]">
                                         <div className="flex flex-col items-center gap-1 bg-gray-100 dark:bg-white/10 px-1 py-1 rounded">
                                             <span className="text-sky-400 font-bold">1st SD</span>
-                                            <input type="number" value={settings.vwapSDMultiplier1}
+                                            <input type="number" value={settings.vwapSDMultiplier1 || 1.0}
                                                 onChange={(e) => updateSetting('vwapSDMultiplier1', parseFloat(e.target.value))}
                                                 className="w-full bg-transparent text-gray-700 dark:text-gray-300 focus:outline-none focus:text-sky-400 text-center"
                                                 min={0.1} max={5.0} step={0.1} title="Band 1 Multiplier" />
                                         </div>
                                         <div className="flex flex-col items-center gap-1 bg-gray-100 dark:bg-white/10 px-1 py-1 rounded">
                                             <span className="text-purple-400 font-bold">2nd SD</span>
-                                            <input type="number" value={settings.vwapSDMultiplier2}
+                                            <input type="number" value={settings.vwapSDMultiplier2 || 2.0}
                                                 onChange={(e) => updateSetting('vwapSDMultiplier2', parseFloat(e.target.value))}
                                                 className="w-full bg-transparent text-gray-700 dark:text-gray-300 focus:outline-none focus:text-purple-400 text-center"
                                                 min={0.1} max={5.0} step={0.1} title="Band 2 Multiplier" />
                                         </div>
                                         <div className="flex flex-col items-center gap-1 bg-gray-100 dark:bg-white/10 px-1 py-1 rounded">
                                             <span className="text-red-400 font-bold">3rd SD</span>
-                                            <input type="number" value={settings.vwapSDMultiplier3}
+                                            <input type="number" value={settings.vwapSDMultiplier3 || 2.5}
                                                 onChange={(e) => updateSetting('vwapSDMultiplier3', parseFloat(e.target.value))}
                                                 className="w-full bg-transparent text-gray-700 dark:text-gray-300 focus:outline-none focus:text-red-400 text-center"
                                                 min={0.1} max={5.0} step={0.1} title="Band 3 Multiplier (Extreme)" />

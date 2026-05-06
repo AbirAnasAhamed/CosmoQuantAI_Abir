@@ -89,13 +89,24 @@ export const VWAPSDRenderer: React.FC<VWAPSDRendererProps> = ({ chart, data, vis
         return () => {
             // Cleanup on unmount
             if (chart) {
-                if (vwapSeriesRef.current) chart.removeSeries(vwapSeriesRef.current);
-                if (upper1SeriesRef.current) chart.removeSeries(upper1SeriesRef.current);
-                if (lower1SeriesRef.current) chart.removeSeries(lower1SeriesRef.current);
-                if (upper2SeriesRef.current) chart.removeSeries(upper2SeriesRef.current);
-                if (lower2SeriesRef.current) chart.removeSeries(lower2SeriesRef.current);
-                if (upper3SeriesRef.current) chart.removeSeries(upper3SeriesRef.current);
-                if (lower3SeriesRef.current) chart.removeSeries(lower3SeriesRef.current);
+                try {
+                    if (vwapSeriesRef.current) chart.removeSeries(vwapSeriesRef.current);
+                    if (upper1SeriesRef.current) chart.removeSeries(upper1SeriesRef.current);
+                    if (lower1SeriesRef.current) chart.removeSeries(lower1SeriesRef.current);
+                    if (upper2SeriesRef.current) chart.removeSeries(upper2SeriesRef.current);
+                    if (lower2SeriesRef.current) chart.removeSeries(lower2SeriesRef.current);
+                    if (upper3SeriesRef.current) chart.removeSeries(upper3SeriesRef.current);
+                    if (lower3SeriesRef.current) chart.removeSeries(lower3SeriesRef.current);
+                } catch (e) {
+                    console.warn("Failed to remove VWAP SD series:", e);
+                }
+                vwapSeriesRef.current = null;
+                upper1SeriesRef.current = null;
+                lower1SeriesRef.current = null;
+                upper2SeriesRef.current = null;
+                lower2SeriesRef.current = null;
+                upper3SeriesRef.current = null;
+                lower3SeriesRef.current = null;
             }
         };
     }, [chart]);
@@ -114,13 +125,20 @@ export const VWAPSDRenderer: React.FC<VWAPSDRendererProps> = ({ chart, data, vis
 
         // Set Data
         if (data && data.length > 0) {
-            vwapSeriesRef.current.setData(data.map(d => ({ time: d.time as any, value: d.vwap })));
-            upper1SeriesRef.current?.setData(data.map(d => ({ time: d.time as any, value: d.upper1 })));
-            lower1SeriesRef.current?.setData(data.map(d => ({ time: d.time as any, value: d.lower1 })));
-            upper2SeriesRef.current?.setData(data.map(d => ({ time: d.time as any, value: d.upper2 })));
-            lower2SeriesRef.current?.setData(data.map(d => ({ time: d.time as any, value: d.lower2 })));
-            upper3SeriesRef.current?.setData(data.map(d => ({ time: d.time as any, value: d.upper3 })));
-            lower3SeriesRef.current?.setData(data.map(d => ({ time: d.time as any, value: d.lower3 })));
+            try {
+                // Filter out any NaN or undefined values that might crash the chart
+                const validData = data.filter(d => d.time && !isNaN(d.vwap));
+                
+                vwapSeriesRef.current.setData(validData.map(d => ({ time: d.time as any, value: d.vwap })));
+                upper1SeriesRef.current?.setData(validData.map(d => ({ time: d.time as any, value: d.upper1 || d.vwap })));
+                lower1SeriesRef.current?.setData(validData.map(d => ({ time: d.time as any, value: d.lower1 || d.vwap })));
+                upper2SeriesRef.current?.setData(validData.map(d => ({ time: d.time as any, value: d.upper2 || d.vwap })));
+                lower2SeriesRef.current?.setData(validData.map(d => ({ time: d.time as any, value: d.lower2 || d.vwap })));
+                upper3SeriesRef.current?.setData(validData.map(d => ({ time: d.time as any, value: d.upper3 || d.vwap })));
+                lower3SeriesRef.current?.setData(validData.map(d => ({ time: d.time as any, value: d.lower3 || d.vwap })));
+            } catch (err) {
+                console.warn("Error setting VWAP SD data:", err);
+            }
         } else {
             vwapSeriesRef.current.setData([]);
             upper1SeriesRef.current?.setData([]);
