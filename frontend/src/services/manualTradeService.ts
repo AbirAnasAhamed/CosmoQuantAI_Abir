@@ -71,5 +71,15 @@ export const manualTradeService = {
     
     const response = await api.post('/trading/order', formattedOrder);
     return response.data;
+  },
+
+  editOrder: async (apiKeyId: number, orderId: string, payload: { symbol: string, side: string, amount: number, new_price: number }) => {
+    // side matching typical backend expectations
+    const formattedPayload = {
+      ...payload,
+      side: payload.side.toLowerCase(),
+    };
+    const response = await api.put(`/trading/order/${apiKeyId}/${orderId}`, formattedPayload);
+    return response.data;
   }
 };

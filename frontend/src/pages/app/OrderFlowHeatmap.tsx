@@ -54,6 +54,7 @@ import { OIBOscillatorRenderer } from '../../components/features/market/Advanced
 import { TPOProfileRenderer } from '../../components/features/market/AdvancedMetrics/TPOProfileRenderer';
 import { DeltaDivergenceRenderer } from '../../components/features/market/AdvancedMetrics/DeltaDivergenceRenderer';
 import { botService } from '../../services/botService';
+import { manualTradeService } from '../../services/manualTradeService';
 import { useWallHunterStatus } from '@/hooks/useWallHunterStatus';
 import { toast } from 'react-hot-toast';
 import { useMarketStore } from '@/store/marketStore';
@@ -78,7 +79,7 @@ const parseIntervalToMs = (interval: string): number => {
 };
 
 // Chart Component
-const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: string; walls: { price: number, type: 'buy' | 'sell', size?: number }[]; currentPrice: number; showFootprint: boolean; showCVD: boolean; indicatorSettings: IndicatorSettings; tradeEvent: any; botStatus: any; openOrders: OpenLimitOrder[]; advancedMetrics: AdvancedMetricsSettings; advancedMetricsData: any }> = ({ exchange, symbol, interval, walls, currentPrice, showFootprint, showCVD, indicatorSettings, tradeEvent, botStatus, openOrders, advancedMetrics, advancedMetricsData }) => {
+const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: string; walls: { price: number, type: 'buy' | 'sell', size?: number }[]; currentPrice: number; showFootprint: boolean; showCVD: boolean; indicatorSettings: IndicatorSettings; tradeEvent: any; botStatus: any; openOrders: OpenLimitOrder[]; advancedMetrics: AdvancedMetricsSettings; advancedMetricsData: any; selectedApiKeyId: string | null }> = ({ exchange, symbol, interval, walls, currentPrice, showFootprint, showCVD, indicatorSettings, tradeEvent, botStatus, openOrders, advancedMetrics, advancedMetricsData, selectedApiKeyId }) => {
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<any>(null);
     const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
@@ -1340,12 +1341,169 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
 
         // Cleanup stale order lines
         for (const [key, line] of wallLinesRef.current.entries()) {
-            if (key.startsWith('order-') && !orderKeys.has(key)) {
+            // Do not delete lines that are currently being optimistically modified
+            if (key.startsWith('order-') && !orderKeys.has(key) && !key.endsWith('-modifying')) {
                 try { candlestickSeriesRef.current?.removePriceLine(line); } catch { /* ignore */ }
                 wallLinesRef.current.delete(key);
             }
         }
     }, [openOrders]);
+
+    // ── Drag & Drop Open Orders Logic ──
+    const [isModifyingOrder, setIsModifyingOrder] = useState<boolean>(false);
+    const draggingOrderIdRef = useRef<string | null>(null);
+    const ghostLineRef = useRef<any>(null);
+    const openOrdersRef = useRef<OpenLimitOrder[]>([]);
+    const isModifyingRef = useRef<boolean>(false);
+    
+    // Keep a fresh ref to openOrders so DOM events can access it
+    useEffect(() => {
+        openOrdersRef.current = openOrders;
+    }, [openOrders]);
+
+    useEffect(() => {
+        const container = chartContainerRef.current;
+        if (!container || !chartRef.current || !candlestickSeriesRef.current) return;
+
+        let isDown = false;
+        
+        const handleMouseDown = (e: MouseEvent) => {
+            if (isModifyingRef.current) return;
+            const chartRect = container.getBoundingClientRect();
+            const y = e.clientY - chartRect.top;
+            
+            const clickedPrice = candlestickSeriesRef.current?.coordinateToPrice(y);
+            if (clickedPrice === null || clickedPrice === undefined) return;
+            
+            const thresholdPrice1 = candlestickSeriesRef.current?.coordinateToPrice(y - 8);
+            const thresholdPrice2 = candlestickSeriesRef.current?.coordinateToPrice(y + 8);
+            const priceDiff = Math.abs((thresholdPrice1 || 0) - (thresholdPrice2 || 0));
+            
+            const clickedOrder = openOrdersRef.current.find(o => Math.abs(o.price - clickedPrice) < priceDiff);
+            
+            if (clickedOrder && selectedApiKeyId) {
+                isDown = true;
+                draggingOrderIdRef.current = clickedOrder.id;
+                
+                if (!ghostLineRef.current) {
+                    const isBuy = clickedOrder.side === 'buy';
+                    ghostLineRef.current = candlestickSeriesRef.current.createPriceLine({
+                        price: clickedOrder.price, // Start at original price
+                        color: isBuy ? 'rgba(34, 197, 94, 0.4)' : 'rgba(239, 68, 68, 0.4)',
+                        lineWidth: 2,
+                        lineStyle: 1, // Dotted
+                        axisLabelVisible: true,
+                        title: `DRAG TO EDIT ${clickedOrder.side.toUpperCase()}`,
+                    });
+                }
+            }
+        };
+
+        const handleMouseMove = (e: MouseEvent) => {
+            const chartRect = container.getBoundingClientRect();
+            const y = e.clientY - chartRect.top;
+            const currentPrice = candlestickSeriesRef.current?.coordinateToPrice(y);
+            if (currentPrice === null || currentPrice === undefined) return;
+            
+            if (isDown && draggingOrderIdRef.current && ghostLineRef.current) {
+                ghostLineRef.current.applyOptions({ price: currentPrice });
+                container.style.cursor = 'grabbing';
+            } else if (!isDown) {
+                const thresholdPrice1 = candlestickSeriesRef.current?.coordinateToPrice(y - 5);
+                const thresholdPrice2 = candlestickSeriesRef.current?.coordinateToPrice(y + 5);
+                const priceDiff = Math.abs((thresholdPrice1 || 0) - (thresholdPrice2 || 0));
+                
+                const hoverOrder = openOrdersRef.current.find(o => Math.abs(o.price - currentPrice) < priceDiff);
+                if (hoverOrder && !isModifyingRef.current && selectedApiKeyId) {
+                    container.style.cursor = 'grab';
+                } else {
+                    container.style.cursor = 'crosshair';
+                }
+            }
+        };
+
+        const handleMouseUp = async (e: MouseEvent) => {
+            if (!isDown || !draggingOrderIdRef.current || !ghostLineRef.current) {
+                isDown = false;
+                draggingOrderIdRef.current = null;
+                return;
+            }
+            
+            isDown = false;
+            container.style.cursor = 'crosshair';
+            
+            const chartRect = container.getBoundingClientRect();
+            const y = e.clientY - chartRect.top;
+            const newPrice = candlestickSeriesRef.current?.coordinateToPrice(y);
+            
+            const orderId = draggingOrderIdRef.current;
+            const targetOrder = openOrdersRef.current.find(o => o.id === orderId);
+            draggingOrderIdRef.current = null;
+            
+            try {
+                candlestickSeriesRef.current?.removePriceLine(ghostLineRef.current);
+                ghostLineRef.current = null;
+            } catch (err) {}
+            
+            if (!newPrice || !targetOrder || !selectedApiKeyId) return;
+            
+            // Skip if moved less than a fraction
+            if (Math.abs(targetOrder.price - newPrice) < (targetOrder.price * 0.0001)) return;
+            
+            const key = `order-${orderId}`;
+            if (wallLinesRef.current.has(key)) {
+                // Rename key so cleanup doesn't kill it immediately
+                const line = wallLinesRef.current.get(key);
+                line?.applyOptions({ 
+                    price: newPrice, 
+                    title: `Modifying...`,
+                    color: '#f59e0b', // Amber/Orange
+                    lineStyle: 1
+                });
+                wallLinesRef.current.set(`${key}-modifying`, line);
+                wallLinesRef.current.delete(key);
+            }
+            
+            setIsModifyingOrder(true);
+            isModifyingRef.current = true;
+            
+            try {
+                await manualTradeService.editOrder(
+                    parseInt(selectedApiKeyId),
+                    orderId,
+                    {
+                        symbol,
+                        side: targetOrder.side,
+                        amount: targetOrder.amount, // Using original amount
+                        new_price: newPrice
+                    }
+                );
+                toast.success('Order price updated successfully');
+            } catch (err: any) {
+                console.error('Edit order failed', err);
+                toast.error('Failed to update order: ' + (err.response?.data?.detail || err.message));
+                // Revert optimistic update
+                const modifyingKey = `${key}-modifying`;
+                if (wallLinesRef.current.has(modifyingKey)) {
+                    try { candlestickSeriesRef.current?.removePriceLine(wallLinesRef.current.get(modifyingKey)); } catch (e) {}
+                    wallLinesRef.current.delete(modifyingKey);
+                }
+            } finally {
+                setIsModifyingOrder(false);
+                isModifyingRef.current = false;
+            }
+        };
+
+        container.addEventListener('mousedown', handleMouseDown);
+        container.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            container.removeEventListener('mousedown', handleMouseDown);
+            container.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [symbol, selectedApiKeyId]);
 
 
 
@@ -2332,7 +2490,7 @@ const OrderFlowHeatmap: React.FC = () => {
                             </button>
                         </div>
                         <div className="flex-1 relative">
-                            <OrderFlowChart exchange={exchange} symbol={symbol} interval={interval} walls={filteredWalls} currentPrice={currentPrice} showFootprint={showFootprint} showCVD={showCVD} indicatorSettings={indicatorSettings} tradeEvent={tradeEvent} botStatus={botStatus} openOrders={openOrders} advancedMetrics={advancedMetrics} advancedMetricsData={advancedMetricsData} />
+                            <OrderFlowChart exchange={exchange} symbol={symbol} interval={interval} walls={filteredWalls} currentPrice={currentPrice} showFootprint={showFootprint} showCVD={showCVD} indicatorSettings={indicatorSettings} tradeEvent={tradeEvent} botStatus={botStatus} openOrders={openOrders} advancedMetrics={advancedMetrics} advancedMetricsData={advancedMetricsData} selectedApiKeyId={selectedApiKeyId} />
                         </div>
                     </div>
                     {/* Level 2 Order Book moved to floating modal */}

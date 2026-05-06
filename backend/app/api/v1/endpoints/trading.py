@@ -101,6 +101,39 @@ async def place_order(
         logger.error(f"Order placement failed: {e}")
         raise HTTPException(status_code=500, detail=f"Exchange Error: {str(e)}")
 
+class EditOrderRequest(BaseModel):
+    symbol: str
+    side: str
+    amount: float
+    new_price: float
+
+@router.put("/order/{api_key_id}/{order_id}")
+async def edit_order(
+    api_key_id: int,
+    order_id: str,
+    request: EditOrderRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """Edit an existing open order (uses cancel + create internally)"""
+    try:
+        from app.services.manual_trade_service import manual_trade_service
+        return await manual_trade_service.edit_manual_trade(
+            db=db,
+            user_id=current_user.id,
+            api_key_id=api_key_id,
+            order_id=order_id,
+            symbol=request.symbol,
+            side=request.side,
+            amount=request.amount,
+            new_price=request.new_price
+        )
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Order edit failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Exchange Error: {str(e)}")
+
 @router.get("/api-key-balance/{api_key_id}")
 async def get_api_key_balance(
     api_key_id: int,

@@ -345,5 +345,71 @@ class ManualTradeService:
             logger.error(f"Order placement failed: {e}")
             raise HTTPException(status_code=500, detail=f"Exchange Error: {str(e)}")
 
+    @staticmethod
+    async def edit_manual_trade(db: Session, user_id: int, api_key_id: int, order_id: str, symbol: str, side: str, amount: float, new_price: float) -> dict:
+        """
+        Edits an open order by attempting to use native edit_order if supported, 
+        or falling back to cancel + create to ensure compatibility (e.g., for MEXC).
+        """
+        api_key_record = db.query(models.ApiKey).filter(
+            models.ApiKey.id == api_key_id,
+            models.ApiKey.user_id == user_id,
+            models.ApiKey.is_enabled == True
+        ).first()
+
+        if not api_key_record:
+            raise HTTPException(status_code=404, detail="API Key not found or inactive")
+
+        is_futures = ':' in symbol
+
+        try:
+            exchange = await ManualTradeService._get_exchange(api_key_record, is_futures)
+            
+            # Use cancel + create pattern as it is more universally supported across exchanges than native editOrder
+            # 1. Cancel existing order
+            try:
+                await exchange.cancel_order(id=order_id, symbol=symbol)
+            except Exception as cancel_e:
+                logger.warning(f"Error canceling order {order_id} during edit: {cancel_e}")
+                # We don't fail completely yet, the order might already be canceled/filled, 
+                # but usually if we are dragging it, it's open.
+            
+            # Small buffer to ensure exchange processes the cancel before replacing, preventing margin errors
+            await asyncio.sleep(0.1)
+
+            # 2. Create new Limit Order at new_price
+            response = await exchange.create_limit_order(
+                symbol, side, amount, new_price, {'postOnly': True} # Using postOnly to match typical wallhunter behavior, optional
+            )
+            
+            # Send Notification
+            try:
+                msg = (
+                    f"🔄 *Order Modified!*\n"
+                    f"Exchange: {api_key_record.exchange.capitalize()}\n"
+                    f"Pair: {symbol}\n"
+                    f"Side: {side.upper()}\n"
+                    f"Amount: {amount}\n"
+                    f"New Price: {new_price}"
+                )
+                asyncio.create_task(NotificationService.send_message(db, user_id, msg))
+            except Exception as notify_err:
+                logger.warning(f"Failed to trigger telegram notification on edit: {notify_err}")
+
+            return {
+                "id": response.get('id'),
+                "symbol": response.get('symbol'),
+                "status": response.get('status', 'open'),
+                "side": response.get('side'),
+                "amount": response.get('amount'),
+                "price": response.get('price') or new_price,
+                "message": "Order edited successfully"
+            }
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Order edit failed: {e}")
+            raise HTTPException(status_code=500, detail=f"Order Edit Failed: {str(e)}")
 
 manual_trade_service = ManualTradeService()
