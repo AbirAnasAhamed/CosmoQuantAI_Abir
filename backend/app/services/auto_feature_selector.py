@@ -239,8 +239,9 @@ def calculate_l2_advanced_features(df: pd.DataFrame) -> pd.DataFrame:
 
 async def fetch_sample_l2_data(symbol: str, db: Session, target_rows=1000):
     """Fetches a sample of recent L2 data for analysis. Uses DB if available, else WS."""
+    clean_symbol = symbol.upper().split(":")[0].replace("/", "")
     snapshots = db.query(OrderBookSnapshot).filter(
-        OrderBookSnapshot.symbol == symbol.upper().replace("/", "")
+        OrderBookSnapshot.symbol == clean_symbol
     ).order_by(OrderBookSnapshot.timestamp.desc()).limit(target_rows).all()
     
     if len(snapshots) >= 100: # We have enough cached
@@ -258,7 +259,7 @@ async def fetch_sample_l2_data(symbol: str, db: Session, target_rows=1000):
         return pd.DataFrame(data)
         
     # If not in DB, scrape live quickly via websockets (fallback)
-    ws_url = f"wss://stream.binance.com:9443/ws/{symbol.lower().replace('/', '')}@depth20@100ms"
+    ws_url = f"wss://stream.binance.com:9443/ws/{clean_symbol.lower()}@depth20@100ms"
     data = []
     
     try:

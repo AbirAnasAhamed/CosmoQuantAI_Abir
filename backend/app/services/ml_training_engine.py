@@ -24,8 +24,9 @@ def fetch_l2_data(symbol: str, db: Session, lookback_hours: int = 6, timeframe: 
     from app.models.orderbook_snapshot import OrderBookSnapshot
     # Fetch last `lookback_hours` of L2 data
     since = datetime.utcnow() - timedelta(hours=lookback_hours)
+    clean_symbol = symbol.upper().split(":")[0].replace("/", "")
     snapshots = db.query(OrderBookSnapshot).filter(
-        OrderBookSnapshot.symbol == symbol.upper().replace("/", ""),
+        OrderBookSnapshot.symbol == clean_symbol,
         OrderBookSnapshot.timestamp >= since
     ).order_by(OrderBookSnapshot.timestamp.asc()).all()
     
@@ -113,7 +114,8 @@ def _run_live_scraper(symbol: str, target_rows: int, db: Session, job: models.Mo
         return pd.DataFrame()
 
 async def _async_live_scraper(symbol: str, target_rows: int, db: Session, job: models.ModelTrainingJob, add_log_func) -> pd.DataFrame:
-    ws_url = f"wss://stream.binance.com:9443/ws/{symbol.lower().replace('/', '')}@depth20@100ms"
+    clean_symbol = symbol.upper().split(":")[0].replace("/", "")
+    ws_url = f"wss://stream.binance.com:9443/ws/{clean_symbol.lower()}@depth20@100ms"
     data = []
     scraped_count = 0
     buffer = []
