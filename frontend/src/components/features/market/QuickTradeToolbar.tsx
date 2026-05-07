@@ -186,7 +186,7 @@ export const QuickTradeToolbar: React.FC<QuickTradeToolbarProps> = ({
           className="w-full flex justify-center pb-2 opacity-50 hover:opacity-100 text-white transition-opacity"
           title={isMinimized ? "Expand" : "Minimize"}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-300 ${isMinimized ? '-rotate-90' : 'rotate-90'}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-300 ${isMinimized ? 'rotate-90' : '-rotate-90'}`}>
              <polyline points="9 18 15 12 9 6"></polyline>
           </svg>
         </button>
