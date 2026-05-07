@@ -24,7 +24,7 @@ export const QuickTradeToolbar: React.FC<QuickTradeToolbarProps> = ({
   const [selectedApi, setSelectedApi] = useState<string>('');
   const [balanceData, setBalanceData] = useState<FastBalanceResponse | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true);
   
   const [percentage, setPercentage] = useState<number>(0);
   const [dragState, setDragState] = useState<{ side: 'Buy' | 'Sell', x: number, y: number } | null>(null);
