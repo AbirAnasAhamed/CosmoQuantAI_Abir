@@ -168,7 +168,7 @@ export const QuickTradeToolbar: React.FC<QuickTradeToolbarProps> = ({
         dragControls={dragControls}
         dragListener={false}
         dragMomentum={false}
-        className={`fixed right-8 top-1/2 -translate-y-1/2 z-[999] flex flex-col gap-2 bg-[#000000]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 w-14 shadow-[0_8px_32px_rgba(0,0,0,0.5)]`}
+        className={`fixed right-8 top-1/2 -translate-y-1/2 z-[999] flex flex-col items-center gap-2 bg-[#000000]/80 backdrop-blur-xl border border-white/10 rounded-2xl py-3 px-2 w-[72px] shadow-[0_8px_32px_rgba(0,0,0,0.5)]`}
       >
         {/* Drag Handle */}
         <div 
@@ -198,7 +198,7 @@ export const QuickTradeToolbar: React.FC<QuickTradeToolbarProps> = ({
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="flex flex-col gap-2 overflow-hidden"
+              className="flex flex-col items-center gap-2 overflow-hidden w-full"
             >
               {/* Balance Indicator */}
               <div className="flex flex-col items-center gap-1 border-b border-white/10 pb-2 mb-1 cursor-help" title={`Quote Balance: ${(balanceData?.quote_free || 0).toFixed(2)} ${quoteCurrency}`}>
@@ -212,9 +212,9 @@ export const QuickTradeToolbar: React.FC<QuickTradeToolbarProps> = ({
                 <button
                   key={pct}
                   onClick={() => setPercentage(pct)}
-                  className={`w-10 h-10 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center ${
+                  className={`w-12 h-10 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center ${
                     percentage === pct 
-                      ? 'bg-brand-primary text-white shadow-[0_0_10px_rgba(99,102,241,0.5)] border-transparent scale-110' 
+                      ? 'bg-brand-primary text-white shadow-[0_0_10px_rgba(99,102,241,0.5)] border-transparent scale-105' 
                       : 'bg-black/40 text-gray-400 border border-white/10 hover:text-white hover:border-white/30 hover:bg-white/5'
                   }`}
                 >
@@ -229,20 +229,20 @@ export const QuickTradeToolbar: React.FC<QuickTradeToolbarProps> = ({
 
               {/* Draggable Buy */}
               <div 
-                className="w-10 h-10 rounded-xl bg-green-500/20 border border-green-500/50 text-green-400 hover:bg-green-500 hover:text-white transition-all flex flex-col items-center justify-center cursor-grab active:cursor-grabbing group shadow-[0_0_10px_rgba(34,197,94,0.15)]"
+                className="w-12 h-10 rounded-xl bg-green-500/20 border border-green-500/50 text-green-400 hover:bg-green-500 hover:text-white transition-all flex flex-col items-center justify-center cursor-grab active:cursor-grabbing group shadow-[0_0_10px_rgba(34,197,94,0.15)]"
                 title="Drag to place Buy Limit"
                 onPointerDown={(e) => handlePointerDown(e, 'Buy')}
               >
-                <span className="text-[9px] font-black uppercase tracking-widest">Buy</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Buy</span>
               </div>
 
               {/* Draggable Sell */}
               <div 
-                className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex flex-col items-center justify-center cursor-grab active:cursor-grabbing group shadow-[0_0_10px_rgba(239,68,68,0.15)]"
+                className="w-12 h-10 rounded-xl bg-red-500/20 border border-red-500/50 text-red-400 hover:bg-red-500 hover:text-white transition-all flex flex-col items-center justify-center cursor-grab active:cursor-grabbing group shadow-[0_0_10px_rgba(239,68,68,0.15)]"
                 title="Drag to place Sell Limit"
                 onPointerDown={(e) => handlePointerDown(e, 'Sell')}
               >
-                <span className="text-[9px] font-black uppercase tracking-widest">Sell</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Sell</span>
               </div>
             </motion.div>
           )}
