@@ -189,7 +189,7 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-[112px] right-8 w-16 h-16 rounded-full flex items-center justify-center bg-brand-primary hover:bg-blue-600 border border-blue-400/30 text-white shadow-[0_0_20px_rgba(59,130,246,0.4)] backdrop-blur-md z-[100] transition-colors focus:outline-none group"
+            className="fixed bottom-[112px] right-8 w-16 h-16 rounded-full flex items-center justify-center bg-brand-primary hover:bg-blue-600 border border-blue-400/30 text-white shadow-[0_0_20px_rgba(59,130,246,0.4)] backdrop-blur-md z-[999] transition-colors focus:outline-none group"
             title="Manual Trade"
           >
             <DollarSign className="w-8 h-8 group-hover:scale-110 transition-transform" />
@@ -206,7 +206,7 @@ export const ManualTradeModal: React.FC<ManualTradeModalProps> = ({ symbol, curr
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed bottom-[112px] right-8 w-80 rounded-2xl bg-[#000000]/80 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-[100] overflow-hidden"
+            className="fixed bottom-[112px] right-8 w-80 rounded-2xl bg-[#000000]/80 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-[999] overflow-hidden"
           >
             {/* Header (Drag area) */}
             <div 
