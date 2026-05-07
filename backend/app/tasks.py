@@ -1039,8 +1039,68 @@ def auto_retrain_models():
                 try:
                     train_model_task(job_id, db)
                     retrained_count += 1
+                    
+                    # ✅ Send Telegram notification after successful retrain
+                    try:
+                        from app.services.notification import NotificationService
+                        
+                        # Fetch the latest version info for the notification
+                        db.expire_all()  # Refresh DB state after training
+                        latest_version = db.query(ModelVersion).filter(
+                            ModelVersion.model_id == model.id
+                        ).order_by(ModelVersion.upload_date.desc()).first()
+                        
+                        version_str = f"v{latest_version.version:.1f}" if latest_version else "N/A"
+                        accuracy_str = f"{latest_version.accuracy:.2%}" if latest_version and latest_version.accuracy else "N/A"
+                        f1_str = f"{latest_version.f1_score:.4f}" if latest_version and latest_version.f1_score else "N/A"
+                        
+                        telegram_msg = (
+                            f"🤖 *Auto-Retrain Completed!*\n"
+                            f"━━━━━━━━━━━━━━━━━━\n"
+                            f"📦 *Model:* {model.name}\n"
+                            f"🔖 *New Version:* {version_str}\n"
+                            f"🧠 *Algorithm:* {model.model_type}\n"
+                            f"━━━━━━━━━━━━━━━━━━\n"
+                            f"📊 *Performance:*\n"
+                            f"  • Accuracy: {accuracy_str}\n"
+                            f"  • F1 Score: {f1_str}\n"
+                            f"━━━━━━━━━━━━━━━━━━\n"
+                            f"⏭️ *Next Retrain:* ~{model.retrain_interval_hours}h later\n"
+                            f"✅ Model is now active in ML Registry."
+                        )
+                        
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        loop.run_until_complete(
+                            NotificationService.send_message(db, model.user_id, telegram_msg, parse_mode="Markdown")
+                        )
+                        loop.close()
+                        logger.info(f"Telegram notification sent to user {model.user_id} for model {model.id}")
+                        
+                    except Exception as notif_ex:
+                        logger.warning(f"Auto-retrain Telegram notification failed for model {model.id}: {notif_ex}")
+                        
                 except Exception as ex:
                     logger.error(f"Failed to auto-train model {model.id}: {ex}")
+                    
+                    # ❌ Send failure notification too
+                    try:
+                        from app.services.notification import NotificationService
+                        fail_msg = (
+                            f"❌ *Auto-Retrain Failed!*\n"
+                            f"━━━━━━━━━━━━━━━━━━\n"
+                            f"📦 *Model:* {model.name}\n"
+                            f"🧠 *Algorithm:* {model.model_type}\n"
+                            f"⚠️ *Error:* {str(ex)[:200]}"
+                        )
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        loop.run_until_complete(
+                            NotificationService.send_message(db, model.user_id, fail_msg, parse_mode="Markdown")
+                        )
+                        loop.close()
+                    except Exception:
+                        pass
                 
         msg = f"Auto-retrained {retrained_count} models."
         logger.info(msg)
