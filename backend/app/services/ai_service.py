@@ -51,6 +51,9 @@ class AIService:
     """
     Unified AI Service capable of switching between Gemini, OpenAI, and DeepSeek.
     """
+    def __init__(self):
+        # Limit concurrent requests to external LLM APIs to avoid burst limits & bans
+        self._concurrent_limit = asyncio.Semaphore(3)
 
     def _get_provider(self, requested_provider=None):
         # যদি রিকোয়েস্টে প্রোভাইডার আসে সেটা নিবে, নাহলে এনভায়রনমেন্ট ভেরিয়েবল, নাহলে ডিফল্ট 'gemini'
@@ -284,46 +287,47 @@ class AIService:
         full_prompt = f"{system_prompt}\n\n{user_content}"
 
         try:
-            # ✅ Syntax Error Fix: Ensure if/elif chain is clean
-            if active_provider == "gemini":
-                return await self._call_gemini(full_prompt)
-            
-            elif active_provider == "openai":
-                return await self._call_openai_compatible(
-                    settings.OPENAI_API_KEY, 
-                    settings.OPENAI_BASE_URL, 
-                    "gpt-4o", 
-                    system_prompt, 
-                    user_content
-                )
-            
-            elif active_provider == "deepseek":
-                return await self._call_openai_compatible(
-                    settings.DEEPSEEK_API_KEY, 
-                    settings.DEEPSEEK_BASE_URL, 
-                    "deepseek-chat", 
-                    system_prompt, 
-                    user_content
-                )
-
-            elif active_provider == "groq":
-                res_temp = "❌ Groq Keys missing"
-                for index, _ckey in enumerate(groq_keys):
-                    res_temp = await self._call_openai_compatible(
-                        _ckey, 
-                        "https://api.groq.com/openai/v1", 
-                        "llama-3.3-70b-versatile", 
+            async with self._concurrent_limit:
+                # ✅ Syntax Error Fix: Ensure if/elif chain is clean
+                if active_provider == "gemini":
+                    return await self._call_gemini(full_prompt)
+                
+                elif active_provider == "openai":
+                    return await self._call_openai_compatible(
+                        settings.OPENAI_API_KEY, 
+                        settings.OPENAI_BASE_URL, 
+                        "gpt-4o", 
                         system_prompt, 
                         user_content
                     )
-                    if res_temp and "API Error 429" in res_temp:
-                        print(f"⚠️ Groq Quota limit on Key {index+1}, trying next...")
-                        continue
-                    break
-                return res_temp
+                
+                elif active_provider == "deepseek":
+                    return await self._call_openai_compatible(
+                        settings.DEEPSEEK_API_KEY, 
+                        settings.DEEPSEEK_BASE_URL, 
+                        "deepseek-chat", 
+                        system_prompt, 
+                        user_content
+                    )
+
+                elif active_provider == "groq":
+                    res_temp = "❌ Groq Keys missing"
+                    for index, _ckey in enumerate(groq_keys):
+                        res_temp = await self._call_openai_compatible(
+                            _ckey, 
+                            "https://api.groq.com/openai/v1", 
+                            "llama-3.3-70b-versatile", 
+                            system_prompt, 
+                            user_content
+                        )
+                        if res_temp and "API Error 429" in res_temp:
+                            print(f"⚠️ Groq Quota limit on Key {index+1}, trying next...")
+                            continue
+                        break
+                    return res_temp
             
-            else:
-                return f"❌ Error: Unknown Provider '{active_provider}'"
+                else:
+                    return f"❌ Error: Unknown Provider '{active_provider}'"
 
         except Exception as e:
             print(f"❌ AI Error ({active_provider}): {e}")
@@ -406,7 +410,7 @@ class AIService:
 
 
 
-    async def _call_openai_compatible(self, api_key: str, base_url: str, model: str, system_msg: str, user_msg: str) -> str:
+    async def _call_openai_compatible(self, api_key: str, base_url: str, model: str, system_msg: str, user_msg: str, max_retries: int = 3) -> str:
         if not api_key:
             return "❌ API Key missing for selected provider."
         
@@ -423,17 +427,44 @@ class AIService:
             "temperature": 0.7
         }
         
-        def _sync_request():
+        import aiohttp
+        import random
+        
+        for attempt in range(max_retries):
             try:
-                response = requests.post(f"{base_url}/chat/completions", headers=headers, json=payload, timeout=30)
-                if response.status_code == 200:
-                    return response.json()['choices'][0]['message']['content'].strip()
-                else:
-                    return f"API Error {response.status_code}: {response.text}"
+                # Using aiohttp for non-blocking async requests and better rate limit handling
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(f"{base_url}/chat/completions", headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            return data['choices'][0]['message']['content'].strip()
+                        elif response.status == 429:
+                            error_text = await response.text()
+                            # 429 Too Many Requests - Implement Exponential Backoff with Jitter
+                            wait_time = (2 ** attempt) + random.uniform(0, 1)
+                            
+                            # Check if the API provides a Retry-After header
+                            retry_after = response.headers.get("Retry-After")
+                            if retry_after and retry_after.replace('.','',1).isdigit():
+                                wait_time = float(retry_after) + random.uniform(0.1, 1.0)
+                            
+                            print(f"⚠️ [API 429 Rate Limit] {base_url} (Attempt {attempt+1}/{max_retries}). Waiting {wait_time:.2f}s...")
+                            await asyncio.sleep(wait_time)
+                            
+                            if attempt == max_retries - 1:
+                                return f"API Error 429: Rate Limit Exceeded. {error_text}"
+                            continue
+                        else:
+                            error_text = await response.text()
+                            return f"API Error {response.status}: {error_text}"
+            except asyncio.TimeoutError:
+                if attempt == max_retries - 1:
+                    return "Connection Error: Request timed out."
+                await asyncio.sleep(1 + random.uniform(0, 1))
             except Exception as e:
                 return f"Connection Error: {str(e)}"
-
-        return await asyncio.to_thread(_sync_request)
+                
+        return "Connection Error: Max retries exceeded."
 
     async def generate_strategy_config(self, prompt: str) -> dict:
         """
