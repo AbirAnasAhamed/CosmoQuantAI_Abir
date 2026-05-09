@@ -2,6 +2,8 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Logo, DashboardIcon, PortfolioIcon, BacktesterIcon, BotLabIcon, MarketIcon, SentimentIcon, FilingsIcon, SettingsIcon, LogoutIcon, OnChainIcon, RegimeIcon, CorrelationIcon, MLModelIcon, IndicatorStudioIcon, EducationIcon, AIFoundryIcon, AlternativeDataIcon, MLModelMarketplaceIcon, RealTimeDataIcon, QuantScreenerIcon, AlertsWatchlistIcon, AnalystResearchIcon, InstitutionalHoldingsIcon, BlockTradeDetectorIcon, UnusualOptionsActivityIcon, LiquidationMapIcon, PineScriptIcon, TokenUnlockIcon, AssistantIcon, GeneralIcon, TradingIcon, AlphaEngineIcon, StudioIcon, ChevronDownIcon, UserCircleIcon, CreditCardIcon, KeyIcon, TaskManagerIcon } from '@/constants';
 // FIX: Updated AppView import to break circular dependency.
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { getPathFromView, getViewFromPath } from '@/utils/routeUtils';
 import { AppView, TradingBot, IndicatorData } from '@/types';
 import { Cpu, LayoutDashboard, Database, Activity, LineChart, BrainCircuit, CloudLightning, Bot, Zap, History, Layers } from 'lucide-react';
 import Dashboard from './Dashboard';
@@ -51,21 +53,20 @@ import SystemAlertWidget from '@/components/common/SystemAlertWidget';
 import { useSettings } from '@/context/SettingsContext';
 
 interface AppDashboardProps {
-    currentView: AppView;
-    onNavigate: (view: AppView, section?: string) => void;
     onLogout: () => void;
-    activeSettingsSection: string | null;
 }
 
 // Ultra-Modern NavItem Component
 const NavItem: React.FC<{
     icon: React.ReactNode;
     label: string;
+    path: string;
     isActive: boolean;
-    onClick: () => void;
+    onClick?: () => void;
     isCollapsed?: boolean;
-}> = ({ icon, label, isActive, onClick, isCollapsed }) => (
-    <button
+}> = ({ icon, label, path, isActive, onClick, isCollapsed }) => (
+    <Link
+        to={path}
         onClick={onClick}
         className={`group relative flex items-center w-full px-4 py-3 mb-2 rounded-2xl transition-all duration-300 ease-out overflow-hidden
             ${isActive
@@ -98,16 +99,17 @@ const NavItem: React.FC<{
         {isActive && (
             <span className="absolute right-3 w-1.5 h-1.5 rounded-full bg-white animate-pulse shadow-[0_0_8px_white] z-10"></span>
         )}
-    </button>
+    </Link>
 );
 
 const Sidebar: React.FC<{
-    currentView: AppView;
-    onNavigate: (view: AppView, section?: string) => void;
     onLogout: () => void;
     isCollapsed: boolean;
     onToggle: () => void;
-}> = ({ currentView, onNavigate, onLogout, isCollapsed, onToggle }) => {
+}> = ({ onLogout, isCollapsed, onToggle }) => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const currentView = getViewFromPath(location.pathname);
     const { userProfile } = useSettings();
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
@@ -239,8 +241,8 @@ const Sidebar: React.FC<{
                                     key={item.view}
                                     icon={item.icon}
                                     label={item.label}
+                                    path={getPathFromView(item.view)}
                                     isActive={currentView === item.view}
-                                    onClick={() => onNavigate(item.view)}
                                     isCollapsed={isCollapsed}
                                 />
                             ))}
@@ -256,9 +258,9 @@ const Sidebar: React.FC<{
                     <div className="px-3 py-2 mb-1 border-b border-gray-100 dark:border-gray-700">
                         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">My Account</p>
                     </div>
-                    <DropdownMenuItem icon={<UserCircleIcon />} label="Profile" onClick={() => { onNavigate(AppView.SETTINGS, 'profile'); setIsProfileOpen(false); }} />
-                    <DropdownMenuItem icon={<CreditCardIcon />} label="Billing" onClick={() => { onNavigate(AppView.SETTINGS, 'billing'); setIsProfileOpen(false); }} />
-                    <DropdownMenuItem icon={<KeyIcon />} label="API Keys" onClick={() => { onNavigate(AppView.SETTINGS, 'api-keys'); setIsProfileOpen(false); }} />
+                    <DropdownMenuItem icon={<UserCircleIcon />} label="Profile" onClick={() => { navigate(getPathFromView(AppView.SETTINGS) + '/profile'); setIsProfileOpen(false); }} />
+                    <DropdownMenuItem icon={<CreditCardIcon />} label="Billing" onClick={() => { navigate(getPathFromView(AppView.SETTINGS) + '/billing'); setIsProfileOpen(false); }} />
+                    <DropdownMenuItem icon={<KeyIcon />} label="API Keys" onClick={() => { navigate(getPathFromView(AppView.SETTINGS) + '/api-keys'); setIsProfileOpen(false); }} />
                     <div className="my-1 border-t border-gray-100 dark:border-gray-700"></div>
                     <DropdownMenuItem icon={<LogoutIcon />} label="Logout" onClick={onLogout} />
                 </div>
@@ -298,12 +300,25 @@ const MODAL_VIEWS: AppView[] = [];
 
 import { BacktestProvider } from '@/context/BacktestContext';
 
-const AppDashboard: React.FC<AppDashboardProps> = ({ currentView, onNavigate, onLogout, activeSettingsSection }) => {
+const AppDashboard: React.FC<AppDashboardProps> = ({ onLogout }) => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const currentView = getViewFromPath(location.pathname);
+    
+    // Parse settings section from URL (e.g. /settings/profile)
+    const getActiveSettingsSection = () => {
+        if (location.pathname.startsWith('/settings/')) {
+            return location.pathname.split('/')[2] || null;
+        }
+        return null;
+    };
+    const activeSettingsSection = getActiveSettingsSection();
+
     const [walletAddress, setWalletAddress] = useState<string | null>(null);
     const [isAssistantOpen, setIsAssistantOpen] = useState(false);
     const [modalView, setModalView] = useState<AppView | null>(null);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const prevViewRef = useRef<AppView>(AppView.DASHBOARD);
+    const prevViewRef = useRef<AppView>(currentView || AppView.DASHBOARD);
 
     // OmniTrade State Removed
 
@@ -317,12 +332,19 @@ const AppDashboard: React.FC<AppDashboardProps> = ({ currentView, onNavigate, on
         }
     }, [currentView]);
 
-    // ✅ Listen for external route navigation
+    // ✅ Listen for external route navigation is mostly handled by React Router now.
+    // However, we can provide a compatible onNavigate for inner components
+    const handleNavigate = useCallback((view: AppView, section?: string) => {
+        let path = getPathFromView(view);
+        if (section) path += `/${section}`;
+        navigate(path);
+    }, [navigate]);
+
     useEffect(() => {
         if (window.location.pathname === '/alpha-engine/market-depth') {
-            onNavigate(AppView.MARKET_DEPTH);
+            handleNavigate(AppView.MARKET_DEPTH);
         }
-    }, [onNavigate]);
+    }, [handleNavigate]);
 
     const handleConnectWallet = async () => {
         if (window.ethereum) {
@@ -377,7 +399,7 @@ const AppDashboard: React.FC<AppDashboardProps> = ({ currentView, onNavigate, on
             case AppView.QUANT_SCREENER: return <QuantScreener />;
             case AppView.ALERTS_WATCHLIST: return <AlertsWatchlist />;
             case AppView.ANALYST_RESEARCH: return <AnalystResearch />;
-            case AppView.CUSTOM_ML_MODELS: return <CustomMLModels onNavigate={onNavigate} />;
+            case AppView.CUSTOM_ML_MODELS: return <CustomMLModels onNavigate={handleNavigate} />;
             case AppView.MODEL_TRAINING_STUDIO: return <ModelTrainingStudio retrainModelId={activeSettingsSection} />;
             case AppView.ML_MODEL_MARKETPLACE: return <MLModelMarketplace />;
             case AppView.CUSTOM_INDICATOR_STUDIO: return <CustomIndicatorStudio />;
@@ -397,8 +419,6 @@ const AppDashboard: React.FC<AppDashboardProps> = ({ currentView, onNavigate, on
         <BacktestProvider>
             <div className="flex h-screen bg-brand-light dark:bg-[#000000] transition-all duration-300">
                 <Sidebar 
-                        currentView={currentView} 
-                        onNavigate={onNavigate} 
                         onLogout={onLogout} 
                         isCollapsed={isSidebarCollapsed} 
                         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 

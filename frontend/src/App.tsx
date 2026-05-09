@@ -22,18 +22,45 @@ enum AppState {
 function App() {
   const [appState, setAppState] = useState<AppState>(AppState.PUBLIC);
   const [resetToken, setResetToken] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
-  const [activeSettingsSection, setActiveSettingsSection] = useState<string | null>(null);
 
   useEffect(() => {
-    // ✅ এই অংশটি আবার চালু (Uncomment) করে দিন
-    // এটি চেক করবে সেশন বা লোকাল স্টোরেজে টোকেন আছে কি না।
-    // টোকেন থাকলে সরাসরি ড্যাশবোর্ডে নিয়ে যাবে (রিফ্রেশ দিলেও)।
+    // Check if token exists in current tab's session or local storage
     const token = sessionStorage.getItem('accessToken') || localStorage.getItem('accessToken');
     if (token) {
       setAppState(AppState.LOGGED_IN);
-      return;
+    } else {
+      // If no token in this tab, ask other open tabs for their session
+      localStorage.setItem('request-session-sync', Date.now().toString());
     }
+
+    // Listen for storage events from other tabs
+    const handleStorageEvent = (event: StorageEvent) => {
+      // Another tab requested a session sync, and we have a session to share
+      if (event.key === 'request-session-sync' && sessionStorage.getItem('accessToken')) {
+        localStorage.setItem('session-sync-data', JSON.stringify({
+          accessToken: sessionStorage.getItem('accessToken'),
+          refreshToken: sessionStorage.getItem('refreshToken')
+        }));
+        // Remove it immediately so it doesn't linger in localStorage
+        localStorage.removeItem('session-sync-data');
+      }
+
+      // We received session data from another tab
+      if (event.key === 'session-sync-data' && event.newValue) {
+        try {
+          const data = JSON.parse(event.newValue);
+          if (data.accessToken) {
+            sessionStorage.setItem('accessToken', data.accessToken);
+            if (data.refreshToken) sessionStorage.setItem('refreshToken', data.refreshToken);
+            setAppState(AppState.LOGGED_IN);
+          }
+        } catch (e) {
+          console.error('Error parsing session sync data', e);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageEvent);
 
     const searchParams = new URLSearchParams(window.location.search);
     const resetTokenParam = searchParams.get('token');
@@ -43,6 +70,10 @@ function App() {
       setAppState(AppState.RESET_PASSWORD_SCREEN);
       window.history.replaceState({}, document.title, "/");
     }
+
+    return () => {
+      window.removeEventListener('storage', handleStorageEvent);
+    };
   }, []);
 
   const handleForgotPasswordInitiate = useCallback(() => {
@@ -86,14 +117,8 @@ function App() {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     setAppState(AppState.PUBLIC);
-    setCurrentView(AppView.DASHBOARD);
     // পেজ রিফ্রেশ করে দিলে সব ক্লিন হয়ে যাবে (Context reset)
     window.location.reload();
-  }, []);
-
-  const handleNavigation = useCallback((view: AppView, section?: string) => {
-    setCurrentView(view);
-    setActiveSettingsSection(section || null);
   }, []);
 
   const renderContent = () => {
@@ -145,10 +170,7 @@ function App() {
       case AppState.LOGGED_IN:
         return (
           <AppDashboard
-            currentView={currentView}
-            onNavigate={handleNavigation}
             onLogout={handleLogout}
-            activeSettingsSection={activeSettingsSection}
           />
         );
 
