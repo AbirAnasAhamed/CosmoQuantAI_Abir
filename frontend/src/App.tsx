@@ -58,6 +58,15 @@ function App() {
           console.error('Error parsing session sync data', e);
         }
       }
+
+      // Handle Cross-Tab Logout Sync
+      if (event.key === 'cross-tab-logout') {
+        sessionStorage.removeItem('accessToken');
+        sessionStorage.removeItem('refreshToken');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        setAppState(AppState.PUBLIC);
+      }
     };
 
     window.addEventListener('storage', handleStorageEvent);
@@ -116,6 +125,10 @@ function App() {
     sessionStorage.removeItem('refreshToken');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    
+    // Broadcast logout to other tabs
+    localStorage.setItem('cross-tab-logout', Date.now().toString());
+    
     setAppState(AppState.PUBLIC);
     // পেজ রিফ্রেশ করে দিলে সব ক্লিন হয়ে যাবে (Context reset)
     window.location.reload();
