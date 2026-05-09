@@ -83,8 +83,9 @@ class AdvancedMLEngine:
             
         # Save model
         model_filename = f"model_{job.id}.pt"
-        model_path = os.path.join("uploads", "models", model_filename)
-        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        model_dir = os.path.join("uploads", "models", f"job_{job.id}")
+        os.makedirs(model_dir, exist_ok=True)
+        model_path = os.path.join(model_dir, model_filename)
         torch.save(model.state_dict(), model_path)
         
         # ✅ Calculate Final Metrics for UI
@@ -168,8 +169,9 @@ class AdvancedMLEngine:
         
         # Save model
         model_filename = f"model_{job.id}.zip"
-        model_path = os.path.join("uploads", "models", model_filename)
-        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        model_dir = os.path.join("uploads", "models", f"job_{job.id}")
+        os.makedirs(model_dir, exist_ok=True)
+        model_path = os.path.join(model_dir, model_filename)
         model.save(model_path)
         
         # ✅ Log Equity Curve for Frontend Visualization

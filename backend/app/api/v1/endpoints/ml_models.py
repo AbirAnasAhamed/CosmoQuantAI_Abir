@@ -57,7 +57,9 @@ async def create_custom_model(
     version_id = f"v{version}-{timestamp}"
     
     # Save file
-    file_path = os.path.join(UPLOAD_DIR, f"{version_id}_{file.filename}")
+    version_dir = os.path.join(UPLOAD_DIR, f"v_{version_id}")
+    os.makedirs(version_dir, exist_ok=True)
+    file_path = os.path.join(version_dir, f"{version_id}_{file.filename}")
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
@@ -111,7 +113,9 @@ async def upload_new_version(
     version_id = f"v{version}-{timestamp}"
     
     # Save file
-    file_path = os.path.join(UPLOAD_DIR, f"{version_id}_{file.filename}")
+    version_dir = os.path.join(UPLOAD_DIR, f"v_{version_id}")
+    os.makedirs(version_dir, exist_ok=True)
+    file_path = os.path.join(version_dir, f"{version_id}_{file.filename}")
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
@@ -174,13 +178,22 @@ def delete_model(
     if not db_model:
         raise HTTPException(status_code=404, detail="Model not found")
 
-    # Delete physical files
+    # Delete physical files and folders
     for version in db_model.versions:
-        if os.path.exists(version.file_path):
+        if version.file_path and os.path.exists(version.file_path):
             try:
-                os.remove(version.file_path)
+                parent_dir = os.path.dirname(version.file_path)
+                # If the file is in a subdirectory of UPLOAD_DIR, remove the whole directory
+                if parent_dir != os.path.abspath(UPLOAD_DIR) and parent_dir != UPLOAD_DIR:
+                    shutil.rmtree(parent_dir)
+                else:
+                    os.remove(version.file_path)
+                    # Also try to remove associated .json if exists
+                    json_path = version.file_path.replace(".pkl", ".json").replace(".pt", ".json")
+                    if os.path.exists(json_path):
+                        os.remove(json_path)
             except Exception as e:
-                print(f"Error removing file {version.file_path}: {e}")
+                print(f"Error removing files for version {version.id}: {e}")
 
     # Break circular foreign key dependency before deletion
     db_model.active_version_id = None
