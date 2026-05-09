@@ -184,7 +184,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                 timeframe,
                 algorithm,
                 config: {
-                    indicators: selectedIndicators,
+                    indicators: (dataSource === 'ohlcv' || dataSource === 'hybrid') ? selectedIndicators : [],
                     epochs,
                     dataset_type: dataSource,
                     is_auto_retrain: isAutoRetrain,
@@ -202,7 +202,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                     exchange: exchange,
                     is_deep_training: (dataSource === 'l2_orderbook' || dataSource === 'hybrid') ? isDeepTraining : false,
                     target_rows: ((dataSource === 'l2_orderbook' || dataSource === 'hybrid') && isDeepTraining) ? targetRowOptions[targetRowsIndex] : 0,
-                    l2_features: selectedL2Features,
+                    l2_features: (dataSource === 'l2_orderbook' || dataSource === 'hybrid') ? selectedL2Features : [],
                     target_model_id: isRetrainMode ? (retrainModelId || undefined) : undefined,
                     fine_tune: isRetrainMode
                 }
