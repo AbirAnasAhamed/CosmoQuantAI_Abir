@@ -78,7 +78,7 @@ export const SupertrendRenderer: React.FC<SupertrendRendererProps> = ({
                     // Line
                     ctx.beginPath();
                     ctx.strokeStyle = color;
-                    ctx.lineWidth = 2;
+                    ctx.lineWidth = 1;
                     ctx.moveTo(x1, y1);
                     ctx.lineTo(x2, y2);
                     ctx.stroke();

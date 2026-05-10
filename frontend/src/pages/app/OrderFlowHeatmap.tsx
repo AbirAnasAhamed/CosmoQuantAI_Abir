@@ -1675,10 +1675,13 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
     useEffect(() => {
         if (!candlestickSeriesRef.current || currentPrice <= 0) return;
 
+        const lastCandle = lastCandleRef.current;
+        const lineColor = lastCandle && currentPrice >= lastCandle.open ? '#22c55e' : '#ef4444';
+
         if (!currentPriceLineRef.current) {
             currentPriceLineRef.current = candlestickSeriesRef.current.createPriceLine({
                 price: currentPrice,
-                color: '#3b82f6', // Tailwind blue-500 for the line
+                color: lineColor,
                 lineWidth: 1,
                 lineStyle: 1, // Dotted
                 axisLabelVisible: true,
@@ -1687,7 +1690,10 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
                 axisLabelTextColor: '#ffffff', // White text
             });
         } else {
-            currentPriceLineRef.current.applyOptions({ price: currentPrice });
+            currentPriceLineRef.current.applyOptions({ 
+                price: currentPrice,
+                color: lineColor
+            });
         }
     }, [currentPrice]);
 
