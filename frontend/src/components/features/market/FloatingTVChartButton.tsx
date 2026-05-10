@@ -475,9 +475,9 @@ export const FloatingTVChartButton: React.FC<FloatingTVChartButtonProps> = ({
       <AnimatePresence>
         {!isOpen && (
           <MotionButton
-            initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} whileHover={{ scale: 1.05 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} whileHover={{ scale: 1.05 }}
             onClick={() => setIsOpen(true)}
-            className="absolute inset-0 w-full h-full rounded-full flex items-center justify-center bg-gradient-to-br from-violet-600 to-indigo-600 border border-violet-400/30 text-white shadow-[0_0_24px_rgba(139,92,246,0.5)] z-[999] transition-colors focus:outline-none group"
+            className="relative w-16 h-16 rounded-full flex items-center justify-center bg-gradient-to-br from-violet-600 to-indigo-600 border border-violet-400/30 text-white shadow-[0_0_24px_rgba(139,92,246,0.5)] transition-all focus:outline-none group"
             title="TVChart"
           >
             <BarChart2 className="w-7 h-7 transition-transform" />
@@ -496,8 +496,9 @@ export const FloatingTVChartButton: React.FC<FloatingTVChartButtonProps> = ({
             style={{
               left: pos.x, top: pos.y, position: 'fixed',
               height: ind.showRSI || ind.showMACD ? 560 : 520,
+              zIndex: 9999,
             }}
-            className="w-[540px] rounded-2xl bg-[#070C17] border border-violet-500/20 shadow-[0_16px_64px_rgba(0,0,0,0.85),0_0_0_1px_rgba(139,92,246,0.07)] z-[999] flex flex-col overflow-hidden"
+            className="w-[540px] rounded-2xl bg-[#070C17] border border-violet-500/20 shadow-[0_16px_64px_rgba(0,0,0,0.85),0_0_0_1px_rgba(139,92,246,0.07)] flex flex-col overflow-hidden"
           >
             {/* ── DRAG HANDLE ─────────────────────────────────────────── */}
             <div

@@ -8,7 +8,6 @@ import AdvancedHyperparameters from '@/components/ml/AdvancedHyperparameters';
 import FeatureImportanceChart from '@/components/ml/FeatureImportanceChart';
 import { HeatmapSymbolSelector } from '../../components/features/market/HeatmapSymbolSelector';
 import LiveMarketPulse from '@/components/ml/LiveMarketPulse';
-import { FloatingTVChartButton } from '@/components/features/market/FloatingTVChartButton';
 import EquityCurveChart from '@/components/ml/EquityCurveChart'; // ✅ New
 import { DatasetVisualizerModal } from '@/components/DatasetVisualizerModal';
 
@@ -264,7 +263,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     };
 
     return (
-        <div className="h-full flex flex-col space-y-6 relative">
+        <div className="h-full flex flex-col space-y-6 relative overflow-hidden">
             {/* Background Neon Orbs */}
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-primary/20 blur-[120px] rounded-full pointer-events-none"></div>
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full pointer-events-none"></div>
@@ -975,9 +974,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                 </div>
             </div>
 
-            {/* ── Floating Training Chart FAB ─────────────────────────────────── */}
-            <FloatingTVChartButton symbol={symbol} exchange={exchange} />
-            
+
             {/* Dataset Visualizer Floating Modal */}
             <DatasetVisualizerModal 
                 isOpen={showVisualizer} 
