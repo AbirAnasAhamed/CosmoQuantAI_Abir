@@ -2524,7 +2524,7 @@ const OrderFlowHeatmap: React.FC = () => {
     const [isEmergencySelling, setIsEmergencySelling] = useState(false); // NEW STATE
     const [isFullscreen, setIsFullscreen] = useState(false); // NEW STATE
     const [showCVD, setShowCVD] = useState(false); // NEW STATE
-    const [showVPVR, setShowVPVR] = useState(true); // NEW STATE
+    const [showVPVR, setShowVPVR] = useState(false); // NEW STATE
     const [isOrderBookModalOpen, setIsOrderBookModalOpen] = useState(false);
     const [isAIDeploymentModalOpen, setIsAIDeploymentModalOpen] = useState(false);
     const { bids, asks, walls, currentPrice, tradeEvent } = useLevel2MarketData(symbol, exchange);
