@@ -909,11 +909,14 @@ def monitor_docker_logs():
     Uses Redis for 5-minute cooldown deduplication to prevent spam.
     """
     try:
-        from app.services.log_monitor_service import scan_docker_logs_and_notify
+        from app.services.log_monitor_service import scan_docker_logs_and_notify, _get_log_monitor_users
+
+        # Pre-fetch DB data in sync context to avoid SQLAlchemy MissingGreenlet error
+        active_users, wants_broadcast = _get_log_monitor_users()
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(scan_docker_logs_and_notify())
+        loop.run_until_complete(scan_docker_logs_and_notify(active_users=active_users, wants_broadcast=wants_broadcast))
         loop.close()
         return "Docker log scan completed"
     except Exception as e:
@@ -932,12 +935,27 @@ def broadcast_container_logs():
     """
     try:
         from app.services.log_monitor_service import publish_all_container_logs
+        from app.db.session import SessionLocal
+        from app.models.notification import NotificationSettings
+
+        # Pre-check in sync context whether anyone wants live logs
+        # (avoids SQLAlchemy MissingGreenlet when querying inside async)
+        db = SessionLocal()
+        try:
+            active_setting = db.query(NotificationSettings).filter(
+                NotificationSettings.broadcast_live_logs == True
+            ).first()
+        finally:
+            db.close()
+
+        if not active_setting:
+            return "Broadcast skipped (disabled in settings)"
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         did_broadcast = loop.run_until_complete(publish_all_container_logs())
         loop.close()
-        
+
         if did_broadcast:
             return "Container logs broadcasted"
         else:

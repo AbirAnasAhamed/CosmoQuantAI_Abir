@@ -344,16 +344,41 @@ def format_alert_message(
 # CORE SCAN FUNCTION
 # ============================================================
 
-async def scan_docker_logs_and_notify():
+def _get_log_monitor_users():
+    """Sync helper: fetch notification settings from DB (must be called outside async context)."""
+    from app.db.session import SessionLocal
+    from app.models.notification import NotificationSettings
+
+    db = SessionLocal()
+    try:
+        active_users = db.query(NotificationSettings).filter(
+            NotificationSettings.is_enabled == True,
+            NotificationSettings.alert_server_errors == True,
+            NotificationSettings.telegram_bot_token != None,
+            NotificationSettings.telegram_chat_id != None,
+        ).all()
+
+        wants_broadcast = db.query(NotificationSettings).filter(
+            NotificationSettings.broadcast_live_logs == True
+        ).first()
+
+        return active_users, wants_broadcast
+    finally:
+        db.close()
+
+
+async def scan_docker_logs_and_notify(active_users=None, wants_broadcast=None):
     """
     Main entry point called by Celery task.
     1. Connects to Docker daemon via socket
     2. Reads recent logs from each container
     3. Detects problems
     4. Sends Telegram alerts via user NotificationSettings
+
+    NOTE: active_users and wants_broadcast should be pre-fetched by the
+    sync caller (_get_log_monitor_users) to avoid MissingGreenlet errors
+    when running sync SQLAlchemy queries inside an async context.
     """
-    from app.db.session import SessionLocal
-    from app.models.notification import NotificationSettings
     from app.services.notification import NotificationService
     from app.utils import get_redis_client
 
@@ -373,20 +398,12 @@ async def scan_docker_logs_and_notify():
         logger.error(f"[LogMonitor] Cannot connect to Docker daemon: {e}")
         return
 
-    # --- Get all users with notifications enabled ---
-    db = SessionLocal()
+    if active_users is None:
+        active_users = []
+    if wants_broadcast is None:
+        wants_broadcast = False
+
     try:
-        active_users = db.query(NotificationSettings).filter(
-            NotificationSettings.is_enabled == True,
-            NotificationSettings.alert_server_errors == True,
-            NotificationSettings.telegram_bot_token != None,
-            NotificationSettings.telegram_chat_id != None,
-        ).all()
-
-        wants_broadcast = db.query(NotificationSettings).filter(
-            NotificationSettings.broadcast_live_logs == True
-        ).first()
-
         if not active_users and not wants_broadcast:
             logger.debug("[LogMonitor] No users with notifications enabled and no one wants live broadcast, skipping.")
             return
@@ -553,7 +570,6 @@ async def scan_docker_logs_and_notify():
     except Exception as e:
         logger.error(f"[LogMonitor] Unexpected error during scan: {e}", exc_info=True)
     finally:
-        db.close()
         try:
             docker_client.close()
         except Exception:
@@ -580,18 +596,6 @@ async def publish_all_container_logs():
     try:
         from app.utils import get_redis_client
         import json as _json
-        from app.db.session import SessionLocal
-        from app.models.notification import NotificationSettings
-
-        db = SessionLocal()
-        try:
-            active_setting = db.query(NotificationSettings).filter(
-                NotificationSettings.broadcast_live_logs == True
-            ).first()
-            if not active_setting:
-                return False # Skip broadcasting if no user wants it
-        finally:
-            db.close()
 
         docker_client = docker.from_env()
         redis = get_redis_client()
