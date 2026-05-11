@@ -125,7 +125,12 @@ class AdvancedMLEngine:
         epochs = int(config.get("epochs", 10))
         lr = float(config.get("learning_rate", 0.0003))
         initial_balance = float(config.get("initial_balance", 10000))
-        commission = float(config.get("commission", 0.001))
+        # Frontend sends percentage (e.g. 0.001 for 0.001%), so divide by 100
+        commission_pct = float(config.get("commission", 0.02)) # default 0.02%
+        commission = commission_pct / 100.0
+        
+        slippage_pct = float(config.get("slippage", 0.01)) # default 0.01%
+        slippage = slippage_pct / 100.0
         
         env_df = AdvancedDataHandler.prepare_rl_data(df, features)
         
@@ -138,7 +143,8 @@ class AdvancedMLEngine:
             return AdvancedTradingEnv(
                 df=env_df, 
                 initial_balance=initial_balance, 
-                commission=commission
+                commission=commission,
+                slippage=slippage
             )
         
         env = DummyVecEnv([make_env])

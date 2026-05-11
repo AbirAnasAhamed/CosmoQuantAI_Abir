@@ -38,6 +38,7 @@ export interface TrainingConfig {
         l2_features?: string[];
         initial_balance?: number; // ✅ New
         commission?: number;      // ✅ New
+        slippage?: number;        // ✅ New
         sequence_length?: number; // ✅ New
         target_model_id?: string;
         fine_tune?: boolean;

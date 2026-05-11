@@ -61,4 +61,13 @@ class AdvancedDataHandler:
         if 'Target' in df.columns:
             needed_cols.append('Target')
             
-        return df[needed_cols].copy()
+        res_df = df[needed_cols].copy()
+        
+        # Normalize features for RL Neural Network (MlpPolicy)
+        # We must NOT scale 'Close' as it's used for actual PnL calculation
+        from sklearn.preprocessing import StandardScaler
+        if len(features) > 0:
+            scaler = StandardScaler()
+            res_df[features] = scaler.fit_transform(res_df[features].values)
+            
+        return res_df

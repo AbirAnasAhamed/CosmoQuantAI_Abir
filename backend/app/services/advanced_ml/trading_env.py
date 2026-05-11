@@ -21,8 +21,8 @@ class AdvancedTradingEnv(gym.Env):
         self, 
         df: pd.DataFrame, 
         initial_balance: float = 10000.0, 
-        commission: float = 0.001, # 0.1% per trade
-        slippage: float = 0.0005,   # 0.05% price impact
+        commission: float = 0.0002, # 0.02% per trade (Futures Maker Fee)
+        slippage: float = 0.0001,   # 0.01% price impact
         max_leverage: float = 1.0,
         reward_type: str = 'log_returns'
     ):

@@ -39,7 +39,8 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     const [maxDepth, setMaxDepth] = useState(6);
     const [modelName, setModelName] = useState('');
     const [initialBalance, setInitialBalance] = useState(10000); // ✅ New
-    const [tradingFees, setTradingFees] = useState(0.001); // ✅ New
+    const [tradingFees, setTradingFees] = useState(0.02); // ✅ New
+    const [slippage, setSlippage] = useState(0.01); // ✅ New
     const [sequenceLength, setSequenceLength] = useState(30); // ✅ New
     
     const [isTraining, setIsTraining] = useState(false);
@@ -202,6 +203,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                     model_name: modelName,
                     initial_balance: initialBalance, // ✅ New
                     commission: tradingFees, // ✅ New
+                    slippage: slippage, // ✅ New
                     sequence_length: sequenceLength, // ✅ New
                     exchange: exchange,
                     is_deep_training: (dataSource === 'l2_orderbook' || dataSource === 'hybrid') ? isDeepTraining : false,
@@ -438,7 +440,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                     )}
 
                                     {algorithm === 'PPO-RL' && (
-                                        <div className="grid grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-3 gap-3">
                                             <div>
                                                 <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Initial Balance ($)</label>
                                                 <input 
@@ -458,6 +460,16 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                                     className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none"
                                                 />
                                             </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Slippage (%)</label>
+                                                <input 
+                                                    type="number" 
+                                                    step="0.0001"
+                                                    value={slippage} 
+                                                    onChange={e => setSlippage(parseFloat(e.target.value))}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none"
+                                                />
+                                            </div>
                                         </div>
                                     )}
                                 </motion.div>
@@ -466,7 +478,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
 
                         <div>
                             <div className="flex items-center justify-between mb-3">
-                                <label className="block text-sm font-medium text-white flex items-center gap-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-white mb-3">
                                     <Database className="w-4 h-4 text-cyan-400" /> Data Source Engine
                                 </label>
                                 <button 
@@ -737,7 +749,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
 
                             <div className="mt-4 bg-black/40 border border-white/10 rounded-2xl p-5 shadow-inner">
                                 <div className="flex items-center justify-between mb-4">
-                                    <label className="block text-sm font-medium text-slate-300 flex items-center gap-2">
+                                    <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-3">
                                         <Activity className="w-4 h-4 text-cyan-400" /> Feature Engineering Studio
                                     </label>
                                     <span className="text-xs font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-md border border-cyan-500/20">
