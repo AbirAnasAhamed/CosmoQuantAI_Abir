@@ -1211,10 +1211,79 @@ def train_model_task(job_id: str, db: Session):
         
         db.commit()
 
+        # 6. Send Telegram Success Notification
+        try:
+            from app.services.notification import NotificationService
+            import asyncio
+            
+            # Prepare config string (exclude large/internal items)
+            config_lines = [f"• {k}: {v}" for k, v in config.items() if k not in ["file_path", "previous_model_path", "features", "l2_features", "indicators", "target_model_id"]]
+            config_str = "\n".join(config_lines[:10]) + ("\n• ..." if len(config_lines) > 10 else "")
+            
+            # Prepare metrics string
+            if job.algorithm == "PPO-RL":
+                metrics_str = f"• রিটার্ন (Return): {final_explainability.get('total_return_pct', 0):.2f}%\n• উইন রেট (Win Rate): {final_explainability.get('win_rate', 0):.2f}%\n• মোট ট্রেড (Trades): {final_explainability.get('trades_count', 0)}"
+            else:
+                metrics_str = f"• Accuracy: {final_accuracy*100:.2f}%\n• F1 Score: {final_f1:.4f}\n• Latency: {final_latency:.1f}ms"
+                
+            # Prepare logs summary
+            logs_array = job.logs or []
+            log_summary = "\n".join(logs_array[-5:]) if logs_array else "No logs available."
+            
+            msg = (
+                f"🤖 *মডেল ট্রেনিং সম্পন্ন হয়েছে!*\n"
+                f"━━━━━━━━━━━━━━━━━━\n"
+                f"📦 *পেয়ার/সিম্বল:* {job.symbol} ({job.timeframe})\n"
+                f"🧠 *অ্যালগরিদম:* {job.algorithm}\n"
+                f"━━━━━━━━━━━━━━━━━━\n"
+                f"⚙️ *কনফিগারেশন:*\n{config_str}\n"
+                f"━━━━━━━━━━━━━━━━━━\n"
+                f"📊 *মডেলের পারফরম্যান্স:*\n{metrics_str}\n"
+                f"━━━━━━━━━━━━━━━━━━\n"
+                f"📝 *লাইভ কনসোল আউটপুট:*\n```text\n{log_summary}\n```"
+            )
+            
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(
+                NotificationService.send_message(db, job.user_id, msg, parse_mode="Markdown")
+            )
+            loop.close()
+        except Exception as notif_ex:
+            print(f"Telegram success notification failed: {notif_ex}")
+
     except Exception as e:
         job.status = models.TrainingStatus.FAILED
         add_log(f"ERROR: {e}")
         import traceback
         add_log(traceback.format_exc())
+        
+        # 7. Send Telegram Failure Notification
+        try:
+            from app.services.notification import NotificationService
+            import asyncio
+            
+            logs_array = job.logs or []
+            log_summary = "\n".join(logs_array[-5:]) if logs_array else "No logs available."
+            
+            msg = (
+                f"❌ *মডেল ট্রেনিং ব্যর্থ হয়েছে!*\n"
+                f"━━━━━━━━━━━━━━━━━━\n"
+                f"📦 *পেয়ার/সিম্বল:* {job.symbol} ({job.timeframe})\n"
+                f"🧠 *অ্যালগরিদম:* {job.algorithm}\n"
+                f"⚠️ *এরর (Error):* {str(e)[:200]}\n"
+                f"━━━━━━━━━━━━━━━━━━\n"
+                f"📝 *লাইভ কনসোল আউটপুট:*\n```text\n{log_summary}\n```"
+            )
+            
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(
+                NotificationService.send_message(db, job.user_id, msg, parse_mode="Markdown")
+            )
+            loop.close()
+        except Exception as notif_ex:
+            print(f"Telegram failure notification failed: {notif_ex}")
+            
     finally:
         db.commit()
