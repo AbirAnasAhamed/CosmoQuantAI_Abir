@@ -1001,11 +1001,13 @@ def train_model_task(job_id: str, db: Session):
         elif job.algorithm == "Transformer":
             add_log("🚀 Routing to Advanced ML Engine: Transformer...")
             try:
-                model, model_path = AdvancedMLEngine.train_transformer(
+                model, model_path, metrics = AdvancedMLEngine.train_transformer(
                     job, df, features, db, add_log,
                     previous_model_path=_prev_path if is_fine_tune else None
                 )
                 final_latency = 5.0
+                final_accuracy = metrics.get("accuracy", metrics.get("mse"))
+                final_f1 = metrics.get("f1_score", metrics.get("rmse"))
                 add_log("✅ Advanced Transformer Training complete.")
             except Exception as e:
                 add_log(f"❌ Advanced Transformer Error: {e}")
@@ -1014,11 +1016,14 @@ def train_model_task(job_id: str, db: Session):
         elif job.algorithm == "PPO-RL":
             add_log("🚀 Routing to Advanced ML Engine: PPO-RL...")
             try:
-                model, model_path = AdvancedMLEngine.train_ppo_rl(
+                model, model_path, metrics = AdvancedMLEngine.train_ppo_rl(
                     job, df, features, db, add_log,
                     previous_model_path=_prev_path if is_fine_tune else None
                 )
                 final_latency = 10.0
+                final_accuracy = metrics.get("win_rate", 0) / 100.0  # Normalize to 0-1
+                final_f1 = metrics.get("sharpe_ratio", 0)  # Using Sharpe for F1/Score field
+                final_explainability = metrics
                 add_log("✅ Advanced RL Training complete.")
             except Exception as e:
                 add_log(f"❌ Advanced RL Error: {e}")

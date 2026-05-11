@@ -116,7 +116,7 @@ class AdvancedMLEngine:
             
             add_log(f"[METRICS] {json.dumps(metrics)}")
         
-        return model, model_path
+        return model, model_path, metrics
 
     @staticmethod
     def train_ppo_rl(job, df, features, db, add_log, previous_model_path=None):
@@ -186,6 +186,13 @@ class AdvancedMLEngine:
 
         # ✅ Calculate Trading Metrics for RL Agent
         add_log("Finalizing Agent and Calculating Performance Metrics...")
+        rl_metrics = {
+            "total_return_pct": 0.0,
+            "win_rate": 0.0,
+            "sharpe_ratio": 0.0,
+            "trades_count": 0,
+            "net_profit": 0.0
+        }
         if hasattr(env.envs[0], 'equity_history') and len(env.envs[0].equity_history) > 1:
             equity = np.array(env.envs[0].equity_history)
             returns = np.diff(equity) / equity[:-1]
@@ -210,4 +217,4 @@ class AdvancedMLEngine:
             }
             add_log(f"[METRICS] {json.dumps(rl_metrics)}")
         
-        return model, model_path
+        return model, model_path, rl_metrics
