@@ -222,6 +222,63 @@ def generate_real_explainability(model, X_test, y_test, y_pred, feature_names, i
                 "nodes": nodes,
                 "edges": edges
             }
+        elif type(model).__name__ in ['LGBMClassifier', 'LGBMRegressor']:
+            tree_info = model.booster_.dump_model()['tree_info'][0]['tree_structure']
+            
+            nodes = []
+            edges = []
+            
+            queue = [(tree_info, "0", 1)] # node_dict, id, depth
+            node_count = 0
+            
+            while queue and node_count < 7: # max 7 nodes
+                curr_node, node_id, depth = queue.pop(0)
+                node_count += 1
+                
+                if 'split_feature' in curr_node and depth < 3:
+                    feat_idx = curr_node['split_feature']
+                    feat_name = feature_names[feat_idx] if feat_idx < len(feature_names) else f"Feat_{feat_idx}"
+                    threshold = curr_node['threshold']
+                    
+                    nodes.append({
+                        "id": node_id,
+                        "label": f"{feat_name} <= {threshold:.2f}",
+                        "type": "condition"
+                    })
+                    
+                    left_child = curr_node.get('left_child')
+                    right_child = curr_node.get('right_child')
+                    
+                    if left_child:
+                        left_id = f"{node_id}_L"
+                        edges.append({"source": node_id, "target": left_id, "label": "Yes"})
+                        queue.append((left_child, left_id, depth+1))
+                        
+                    if right_child:
+                        right_id = f"{node_id}_R"
+                        edges.append({"source": node_id, "target": right_id, "label": "No"})
+                        queue.append((right_child, right_id, depth+1))
+                else:
+                    val = curr_node.get('leaf_value', 0)
+                    if is_classification:
+                        class_idx = 1 if val > 0 else 0
+                        label = f"Class {class_idx}"
+                        color = "green" if class_idx == 1 else "red"
+                    else:
+                        label = f"Val: {val:.2f}"
+                        color = "gray"
+                        
+                    nodes.append({
+                        "id": node_id,
+                        "label": label,
+                        "type": "leaf",
+                        "color": color
+                    })
+            
+            result["decisionTree"] = {
+                "nodes": nodes,
+                "edges": edges
+            }
     except Exception as e:
         print(f"Failed to generate decision tree logic: {e}")
 
