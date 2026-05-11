@@ -375,6 +375,20 @@ const ModelDetailsModal: React.FC<{
     const [explainData, setExplainData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'config'|'explain'>('config');
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    const handleDownload = async () => {
+        setIsDownloading(true);
+        try {
+            await mlModelsService.downloadModel(modelId, modelName);
+            toast.success('Model downloaded successfully!');
+        } catch (err: any) {
+            const msg = err?.response?.data?.detail || 'Download failed';
+            toast.error(msg);
+        } finally {
+            setIsDownloading(false);
+        }
+    };
 
     React.useEffect(() => {
         setLoading(true);
@@ -402,7 +416,28 @@ const ModelDetailsModal: React.FC<{
                         <svg className="w-6 h-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         Training Details: <span className="text-cyan-400">{modelName}</span>
                     </h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">&times;</button>
+                    <div className="flex items-center gap-3">
+                        {/* Download Button */}
+                        <button
+                            onClick={handleDownload}
+                            disabled={isDownloading}
+                            title="Download active model version"
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/25 hover:border-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-emerald-500/20"
+                        >
+                            {isDownloading ? (
+                                <>
+                                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                    Downloading...
+                                </>
+                            ) : (
+                                <>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                    Download Model
+                                </>
+                            )}
+                        </button>
+                        <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors text-xl leading-none">&times;</button>
+                    </div>
                 </div>
 
                 <div className="flex border-b border-gray-800 bg-[#0A0A0A]">

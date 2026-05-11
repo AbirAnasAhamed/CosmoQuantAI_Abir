@@ -5,6 +5,7 @@ import asyncio
 from typing import List, Any
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app import crud, models, schemas
@@ -331,3 +332,51 @@ def get_model_explainability(
         return {} # No explainability data available yet
 
     return version.explainability
+
+
+@router.get("/{model_id}/download")
+def download_model(
+    model_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Download the active version file of a model.
+    """
+    db_model = db.query(models.CustomMLModel).filter(
+        models.CustomMLModel.id == model_id,
+        models.CustomMLModel.user_id == current_user.id
+    ).first()
+
+    if not db_model:
+        raise HTTPException(status_code=404, detail="Model not found")
+
+    if not db_model.active_version_id:
+        raise HTTPException(status_code=400, detail="Model has no active version set")
+
+    version = db.query(models.ModelVersion).filter(
+        models.ModelVersion.id == db_model.active_version_id
+    ).first()
+
+    if not version:
+        raise HTTPException(status_code=404, detail="Active version record not found")
+
+    if version.status != models.ModelStatus.READY:
+        raise HTTPException(status_code=400, detail="Model is not ready for download yet")
+
+    file_path = version.file_path
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Model file not found on server")
+
+    # Build a clean download filename: <model_name>_v<version>.<ext>
+    original_filename = os.path.basename(file_path)
+    # Try to get the extension from the stored filename (after the version prefix)
+    ext = os.path.splitext(original_filename)[1] or ".bin"
+    safe_model_name = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in db_model.name)
+    download_filename = f"{safe_model_name}_v{version.version:.1f}{ext}"
+
+    return FileResponse(
+        path=file_path,
+        filename=download_filename,
+        media_type="application/octet-stream",
+    )

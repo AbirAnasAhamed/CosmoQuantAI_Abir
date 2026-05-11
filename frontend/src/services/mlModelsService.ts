@@ -87,5 +87,30 @@ export const mlModelsService = {
     getModelExplainability: async (modelId: string): Promise<any> => {
         const response = await api.get(`/ml-models/${modelId}/explainability`);
         return response.data;
-    }
+    },
+
+    // Download the active version file of a model
+    downloadModel: async (modelId: string, modelName: string): Promise<void> => {
+        const response = await api.get(`/ml-models/${modelId}/download`, {
+            responseType: 'blob',
+        });
+
+        // Try to extract filename from Content-Disposition header
+        const disposition = response.headers['content-disposition'] as string | undefined;
+        let filename = `${modelName}.bin`;
+        if (disposition) {
+            const match = disposition.match(/filename[^;=\n]*=(['"]?)([^'";\n]+)\1/);
+            if (match?.[2]) filename = match[2];
+        }
+
+        // Trigger browser download
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    },
 };
