@@ -1217,7 +1217,19 @@ def train_model_task(job_id: str, db: Session):
             import asyncio
             
             # Prepare config string (exclude large/internal items)
-            config_lines = [f"• {k}: {v}" for k, v in config.items() if k not in ["file_path", "previous_model_path", "features", "l2_features", "indicators", "target_model_id"]]
+            ignored_keys = ["file_path", "previous_model_path", "features", "l2_features", "indicators", "target_model_id"]
+            if job.algorithm != "PPO-RL":
+                ignored_keys.extend(["initial_balance", "trading_fees", "slippage", "sequence_length"])
+            
+            if config.get("is_deep_training") and config.get("target_rows", 0) > 0:
+                ignored_keys.append("data_lookback_hours")
+            
+            config_lines = []
+            for k, v in config.items():
+                if k in ignored_keys: continue
+                if k == "model_name" and not v: continue  # Skip empty model name
+                config_lines.append(f"• {k}: {v}")
+                
             config_str = "\n".join(config_lines[:10]) + ("\n• ..." if len(config_lines) > 10 else "")
             
             # Prepare metrics string
