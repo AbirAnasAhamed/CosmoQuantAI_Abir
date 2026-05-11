@@ -613,6 +613,7 @@ def train_model_task(job_id: str, db: Session):
             add_log("Initializing PyTorch LSTM network...")
             import torch
             import torch.nn as nn
+            import numpy as np
             
             class SimpleLSTM(nn.Module):
                 def __init__(self, input_size, hidden_size, num_layers, output_size):

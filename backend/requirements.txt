@@ -90,6 +90,7 @@ xgboost
 joblib
 lightgbm
 catboost
-stable-baselines3
+stable-baselines3[extra]
 gymnasium
 shap
+tensorboard

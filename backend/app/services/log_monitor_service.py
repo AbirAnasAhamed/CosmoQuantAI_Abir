@@ -535,20 +535,26 @@ async def scan_docker_logs_and_notify(active_users=None, wants_broadcast=None):
                             logger.warning(f"[LogMonitor] Redis publish failed: {pub_err}")
 
                         # Send Telegram alert to all users with notifications enabled
-                        for user_settings in active_users:
+                        if active_users:
+                            from app.db.session import SessionLocal
+                            db = SessionLocal()
                             try:
-                                await NotificationService.send_message(
-                                    db=db,
-                                    user_id=user_settings.user_id,
-                                    message=message,
-                                )
-                                alerts_sent += 1
-                                logger.info(
-                                    f"[LogMonitor] Alert sent to user {user_settings.user_id} "
-                                    f"— {container_name} {severity}"
-                                )
-                            except Exception as e:
-                                logger.error(f"[LogMonitor] Failed to notify user {user_settings.user_id}: {e}")
+                                for user_settings in active_users:
+                                    try:
+                                        await NotificationService.send_message(
+                                            db=db,
+                                            user_id=user_settings.user_id,
+                                            message=message,
+                                        )
+                                        alerts_sent += 1
+                                        logger.info(
+                                            f"[LogMonitor] Alert sent to user {user_settings.user_id} "
+                                            f"— {container_name} {severity}"
+                                        )
+                                    except Exception as e:
+                                        logger.error(f"[LogMonitor] Failed to notify user {user_settings.user_id}: {e}")
+                            finally:
+                                db.close()
 
                     # Bug #3 fix: advance past the absorbed context lines so they are
                     # NOT re-evaluated as independent errors in subsequent iterations.
