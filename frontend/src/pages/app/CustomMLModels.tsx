@@ -547,7 +547,14 @@ const ModelCard: React.FC<{
     }
     
     const rawF1 = activeVersion?.f1_score;
-    const f1Display = rawF1 !== undefined && rawF1 !== null ? rawF1.toFixed(4) : '--';
+    let f1Display = '--';
+    if (rawF1 !== undefined && rawF1 !== null) {
+        if (isRegression && rawF1 < 0.001 && rawF1 > 0) {
+            f1Display = rawF1.toExponential(2);
+        } else {
+            f1Display = rawF1.toFixed(4);
+        }
+    }
 
     const rawLatency = activeVersion?.latency;
     const latencyDisplay = rawLatency !== undefined && rawLatency !== null ? `${Math.round(rawLatency)}ms` : '--';

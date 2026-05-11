@@ -288,6 +288,7 @@ export interface ModelVersion {
   accuracy?: number;
   f1_score?: number;
   latency?: number;
+  explainability?: any;
 }
 export interface CustomMLModel {
   id: string;

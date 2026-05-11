@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import List, Optional
+from typing import List, Optional, Any
 from datetime import datetime
 
 class ModelVersionBase(BaseModel):
@@ -18,6 +18,7 @@ class ModelVersionResponse(ModelVersionBase):
     accuracy: Optional[float] = None
     f1_score: Optional[float] = None
     latency: Optional[float] = None
+    explainability: Optional[Any] = None
 
     model_config = ConfigDict(from_attributes=True)
 
