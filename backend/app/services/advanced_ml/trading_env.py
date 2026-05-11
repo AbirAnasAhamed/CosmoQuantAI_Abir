@@ -65,6 +65,7 @@ class AdvancedTradingEnv(gym.Env):
         self.net_worth = self.initial_balance
         self.position = 0  # 0: Neutral, 1: Long, -1: Short
         self.entry_price = 0.0
+        self.entry_net_worth = self.initial_balance
         
         self.equity_history = [self.initial_balance]
         self.trade_history = []
@@ -136,7 +137,7 @@ class AdvancedTradingEnv(gym.Env):
                 "step": self.current_step,
                 "type": "close",
                 "price": exit_price,
-                "pnl": self.net_worth - self.equity_history[-1]
+                "pnl": self.net_worth - getattr(self, 'entry_net_worth', self.initial_balance)
             })
 
         # 2. Open new position
@@ -146,6 +147,8 @@ class AdvancedTradingEnv(gym.Env):
             # Entry fee
             fee = self.net_worth * self.commission
             self.net_worth -= fee
+            
+            self.entry_net_worth = self.net_worth
             
             self.trade_history.append({
                 "step": self.current_step,

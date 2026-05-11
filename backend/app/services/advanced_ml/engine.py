@@ -212,13 +212,23 @@ class AdvancedMLEngine:
             # 3. Win Rate from trade_history
             trades = env.envs[0].trade_history
             pnl_trades = [t['pnl'] for t in trades if 'pnl' in t]
+            
+            # Add unrealized PnL of current open position
+            if getattr(env.envs[0], 'position', 0) != 0:
+                unrealized_pnl = env.envs[0].net_worth - getattr(env.envs[0], 'entry_net_worth', initial_balance)
+                pnl_trades.append(unrealized_pnl)
+                
             win_rate = (len([p for p in pnl_trades if p > 0]) / len(pnl_trades)) * 100 if pnl_trades else 0
+            
+            # Trades count should be the number of trade entries
+            open_trades = len([t for t in trades if t['type'].startswith('open')])
+            trades_count = open_trades if open_trades > 0 else len(pnl_trades)
             
             rl_metrics = {
                 "total_return_pct": float(total_return),
                 "win_rate": float(win_rate),
                 "sharpe_ratio": float(sharpe),
-                "trades_count": int(len(pnl_trades)),
+                "trades_count": int(trades_count),
                 "net_profit": float(equity[-1] - initial_balance)
             }
             add_log(f"[METRICS] {json.dumps(rl_metrics)}")
