@@ -113,10 +113,16 @@ def fetch_data(symbol: str, timeframe: str, period: str = None, exchange_name: s
     
     return df
 
+class TrainingCancelledException(BaseException):
+    """Raised when user cancels training. Inherits BaseException to bypass except Exception handlers."""
+    pass
+
 def _run_live_scraper(symbol: str, target_rows: int, db: Session, job: models.ModelTrainingJob, add_log_func) -> pd.DataFrame:
     """Run the async scraper synchronously inside the celery task."""
     try:
         return asyncio.run(_async_live_scraper(symbol, target_rows, db, job, add_log_func))
+    except TrainingCancelledException:
+        raise  # Let it propagate to train_model_task
     except Exception as e:
         add_log_func(f"Scraper crashed: {e}")
         return pd.DataFrame()
@@ -211,9 +217,12 @@ async def _async_live_scraper(symbol: str, target_rows: int, db: Session, job: m
                         db.commit()
                         buffer.clear()
                         
+                    # 🛑 Cancel check — runs every 50 rows (lightweight, avoids DB spam)
+                    if scraped_count % 50 == 0:
                         db.refresh(job)
                         if job.status == models.TrainingStatus.FAILED and job.error_message and "cancelled" in job.error_message.lower():
-                            raise Exception("Training cancelled by user during live scraping.")
+                            add_log_func("🛑 Scraper stopped by user cancellation.")
+                            raise TrainingCancelledException("Training cancelled by user during live scraping.")
                         
                     if scraped_count % log_interval == 0:
                         pct = min(100.0, (scraped_count / target_rows) * 10.0)
