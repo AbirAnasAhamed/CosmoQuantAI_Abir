@@ -1219,8 +1219,11 @@ def train_model_task(job_id: str, db: Session):
             # Prepare config string (exclude large/internal items)
             ignored_keys = ["file_path", "previous_model_path", "features", "l2_features", "indicators", "target_model_id"]
             if job.algorithm != "PPO-RL":
-                ignored_keys.extend(["initial_balance", "trading_fees", "slippage", "sequence_length"])
+                ignored_keys.extend(["initial_balance", "trading_fees", "commission", "slippage", "sequence_length"])
             
+            if config.get("dataset_type") == "l2_orderbook":
+                ignored_keys.append("exchange")  # Exchange is default binance for L2 WS
+                
             if config.get("is_deep_training") and config.get("target_rows", 0) > 0:
                 ignored_keys.append("data_lookback_hours")
             
