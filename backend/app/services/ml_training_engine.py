@@ -403,7 +403,13 @@ def train_model_task(job_id: str, db: Session):
         ft_label = f"🔄 Fine-Tune from: {_prev_path}" if is_fine_tune else "🆕 Fresh Training (no prior checkpoint)"
         add_log(ft_label)
         
-        if dataset_type == "hybrid":
+        if dataset_type == "hybrid_deep":
+            # ── NEW: Dual WebSocket L2 + aggTrade pipeline ──────────────────
+            from app.services.hybrid_deep_pipeline import build_hybrid_deep_dataset
+            df, features = build_hybrid_deep_dataset(job, db, config, add_log)
+            job.progress = 15.0
+
+        elif dataset_type == "hybrid":
             from app.services.hybrid_pipeline import build_hybrid_dataset
             df, features = build_hybrid_dataset(job, db, config, add_log)
             job.progress = 15.0

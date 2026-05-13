@@ -47,6 +47,7 @@ export interface TrainingConfig {
         bar_size?: string;
         volume_threshold?: string;
         trade_features?: string[];
+        hybrid_deep_trade_features?: string[]; // ✅ Hybrid Deep (L2 + aggTrade)
     };
 }
 

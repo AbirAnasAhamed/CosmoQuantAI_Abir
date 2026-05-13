@@ -68,7 +68,14 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     const [tradeVolumeThreshold, setTradeVolumeThreshold] = useState('10.0');
     const [selectedTradeFeatures, setSelectedTradeFeatures] = useState<string[]>(['cvd', 'buy_volume', 'sell_volume', 'trade_count']);
     const [initialLoadedTradeFeatures, setInitialLoadedTradeFeatures] = useState<string[]>([]);
-    
+
+    // Hybrid Deep (L2 + Live Trade) States
+    const [selectedHybridDeepTradeFeatures, setSelectedHybridDeepTradeFeatures] = useState<string[]>([
+        'cvd', 'buy_volume', 'sell_volume', 'trade_count',
+        'aggressor_ratio', 'large_trade_flag', 'vwap_deviation',
+    ]);
+
+
     // UI states for Retrain Mode highlighting
     const [retrainModelName, setRetrainModelName] = useState<string>('');
     const [initialLoadedIndicators, setInitialLoadedIndicators] = useState<string[]>([]);
@@ -172,6 +179,22 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
         { internal: "trade_count", name: "Trade Count (Tick Velocity)" }
     ];
 
+    // ── Hybrid Deep: 12 Trade Tick Features ────────────────────────────────────
+    const ALL_HYBRID_DEEP_TRADE_FEATURES = [
+        { internal: "cvd",                   name: "CVD (Real aggTrade)",             desc: "Cumulative Volume Delta from actual executed trades" },
+        { internal: "buy_volume",            name: "Buy Volume",                       desc: "Aggressive buy volume per tick" },
+        { internal: "sell_volume",           name: "Sell Volume",                      desc: "Aggressive sell volume per tick" },
+        { internal: "trade_count",           name: "Trade Count",                      desc: "Number of trades (tick velocity)" },
+        { internal: "aggressor_ratio",       name: "Aggressor Ratio",                  desc: "Rolling buy aggressor rate (10-tick window)" },
+        { internal: "large_trade_flag",      name: "Large Trade Flag 🐋",              desc: "1 if trade size > mean + 2σ (whale/iceberg signal)" },
+        { internal: "vwap_deviation",        name: "VWAP Deviation",                   desc: "Price distance from running VWAP" },
+        { internal: "trade_imbalance_ratio", name: "Trade Imbalance Ratio",            desc: "Normalized buy/sell pressure [-1, 1] (20-tick window)" },
+        { internal: "tick_speed",            name: "Tick Speed (ms/trade)",            desc: "Milliseconds between consecutive trades (urgency)" },
+        { internal: "price_impact",          name: "Price Impact / Volume",            desc: "Absolute price move per unit of volume" },
+        { internal: "rolling_cvd_5",         name: "Rolling CVD (5 ticks)",            desc: "Short-term signed volume momentum" },
+        { internal: "rolling_cvd_20",        name: "Rolling CVD (20 ticks)",           desc: "Medium-term signed volume momentum" },
+    ];
+
     // Auto-scroll logs
     useEffect(() => {
         if (logsEndRef.current) {
@@ -216,10 +239,13 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
             
             // Fix: Send "Tick" instead of the default timeframe if we are using raw unresampled L2 data
             const actualTimeframe = (dataSource === 'l2_orderbook' && !isResampleL2) ? 'Tick' : timeframe;
-            
+
+            // Hybrid Deep always collects at tick level — no resampling needed
+            const hybridDeepTargetRows = parseInt(manualTargetRows, 10) || targetRowOptions[targetRowsIndex];
+
             const job = await mlTrainingService.startTraining({
                 symbol,
-                timeframe: actualTimeframe,
+                timeframe: dataSource === 'hybrid_deep' ? 'Tick' : actualTimeframe,
                 algorithm,
                 config: {
                     indicators: (dataSource === 'ohlcv' || dataSource === 'hybrid' || dataSource === 'historical_trades') ? selectedIndicators : [],
@@ -240,8 +266,10 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                     sequence_length: sequenceLength,
                     exchange: exchange,
                     is_deep_training: (dataSource === 'l2_orderbook' || dataSource === 'hybrid' || dataSource === 'historical_trades') ? isDeepTraining : false,
-                    target_rows: ((dataSource === 'l2_orderbook' || dataSource === 'hybrid' || dataSource === 'historical_trades') && isDeepTraining) ? (parseInt(manualTargetRows, 10) || targetRowOptions[targetRowsIndex]) : 0,
-                    l2_features: (dataSource === 'l2_orderbook' || dataSource === 'hybrid') ? selectedL2Features : [],
+                    target_rows: ((dataSource === 'l2_orderbook' || dataSource === 'hybrid' || dataSource === 'historical_trades') && isDeepTraining)
+                        ? (parseInt(manualTargetRows, 10) || targetRowOptions[targetRowsIndex])
+                        : (dataSource === 'hybrid_deep' ? hybridDeepTargetRows : 0),
+                    l2_features: (dataSource === 'l2_orderbook' || dataSource === 'hybrid' || dataSource === 'hybrid_deep') ? selectedL2Features : [],
                     target_model_id: isRetrainMode ? (retrainModelId || undefined) : undefined,
                     fine_tune: isRetrainMode,
                     // Trade CSV params
@@ -250,12 +278,14 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                     bar_size: dataSource === 'historical_trades' ? tradeBarSize : undefined,
                     volume_threshold: dataSource === 'historical_trades' ? tradeVolumeThreshold : undefined,
                     trade_features: dataSource === 'historical_trades' ? selectedTradeFeatures : undefined,
+                    // Hybrid Deep params (new)
+                    hybrid_deep_trade_features: dataSource === 'hybrid_deep' ? selectedHybridDeepTradeFeatures : undefined,
                 }
             });
             setCurrentJob(job);
-            
-            // Auto-open visualizer for live scraping or hybrid
-            if (isDeepTraining || dataSource === 'hybrid' || dataSource === 'l2_orderbook') {
+
+            // Auto-open visualizer for live scraping, hybrid, or hybrid_deep
+            if (isDeepTraining || dataSource === 'hybrid' || dataSource === 'l2_orderbook' || dataSource === 'hybrid_deep') {
                 setShowVisualizer(true);
             }
         } catch (error) {
@@ -319,7 +349,13 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     };
 
     const handleToggleTradeFeature = (featureInternal: string) => {
-        setSelectedTradeFeatures(prev => 
+        setSelectedTradeFeatures(prev =>
+            prev.includes(featureInternal) ? prev.filter(f => f !== featureInternal) : [...prev, featureInternal]
+        );
+    };
+
+    const handleToggleHybridDeepTradeFeature = (featureInternal: string) => {
+        setSelectedHybridDeepTradeFeatures(prev =>
             prev.includes(featureInternal) ? prev.filter(f => f !== featureInternal) : [...prev, featureInternal]
         );
     };
@@ -431,7 +467,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                             isTraining={isTraining}
                         />
 
-                        {(dataSource === 'ohlcv' || dataSource === 'hybrid' || isResampleL2) && (
+                        {(dataSource === 'ohlcv' || dataSource === 'hybrid' || (dataSource === 'l2_orderbook' && isResampleL2)) && (
                             <div>
                                 <label className="block text-sm font-medium text-slate-300 mb-1">Candle Interval</label>
                                 <div className="grid grid-cols-5 gap-2">
@@ -576,7 +612,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                     Clear L2 Cache
                                 </button>
                             </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-2">
                                 <button
                                     onClick={() => setDataSource('ohlcv')}
                                     disabled={isTraining}
@@ -598,12 +634,24 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                 >
                                     Hybrid (OHLCV + L2)
                                 </button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 mb-5">
                                 <button
                                     onClick={() => setDataSource('historical_trades')}
                                     disabled={isTraining}
                                     className={`py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${dataSource === 'historical_trades' ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-white/5 text-slate-400 hover:bg-white/10 border border-white/5 hover:text-white'}`}
                                 >
                                     Historical Trades (CSV)
+                                </button>
+                                <button
+                                    onClick={() => setDataSource('hybrid_deep')}
+                                    disabled={isTraining}
+                                    className={`py-2.5 rounded-xl text-sm font-bold transition-all duration-300 relative overflow-hidden ${dataSource === 'hybrid_deep' ? 'bg-gradient-to-r from-rose-600 via-red-500 to-orange-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.5)] border border-rose-400/30' : 'bg-white/5 text-slate-400 hover:bg-white/10 border border-white/5 hover:text-white'}`}
+                                >
+                                    {dataSource === 'hybrid_deep' && (
+                                        <span className="absolute inset-0 bg-gradient-to-r from-rose-500/0 via-white/10 to-rose-500/0 animate-pulse" />
+                                    )}
+                                    🔥 Hybrid Deep (L2 + Live Trade)
                                 </button>
                             </div>
                             
@@ -772,8 +820,168 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                     </div>
                                 </div>
                             )}
-                            
+
+                            {/* ── HYBRID DEEP: L2 + Live Trade ─────────────────────────────── */}
+                            {dataSource === 'hybrid_deep' && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="mb-5 space-y-4"
+                                >
+                                    {/* Dual WS Info Badge */}
+                                    <div className="p-4 bg-gradient-to-r from-rose-900/30 to-orange-900/20 rounded-xl border border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.1)] relative overflow-hidden">
+                                        <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-rose-500/50 to-transparent" />
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="flex gap-1.5">
+                                                <div className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+                                                <div className="w-2 h-2 rounded-full bg-orange-400 animate-ping [animation-delay:0.3s]" />
+                                            </div>
+                                            <h4 className="text-sm font-black text-rose-300 tracking-wide">DUAL WEBSOCKET MODE</h4>
+                                        </div>
+                                        <div className="space-y-1.5 text-xs text-slate-400 font-medium ml-6">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-purple-400 font-bold">WS #1:</span>
+                                                <code className="text-purple-300 bg-purple-500/10 px-1.5 py-0.5 rounded text-[10px]">@depth20@100ms</code>
+                                                <span>→ L2 Orderbook Snapshots</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-rose-400 font-bold">WS #2:</span>
+                                                <code className="text-rose-300 bg-rose-500/10 px-1.5 py-0.5 rounded text-[10px]">@aggTrade</code>
+                                                <span>→ Live Executed Trades (per tick)</span>
+                                            </div>
+                                            <p className="text-slate-500 mt-1.5 leading-relaxed">
+                                                One row per aggTrade tick · L2 features forward-filled via as-of merge.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Target Trade Ticks */}
+                                    <div className="p-4 bg-white/5 border border-rose-500/20 rounded-xl space-y-4 shadow-inner">
+                                        <div className="flex justify-between items-center">
+                                            <label className="block text-sm font-medium text-slate-300">Target Trade Ticks (aggTrade)</label>
+                                            <span className="text-sm font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20 font-mono">
+                                                {targetRowOptions[targetRowsIndex].toLocaleString()} Ticks
+                                            </span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={targetRowOptions.length - 1}
+                                            step={1}
+                                            value={targetRowsIndex}
+                                            onChange={(e) => handleSliderChange(parseInt(e.target.value))}
+                                            disabled={isTraining}
+                                            className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                                        />
+                                        <div className="flex justify-between text-[10px] text-slate-500 font-medium -mt-1">
+                                            <span>1K</span><span>50K</span><span>500K</span><span>5M</span><span>50M</span><span>100M</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="relative flex-1">
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    max={100000000}
+                                                    step={1000}
+                                                    value={manualTargetRows}
+                                                    onChange={(e) => handleManualRowInput(e.target.value)}
+                                                    onBlur={() => {
+                                                        const num = parseInt(manualTargetRows.replace(/,/g, ''), 10);
+                                                        if (!isNaN(num) && num > 0) {
+                                                            const clamped = Math.max(1, Math.min(100_000_000, num));
+                                                            setTargetRowsIndex(snapToNearestPreset(clamped));
+                                                            setManualTargetRows(String(clamped));
+                                                        }
+                                                    }}
+                                                    disabled={isTraining}
+                                                    className="w-full bg-black/50 border border-rose-500/30 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:ring-2 focus:ring-rose-500/50 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                />
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-rose-400/60 uppercase pointer-events-none">ticks</span>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-6 gap-1.5">
+                                            {[{label:'1K',val:1_000},{label:'10K',val:10_000},{label:'100K',val:100_000},{label:'1M',val:1_000_000},{label:'10M',val:10_000_000},{label:'100M',val:100_000_000}].map(({label,val}) => {
+                                                const isActive = targetRowOptions[targetRowsIndex] === val;
+                                                return (
+                                                    <button key={label} disabled={isTraining}
+                                                        onClick={() => { const idx = targetRowOptions.indexOf(val); setTargetRowsIndex(idx); setManualTargetRows(String(val)); }}
+                                                        className={`py-1 text-[10px] font-black rounded-lg border transition-all ${isActive ? 'bg-rose-600/30 border-rose-400/60 text-rose-300' : 'bg-black/30 border-white/10 text-slate-400 hover:border-rose-500/40 hover:text-rose-300'}`}
+                                                    >{label}</button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Trade Tick Feature Selector — 12 features */}
+                                    <div className="bg-white/5 border border-rose-500/20 p-5 rounded-2xl shadow-inner">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <div>
+                                                <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
+                                                    <Layers className="w-4 h-4" /> Trade Tick Features
+                                                </h3>
+                                                <p className="text-xs text-slate-400 mt-1">Real aggTrade features — not L2 proxies.</p>
+                                            </div>
+                                            <div className="text-xs font-bold bg-rose-500/10 text-rose-400 px-3 py-1 rounded-full border border-rose-500/20">
+                                                {selectedHybridDeepTradeFeatures.length} / {ALL_HYBRID_DEEP_TRADE_FEATURES.length}
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-2 max-h-[260px] overflow-y-auto pr-1 custom-scrollbar">
+                                            {ALL_HYBRID_DEEP_TRADE_FEATURES.map((feat) => {
+                                                const isSel = selectedHybridDeepTradeFeatures.includes(feat.internal);
+                                                return (
+                                                    <button key={feat.internal}
+                                                        onClick={() => handleToggleHybridDeepTradeFeature(feat.internal)}
+                                                        disabled={isTraining}
+                                                        className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all duration-200 ${isSel ? 'bg-rose-500/10 border-rose-500/30' : 'bg-[#0A0A0A] border-white/5 hover:border-rose-500/20 hover:bg-white/5'}`}
+                                                    >
+                                                        <div className={`w-4 h-4 mt-0.5 rounded-md border flex-shrink-0 flex items-center justify-center ${isSel ? 'bg-rose-500 border-rose-500' : 'border-slate-600'}`}>
+                                                            {isSel && <Check className="w-3 h-3 stroke-[3] text-white" />}
+                                                        </div>
+                                                        <div>
+                                                            <span className={`text-xs font-bold block ${isSel ? 'text-rose-300' : 'text-slate-300'}`}>{feat.name}</span>
+                                                            <span className="text-[10px] text-slate-500 mt-0.5 block">{feat.desc}</span>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* L2 Feature Selector (reused for hybrid_deep) */}
+                                    <div className="p-4 bg-indigo-900/20 border border-indigo-500/30 rounded-2xl shadow-inner">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div>
+                                                <h4 className="text-sm font-black text-indigo-400 flex items-center gap-2">
+                                                    <Activity className="w-4 h-4" /> L2 Orderbook Features
+                                                </h4>
+                                                <p className="text-xs text-slate-400 mt-0.5">Forward-filled from nearest L2 snapshot onto each tick.</p>
+                                            </div>
+                                            <span className="text-xs font-bold bg-indigo-500/10 text-indigo-400 px-2 py-1 rounded-full border border-indigo-500/20">
+                                                {selectedL2Features.length} / {ALL_L2_FEATURES.length}
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
+                                            {ALL_L2_FEATURES.map((feat) => {
+                                                const isSel = selectedL2Features.includes(feat.internal);
+                                                return (
+                                                    <div key={feat.internal}
+                                                        onClick={() => !isTraining && handleToggleL2Feature(feat.internal)}
+                                                        className={`flex items-center gap-2 p-2 rounded border cursor-pointer transition-all ${isSel ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-200' : 'bg-black/30 border-white/5 text-slate-400 hover:bg-white/5'}`}
+                                                    >
+                                                        <div className={`w-3.5 h-3.5 rounded-sm border flex-shrink-0 flex items-center justify-center ${isSel ? 'bg-indigo-500 border-indigo-400' : 'border-white/20'}`}>
+                                                            {isSel && <Check className="w-2.5 h-2.5 text-white" />}
+                                                        </div>
+                                                        <span className="text-[10px] font-medium leading-tight truncate" title={feat.name}>{feat.name}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+
                             {(dataSource === 'l2_orderbook' || dataSource === 'hybrid') && (
+
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-xl border border-purple-500/20 shadow-inner">
                                         <div>
