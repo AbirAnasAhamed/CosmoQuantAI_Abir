@@ -1495,4 +1495,226 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     rgba(139, 92, 246, 0.3),
     rgba(6, 182, 212, 0.1)
   ) 1;
-}
+}
+
+/* ============================================================
+   1366x768 RESOLUTION OPTIMIZATION
+   Safe, additive-only overrides. No existing styles removed.
+   Target: screens with max-width 1366px (laptop HD screens).
+   ============================================================ */
+
+@media screen and (max-width: 1366px) {
+  /* --- Global Font Scale ---
+     Scales the entire UI down proportionally (16px → 14px).
+     rem-based values throughout Tailwind will scale automatically. */
+  html {
+    font-size: 14px;
+  }
+
+  /* --- Sidebar Width Overrides ---
+     Tailwind's w-72 (288px) is too wide for 1366px.
+     Expanded sidebar → 240px, collapsed stays at 80px. */
+  aside.w-72 {
+    width: 220px !important;
+  }
+
+  /* Sidebar logo area: reduce vertical padding */
+  aside .p-6 {
+    padding: 1rem !important;
+  }
+
+  /* Sidebar nav item spacing: tighter */
+  aside nav .mb-8 {
+    margin-bottom: 1.25rem !important;
+  }
+
+  /* Sidebar nav items: smaller padding */
+  aside nav a.px-4.py-3 {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    margin-bottom: 0.125rem !important;
+  }
+
+  /* --- Header Height Override ---
+     Reduce header height from h-16 (64px) to 52px on laptop screens. */
+  header .h-16 {
+    height: 52px !important;
+  }
+
+  header .grid.grid-cols-3 {
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
+  }
+
+  /* --- Main Content Padding ---
+     p-8 (32px) is too much on 1366px. Reduce to p-4 (16px). */
+  main.p-8 {
+    padding: 1rem !important;
+  }
+
+  /* --- Card & Panel Padding ---
+     Most cards use p-6. Reduce to p-4 for compact screens. */
+  .laptop-compact-card {
+    padding: 1rem !important;
+  }
+
+  /* --- Typography Scale ---
+     Reduce large headings slightly so they don't dominate small screens. */
+  .text-2xl {
+    font-size: 1.25rem !important;
+    line-height: 1.75rem !important;
+  }
+
+  .text-3xl {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+  }
+
+  .text-4xl {
+    font-size: 1.75rem !important;
+    line-height: 2.25rem !important;
+  }
+
+  /* --- Grid Adjustments ---
+     3-column grids that are too wide on 1366px → force to 2 columns. */
+  .laptop-grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* --- Gap Reductions ---
+     Large gaps on small screens waste space. */
+  .gap-6 {
+    gap: 1rem !important;
+  }
+
+  .gap-8 {
+    gap: 1.25rem !important;
+  }
+
+  /* --- Stat/KPI Cards ---
+     Common pattern: icon + number + label in a card with p-6. */
+  .stat-card-compact {
+    padding: 0.875rem !important;
+  }
+
+  /* --- Modal / Overlay Sizing ---
+     Ensure modals don't overflow on 1366px screens. */
+  .modal-container {
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+
+  /* --- Table / Data Grid ---
+     Tighten up table cell padding for data-dense pages. */
+  table td,
+  table th {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  /* --- Scrollbar styling for compact screens ---
+     Thinner scrollbar saves horizontal space. */
+  ::-webkit-scrollbar {
+    width: 4px !important;
+    height: 4px !important;
+  }
+}
+
+/* Extra compact: for exactly 1366x768 viewport (browser reports ~1366px) */
+@media screen and (max-width: 1366px) and (max-height: 768px) {
+  html {
+    font-size: 13.5px;
+  }
+
+  /* Sidebar: slightly narrower */
+  aside.w-72 {
+    width: 210px !important;
+  }
+
+  /* Header: even more compact */
+  header .h-16 {
+    height: 48px !important;
+  }
+
+  /* Main content: minimal padding */
+  main.p-8 {
+    padding: 0.75rem !important;
+  }
+
+  /* Nav items: ultra compact */
+  aside nav a.px-4.py-3 {
+    padding-top: 0.375rem !important;
+    padding-bottom: 0.375rem !important;
+  }
+}
+
+/* ============================================================
+   PHASE 2: Deeper Component-Level Optimizations
+   Scoped to main content area — safe, non-destructive rules.
+   ============================================================ */
+
+@media screen and (max-width: 1366px) {
+
+  /* --- Vertical Spacing (space-y-*) ---
+     React's space-y utility adds margin-top to children.
+     We reduce these to keep more content visible on screen. */
+  main .space-y-8 > * + * {
+    margin-top: 1.25rem !important;   /* 32px → 20px */
+  }
+  main .space-y-6 > * + * {
+    margin-top: 0.875rem !important;  /* 24px → 14px */
+  }
+
+  /* --- Section Bottom Margins ---
+     Common mb-6 / mb-4 in card headers waste space on small screens. */
+  main .mb-6 {
+    margin-bottom: 0.75rem !important;
+  }
+  main .mb-4 {
+    margin-bottom: 0.5rem !important;
+  }
+
+  /* --- Chart Heights ---
+     Recharts containers: h-64 and h-72 are very tall on 1366px screens. */
+  main .h-64 {
+    height: 9rem !important;   /* 256px → 144px */
+  }
+  main .h-72 {
+    height: 10rem !important;  /* 288px → 160px */
+  }
+
+  /* --- Order Book Row Density (Market page) ---
+     Make each price row thinner for more visible depth. */
+  .font-mono.py-1.px-2 {
+    padding-top: 0.1rem !important;
+    padding-bottom: 0.1rem !important;
+  }
+
+  /* --- ModelCard icon container ---
+     w-14 h-14 icon is too large on compact cards. */
+  main .w-14.h-14 {
+    width: 2.75rem !important;
+    height: 2.75rem !important;
+  }
+
+  /* --- Modal max-height ---
+     Ensure modals with max-h-[70vh] don't clip content on 768px height. */
+  [class*="max-h-[70vh]"] {
+    max-height: 80vh !important;
+  }
+
+  /* --- Nav category headers ---
+     Reduce spacing between nav groups in sidebar. */
+  aside nav .mb-8:last-child {
+    margin-bottom: 0.5rem !important;
+  }
+
+  /* --- Page content min-height ---
+     Prevent oversized empty areas. */
+  main .min-h-\[calc\(100vh-140px\)\] {
+    min-height: calc(100vh - 80px) !important;
+  }
+}
+

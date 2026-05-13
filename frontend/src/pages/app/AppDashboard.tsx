@@ -319,10 +319,24 @@ const AppDashboard: React.FC<AppDashboardProps> = ({ onLogout }) => {
     const [walletAddress, setWalletAddress] = useState<string | null>(null);
     const [isAssistantOpen, setIsAssistantOpen] = useState(false);
     const [modalView, setModalView] = useState<AppView | null>(null);
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    // Auto-collapse sidebar on laptop/small screens (≤1366px)
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => window.innerWidth <= 1366);
     const prevViewRef = useRef<AppView>(currentView || AppView.DASHBOARD);
 
     // OmniTrade State Removed
+
+    // Sync sidebar collapse state with window resize
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth <= 1366) {
+                setIsSidebarCollapsed(true);
+            } else {
+                setIsSidebarCollapsed(false);
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         if (MODAL_VIEWS.includes(currentView)) {
@@ -427,7 +441,7 @@ const AppDashboard: React.FC<AppDashboardProps> = ({ onLogout }) => {
                     />
                     <div className="flex-1 flex flex-col overflow-hidden relative z-0">
                         <header className="flex-shrink-0 bg-white/80 dark:bg-[#000000]/80 backdrop-blur-md border-b border-gray-200 dark:border-[#1A1A1A]/50 z-10">
-                            <div className="grid grid-cols-3 items-center px-8 h-16">
+                            <div className="grid grid-cols-3 items-center px-8 laptop:px-4 h-16 laptop:h-12">
                                 {/* Left — Page Title */}
                                 <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                                     {viewToRender}
@@ -464,7 +478,7 @@ const AppDashboard: React.FC<AppDashboardProps> = ({ onLogout }) => {
                             </div>
                             {viewToRender === AppView.MARKET && <div className="border-t border-gray-100 dark:border-gray-800"><MarketTicker /></div>}
                         </header>
-                        <main className="flex-1 overflow-y-auto p-8 relative">
+                        <main className="flex-1 overflow-y-auto p-8 laptop:p-4 laptop-h:p-3 relative">
                             {renderContent()}
                         </main>
                     </div>

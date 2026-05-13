@@ -11,6 +11,13 @@ export default {
     ],
     theme: {
         extend: {
+            screens: {
+                // Custom laptop breakpoint — targets screens ≤1366px wide.
+                // Usage: className="laptop:p-4 laptop:text-sm"
+                // Note: 'laptop' is a max-width breakpoint (mobile-first reversed).
+                'laptop': { 'max': '1366px' },
+                'laptop-h': { 'raw': '(max-width: 1366px) and (max-height: 768px)' },
+            },
             fontFamily: {
                 sans: ['Inter', 'sans-serif'],
             },
@@ -82,7 +89,7 @@ export default {
                 }
             },
             gridTemplateColumns: {
-                // আগে ছিল 40px, এখন বাড়িয়ে 60px করা হলো
+                // আগে ছিল 40px, এখন বাড়িয়ে 60px করা হলো
                 '13': 'minmax(60px, 0.5fr) repeat(12, minmax(0, 1fr))',
             }
         }

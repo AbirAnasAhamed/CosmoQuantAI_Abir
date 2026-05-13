@@ -631,7 +631,7 @@ const Market: React.FC = () => {
             <div className="flex-shrink-0 staggered-fade-in bg-white dark:bg-[#0A0A0A] rounded-2xl border border-brand-border-light dark:border-[#1A1A1A] p-4 shadow-lg relative overflow-hidden">
                 <div className={`absolute top-0 right-0 w-96 h-full bg-gradient-to-l ${isPositive ? 'from-emerald-500/10' : 'from-rose-500/10'} to-transparent pointer-events-none`}></div>
 
-                <div className="flex flex-wrap items-center justify-between gap-6 relative z-10">
+                <div className="flex flex-wrap items-center justify-between gap-6 laptop:gap-3 relative z-10">
                     {/* Left: Symbol & Selector */}
                     <div className="flex items-center gap-4">
                         <div className="relative group cursor-pointer" onClick={() => setIsModalOpen(true)}>
@@ -642,7 +642,7 @@ const Market: React.FC = () => {
                             <div className="absolute inset-0 rounded-xl bg-black/0 group-hover:bg-black/10 dark:group-hover:bg-white/5 transition-colors"></div>
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                            <h2 className="text-2xl laptop:text-lg font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                                 {activePair}
                                 <span className="text-xs font-medium px-2 py-0.5 rounded bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400">PERP</span>
                             </h2>
@@ -653,14 +653,14 @@ const Market: React.FC = () => {
                     {/* Center: Price Ticker */}
                     <div className="flex-1 text-center md:text-left flex items-center justify-center md:justify-start gap-8">
                         <div>
-                            <p className={`text-3xl font-mono font-bold transition-colors duration-300 ${priceUpdateStatus === 'up' ? 'text-emerald-400' : priceUpdateStatus === 'down' ? 'text-rose-400' : 'text-slate-900 dark:text-white'}`}>
+                            <p className={`text-3xl laptop:text-xl font-mono font-bold transition-colors duration-300 ${priceUpdateStatus === 'up' ? 'text-emerald-400' : priceUpdateStatus === 'down' ? 'text-rose-400' : 'text-slate-900 dark:text-white'}`}>
                                 ${lastPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                             <p className={`text-sm font-medium flex items-center gap-1 justify-center md:justify-start ${isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
                                 {isPositive ? '▲' : '▼'} ${Math.abs(change24h).toFixed(2)} ({Math.abs(changePercent24h).toFixed(2)}%)
                             </p>
                         </div>
-                        <div className="hidden lg:flex gap-8 text-sm">
+                        <div className="hidden lg:flex gap-8 laptop:gap-4 text-sm">
                             <div>
                                 <p className="text-gray-400 text-xs uppercase">24h High</p>
                                 <p className="font-mono text-slate-900 dark:text-white">${high24h.toLocaleString()}</p>

@@ -75,7 +75,7 @@ const KpiCard: React.FC<{
     animationDelay: number
 }> = ({ title, value, isCurrency = false, change, icon, colorClass, animationDelay }) => (
     <div
-        className={`relative group p-6 rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl staggered-fade-in`}
+        className={`relative group p-6 laptop:p-3 rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl staggered-fade-in`}
         style={{ animationDelay: `${animationDelay}ms` }}
     >
         {/* Background Glow */}
@@ -84,7 +84,7 @@ const KpiCard: React.FC<{
         <div className="flex justify-between items-start relative z-10">
             <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{title}</p>
-                <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-2">
+                <h3 className="text-3xl laptop:text-2xl font-extrabold text-slate-900 dark:text-white mt-2">
                     <AnimatedNumber value={value} isCurrency={isCurrency} />
                 </h3>
                 {change !== undefined && (
@@ -235,7 +235,7 @@ const Dashboard: React.FC = () => {
     }
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 laptop:space-y-4">
 
             {/* Welcome Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in-down">
@@ -257,7 +257,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* KPI Grid - Bento Style */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 laptop:gap-3">
                 <KpiCard
                     title="Total Equity"
                     value={totalPortfolioValue}
@@ -294,9 +294,9 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 laptop:gap-4">
                 {/* Main Area Chart */}
-                <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 shadow-lg staggered-fade-in" style={{ animationDelay: '500ms' }}>
+                <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 laptop:p-4 shadow-lg staggered-fade-in" style={{ animationDelay: '500ms' }}>
                     <div className="flex justify-between items-center mb-6">
                         <div>
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white">Portfolio Performance</h2>
@@ -318,7 +318,7 @@ const Dashboard: React.FC = () => {
                             ))}
                         </div>
                     </div>
-                    <div className="h-80 w-full min-h-[300px]">
+                    <div className="h-80 laptop:h-52 w-full min-h-[300px] laptop:min-h-[200px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={portfolioValueData}>
                                 <defs>
@@ -346,9 +346,9 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {/* Asset Allocation Donut */}
-                <div className="lg:col-span-1 rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 shadow-lg flex flex-col staggered-fade-in" style={{ animationDelay: '600ms' }}>
+                <div className="lg:col-span-1 rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 laptop:p-4 shadow-lg flex flex-col staggered-fade-in" style={{ animationDelay: '600ms' }}>
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Allocation</h2>
-                    <div className="flex-1 relative min-h-[300px]" style={{ minHeight: '300px' }}>
+                    <div className="flex-1 relative min-h-[300px] laptop:min-h-[180px]" style={{ minHeight: '180px' }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
@@ -378,10 +378,10 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Bottom Section Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 laptop:gap-4">
 
                 {/* Active Bots Command Center */}
-                <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 shadow-lg staggered-fade-in" style={{ animationDelay: '700ms' }}>
+                <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 laptop:p-4 shadow-lg staggered-fade-in" style={{ animationDelay: '700ms' }}>
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                             <CpuIcon className="w-5 h-5 text-brand-primary" /> Active Bot Matrix
@@ -430,7 +430,7 @@ const Dashboard: React.FC = () => {
                     <SystemHealthWidget />
 
                     {/* Quick Actions */}
-                    <div className="rounded-2xl bg-gradient-to-br from-brand-primary to-purple-600 p-6 shadow-lg text-white staggered-fade-in" style={{ animationDelay: '800ms' }}>
+                    <div className="rounded-2xl bg-gradient-to-br from-brand-primary to-purple-600 p-6 laptop:p-4 shadow-lg text-white staggered-fade-in" style={{ animationDelay: '800ms' }}>
                         <h2 className="text-lg font-bold mb-4">Quick Launch</h2>
                         <div className="grid grid-cols-2 gap-3">
                             <QuickActionBtn icon={<BotLabIcon />} label="New Bot" />
@@ -442,7 +442,7 @@ const Dashboard: React.FC = () => {
 
 
                     {/* Risk Analysis Card */}
-                    <div className="rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 shadow-lg staggered-fade-in" style={{ animationDelay: '850ms' }}>
+                    <div className="rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 laptop:p-4 shadow-lg staggered-fade-in" style={{ animationDelay: '850ms' }}>
                         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Risk Analysis</h2>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-3 bg-gray-50 dark:bg-[#000000]/50 rounded-xl">
@@ -472,7 +472,7 @@ const Dashboard: React.FC = () => {
                     <WhaleMovementWidget />
 
                     {/* Recent Log */}
-                    <div className="rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 shadow-lg flex-1 staggered-fade-in" style={{ animationDelay: '900ms' }}>
+                    <div className="rounded-2xl bg-white dark:bg-[#0A0A0A] border border-brand-border-light dark:border-[#1A1A1A] p-6 laptop:p-4 shadow-lg flex-1 staggered-fade-in" style={{ animationDelay: '900ms' }}>
                         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Recent Backtests</h2>
                         <div className="space-y-3">
                             {recentBacktests.length > 0 ? recentBacktests.slice(0, 3).map(result => (

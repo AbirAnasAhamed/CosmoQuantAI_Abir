@@ -632,7 +632,7 @@ const ModelCard: React.FC<{
             {/* Top Glow */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-            <div className="p-6 relative z-10">
+            <div className="p-6 laptop:p-4 relative z-10">
                 {/* Header */}
                 <div className="flex justify-between items-start mb-6">
                     <div className="flex items-center gap-4">
@@ -826,14 +826,14 @@ const CustomMLModels: React.FC<{ onNavigate?: (view: AppView, section?: string) 
             {modalState.isOpen && <UploadModelModal onClose={() => setModalState({ isOpen: false })} onUpload={handleUpload} existingModel={modalState.modelToUpdate} />}
             {detailsModalState.isOpen && <ModelDetailsModal modelId={detailsModalState.modelId} modelName={detailsModalState.modelName} onClose={() => setDetailsModalState({ ...detailsModalState, isOpen: false })} />}
 
-            <div className="relative z-10 flex flex-col gap-8">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/80 dark:bg-[#0A0A0A]/60 backdrop-blur-lg border border-gray-200 dark:border-gray-800 p-6 rounded-2xl shadow-lg">
+            <div className="relative z-10 flex flex-col gap-8 laptop:gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/80 dark:bg-[#0A0A0A]/60 backdrop-blur-lg border border-gray-200 dark:border-gray-800 p-6 laptop:p-4 rounded-2xl shadow-lg">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-gradient-to-br from-brand-primary to-purple-600 rounded-xl shadow-lg shadow-brand-primary/20 text-white">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
                         </div>
                         <div>
-                            <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Quant Model Registry</h2>
+                            <h2 className="text-3xl laptop:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Quant Model Registry</h2>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Manage predictive models, track version efficacy, and deploy to Bot Lab.</p>
                         </div>
                     </div>
@@ -847,7 +847,7 @@ const CustomMLModels: React.FC<{ onNavigate?: (view: AppView, section?: string) 
                     </Button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 laptop:gap-4">
                     {isLoading ? (
                         <div className="col-span-full flex justify-center py-20">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary"></div>
@@ -870,7 +870,7 @@ const CustomMLModels: React.FC<{ onNavigate?: (view: AppView, section?: string) 
                             {/* Add New Placeholder */}
                             <button
                                 onClick={() => setModalState({ isOpen: true })}
-                                className="group relative border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center p-10 text-center hover:border-brand-primary hover:bg-brand-primary/5 transition-all duration-300 min-h-[300px]"
+                                className="group relative border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center p-10 laptop:p-5 text-center hover:border-brand-primary hover:bg-brand-primary/5 transition-all duration-300 min-h-[300px] laptop:min-h-[200px]"
                             >
                                 <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-inner">
                                     <svg className="w-8 h-8 text-gray-400 group-hover:text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
