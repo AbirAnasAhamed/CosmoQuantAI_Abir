@@ -52,6 +52,16 @@ def calculate_plp_features(df: pd.DataFrame, selected_features: list) -> pd.Data
     # MODULE 1: Liquidity Cluster & Density Module
     # ─────────────────────────────────────────────────────────────────────────
     
+    if 'abs_long_liq_pool' in selected_features:
+        # Proxy: Accumulate volume on down-ticks (trapped longs)
+        down_vol = qty.where(returns < 0, 0.0)
+        df['abs_long_liq_pool'] = down_vol.rolling(50, min_periods=1).sum()
+
+    if 'abs_short_liq_pool' in selected_features:
+        # Proxy: Accumulate volume on up-ticks (trapped shorts)
+        up_vol = qty.where(returns > 0, 0.0)
+        df['abs_short_liq_pool'] = up_vol.rolling(50, min_periods=1).sum()
+        
     if 'liquidation_density_z_score' in selected_features:
         # Proxy: Sharp price move + High volume spike
         vol_z = (qty - vol_mean_20) / (vol_std_20 + 1e-9)
@@ -224,6 +234,11 @@ def calculate_plp_features(df: pd.DataFrame, selected_features: list) -> pd.Data
     if 'oi_wipeout_ratio' in selected_features:
         # Proxy: Massive volume spike + extreme return
         df['oi_wipeout_ratio'] = (qty / (vol_mean_20 + 1e-9)) * (returns.abs() / (price_std_20 + 1e-9))
+
+    if 'funding_rate_shift' in selected_features:
+        # Proxy: Sustained unidirectional returns reversing
+        trend = returns.rolling(50).mean()
+        df['funding_rate_shift'] = np.where(trend * returns < 0, 1.0, 0.0)
 
     if 'funding_rate_shift_pre_liq' in selected_features:
         # Proxy: Sustained unidirectional returns reversing
