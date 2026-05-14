@@ -94,7 +94,10 @@ class FractionalPercentSizer(bt.Sizer):
     def _getsizing(self, comminfo, cash, data, isbuy):
         position = self.broker.getposition(data)
         if position.size == 0:
-            size = self.broker.get_value() * (self.params.percents / 100) / data.close[0]
+            close_price = data.close[0]
+            if close_price <= 0:
+                return 0
+            size = self.broker.get_value() * (self.params.percents / 100) / close_price
             return size
         return position.size
 
