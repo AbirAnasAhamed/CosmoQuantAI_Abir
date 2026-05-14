@@ -155,7 +155,7 @@ def predict(model_id: str, symbol_override: Optional[str], db: Session) -> dict:
 
     # ── 8. Run Inference ─────────────────────────────────────────────────────
     signal_str, confidence = _run_inference(
-        model_path, algorithm, last_row_scaled, prediction_target
+        model_path, algorithm, last_row_scaled, prediction_target, features
     )
 
     return {
@@ -289,7 +289,7 @@ def _calculate_indicators(df: pd.DataFrame, indicators: list) -> pd.DataFrame:
     return df
 
 
-def _run_inference(model_path: str, algorithm: str, X: np.ndarray, prediction_target: str):
+def _run_inference(model_path: str, algorithm: str, X: np.ndarray, prediction_target: str, features: list = None):
     """
     Load model and run inference. Returns (signal_str, confidence).
     signal_str : "BUY", "SELL", or "HOLD"
@@ -298,13 +298,13 @@ def _run_inference(model_path: str, algorithm: str, X: np.ndarray, prediction_ta
     if algorithm in DEEP_LEARNING_ALGOS:
         return _infer_torch(model_path, algorithm, X, prediction_target)
     elif algorithm in SKLEARN_ALGOS:
-        return _infer_sklearn(model_path, X, prediction_target)
+        return _infer_sklearn(model_path, X, prediction_target, features)
     elif algorithm == "PPO-RL":
         return "HOLD", 0.5
     else:
         # Unknown — try sklearn first, then torch
         try:
-            return _infer_sklearn(model_path, X, prediction_target)
+            return _infer_sklearn(model_path, X, prediction_target, features)
         except Exception:
             try:
                 pt_path = model_path.replace(".pkl", ".pt")
@@ -313,23 +313,32 @@ def _run_inference(model_path: str, algorithm: str, X: np.ndarray, prediction_ta
                 return "HOLD", 0.5
 
 
-def _infer_sklearn(model_path: str, X: np.ndarray, prediction_target: str):
+def _infer_sklearn(model_path: str, X: np.ndarray, prediction_target: str, features: list = None):
     """Inference for sklearn-compatible models."""
     model = joblib.load(model_path)
 
+    # ── Wrap X in DataFrame with feature names to suppress sklearn warning ─────
+    # sklearn warns when model was fitted with feature names but gets a numpy array
+    if features is not None:
+        try:
+            X_input = pd.DataFrame(X, columns=features[:X.shape[1]])
+        except Exception:
+            X_input = X  # Fallback to numpy if column count mismatch
+    else:
+        X_input = X
+
     if prediction_target == "classification":
         if hasattr(model, 'predict_proba'):
-            proba = model.predict_proba(X)[0]
+            proba = model.predict_proba(X_input)[0]
             label = int(np.argmax(proba))
             confidence = float(proba[label])
         else:
-            label = int(model.predict(X)[0])
+            label = int(model.predict(X_input)[0])
             confidence = 0.6
 
         signal_str = "BUY" if label == 1 else "SELL"
     else:
-        pred = float(model.predict(X)[0])
-        # Regression: interpret relative to threshold
+        pred = float(model.predict(X_input)[0])
         signal_str = "BUY" if pred > 0 else "SELL"
         confidence = min(0.95, abs(pred))
 
