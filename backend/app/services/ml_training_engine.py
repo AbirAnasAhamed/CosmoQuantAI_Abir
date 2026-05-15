@@ -1711,22 +1711,22 @@ def train_model_task(job_id: str, db: Session):
             log_summary = "\n".join(logs_array[-5:]) if logs_array else "No logs available."
             
             msg = (
-                f"🤖 *মডেল ট্রেনিং সম্পন্ন হয়েছে!*\n"
+                f"🤖 <b>মডেল ট্রেনিং সম্পন্ন হয়েছে!</b>\n"
                 f"━━━━━━━━━━━━━━━━━━\n"
-                f"📦 *পেয়ার/সিম্বল:* {job.symbol} ({job.timeframe})\n"
-                f"🧠 *অ্যালগরিদম:* {job.algorithm}\n"
+                f"📦 <b>পেয়ার/সিম্বল:</b> {job.symbol} ({job.timeframe})\n"
+                f"🧠 <b>অ্যালগরিদম:</b> {job.algorithm}\n"
                 f"━━━━━━━━━━━━━━━━━━\n"
-                f"⚙️ *কনফিগারেশন:*\n{config_str}\n"
+                f"⚙️ <b>কনফিগারেশন:</b>\n{config_str}\n"
                 f"━━━━━━━━━━━━━━━━━━\n"
-                f"📊 *মডেলের পারফরম্যান্স:*\n{metrics_str}\n"
+                f"📊 <b>মডেলের পারফরম্যান্স:</b>\n{metrics_str}\n"
                 f"━━━━━━━━━━━━━━━━━━\n"
-                f"📝 *লাইভ কনসোল আউটপুট:*\n```text\n{log_summary}\n```"
+                f"📝 <b>লাইভ কনসোল আউটপুট:</b>\n<pre>\n{log_summary}\n</pre>"
             )
             
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             loop.run_until_complete(
-                NotificationService.send_message(db, job.user_id, msg, parse_mode="Markdown")
+                NotificationService.send_message(db, job.user_id, msg, parse_mode="HTML")
             )
             loop.close()
         except Exception as notif_ex:
@@ -1751,18 +1751,18 @@ def train_model_task(job_id: str, db: Session):
                         pass
             
             msg = (
-                f"🛑 *ট্রেনিং বন্ধ করা হয়েছে!*\n"
+                f"🛑 <b>ট্রেনিং বন্ধ করা হয়েছে!</b>\n"
                 f"━━━━━━━━━━━━━━━━━━\n"
-                f"📦 *পেয়ার/সিম্বল:* `{job.symbol}` ({job.timeframe})\n"
-                f"🧠 *অ্যালগরিদম:* {job.algorithm}\n"
-                f"📊 *সংগ্রহিত ডেটা:* {rows_scraped} rows\n"
+                f"📦 <b>পেয়ার/সিম্বল:</b> {job.symbol} ({job.timeframe})\n"
+                f"🧠 <b>অ্যালগরিদম:</b> {job.algorithm}\n"
+                f"📊 <b>সংগ্রহিত ডেটা:</b> {rows_scraped} rows\n"
                 f"━━━━━━━━━━━━━━━━━━\n"
                 f"ℹ️ ব্যবহারকারী ম্যানুয়ালি ট্রেনিং বাতিল করেছেন।"
             )
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             loop.run_until_complete(
-                NotificationService.send_message(db, job.user_id, msg, parse_mode="Markdown")
+                NotificationService.send_message(db, job.user_id, msg, parse_mode="HTML")
             )
             loop.close()
         except Exception as notif_ex:
@@ -1784,19 +1784,19 @@ def train_model_task(job_id: str, db: Session):
             log_summary = "\n".join(logs_array[-5:]) if logs_array else "No logs available."
             
             msg = (
-                f"❌ *মডেল ট্রেনিং ব্যর্থ হয়েছে!*\n"
+                f"❌ <b>মডেল ট্রেনিং ব্যর্থ হয়েছে!</b>\n"
                 f"━━━━━━━━━━━━━━━━━━\n"
-                f"📦 *পেয়ার/সিম্বল:* {job.symbol} ({job.timeframe})\n"
-                f"🧠 *অ্যালগরিদম:* {job.algorithm}\n"
-                f"⚠️ *এরর (Error):* {str(e)[:200]}\n"
+                f"📦 <b>পেয়ার/সিম্বল:</b> {job.symbol} ({job.timeframe})\n"
+                f"🧠 <b>অ্যালগরিদম:</b> {job.algorithm}\n"
+                f"⚠️ <b>এরর (Error):</b> {str(e)[:200]}\n"
                 f"━━━━━━━━━━━━━━━━━━\n"
-                f"📝 *লাইভ কনসোল আউটপুট:*\n```text\n{log_summary}\n```"
+                f"📝 <b>লাইভ কনসোল আউটপুট:</b>\n<pre>\n{log_summary}\n</pre>"
             )
             
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             loop.run_until_complete(
-                NotificationService.send_message(db, job.user_id, msg, parse_mode="Markdown")
+                NotificationService.send_message(db, job.user_id, msg, parse_mode="HTML")
             )
             loop.close()
         except Exception as notif_ex:
