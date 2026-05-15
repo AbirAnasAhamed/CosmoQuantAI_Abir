@@ -90,7 +90,7 @@ def run_post_training_backtest(
 
 def _generate_signals(model, algorithm: str, X_test: np.ndarray, prediction_target: str, add_log: Callable):
     """Generate binary signals (0/1) from the trained model."""
-    DEEP_LEARNING_ALGOS = {"LSTM", "GRU", "1D-CNN", "DeepLOB", "Transformer"}
+    DEEP_LEARNING_ALGOS = {"LSTM", "GRU", "1D-CNN", "DeepLOB", "Transformer", "TCN", "TabNet", "Auto-Encoder"}
 
     try:
         import pandas as pd
@@ -98,10 +98,14 @@ def _generate_signals(model, algorithm: str, X_test: np.ndarray, prediction_targ
         # (X_test is already scaled numpy, columns are ordered correctly)
 
         if algorithm in DEEP_LEARNING_ALGOS:
+            if algorithm == "Auto-Encoder":
+                add_log("[Post-Backtest] Auto-Encoder anomaly backtesting not supported yet. Skipped.")
+                return None
+                
             import torch
             model.eval()
             with torch.no_grad():
-                if algorithm in ["LSTM", "GRU"]:
+                if algorithm in ["LSTM", "GRU", "TCN"]:
                     X_t = torch.FloatTensor(X_test).unsqueeze(1)
                 else:
                     X_t = torch.FloatTensor(X_test)
