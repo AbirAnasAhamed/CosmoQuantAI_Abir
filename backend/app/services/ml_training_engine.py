@@ -780,6 +780,11 @@ def train_model_task(job_id: str, db: Session):
             else:
                 y_scaled = y.reshape(-1, 1)
         
+        # FIX: Create a scaled DataFrame for Advanced ML Engine
+        df_scaled = df.copy()
+        df_scaled[features] = X_scaled
+        df_scaled['Target'] = y_scaled.ravel()
+        
         split = int(len(X) * 0.8)
         X_train, X_test = X_scaled[:split], X_scaled[split:]
         y_train, y_test = y_scaled[:split], y_scaled[split:]
@@ -1343,7 +1348,7 @@ def train_model_task(job_id: str, db: Session):
             add_log("🚀 Routing to Advanced ML Engine: Transformer...")
             try:
                 model, model_path, metrics = AdvancedMLEngine.train_transformer(
-                    job, df, features, db, add_log,
+                    job, df_scaled, features, db, add_log,
                     previous_model_path=_prev_path if is_fine_tune else None
                 )
                 final_latency = 5.0
@@ -1358,7 +1363,7 @@ def train_model_task(job_id: str, db: Session):
             add_log("🚀 Routing to Advanced ML Engine: TCN...")
             try:
                 model, model_path, metrics = AdvancedMLEngine.train_tcn(
-                    job, df, features, db, add_log,
+                    job, df_scaled, features, db, add_log,
                     previous_model_path=_prev_path if is_fine_tune else None
                 )
                 final_latency = 3.0
@@ -1373,7 +1378,7 @@ def train_model_task(job_id: str, db: Session):
             add_log("🚀 Routing to Advanced ML Engine: TabNet...")
             try:
                 model, model_path, metrics = AdvancedMLEngine.train_tabnet(
-                    job, df, features, db, add_log,
+                    job, df_scaled, features, db, add_log,
                     previous_model_path=_prev_path if is_fine_tune else None
                 )
                 final_latency = 4.0
@@ -1388,7 +1393,7 @@ def train_model_task(job_id: str, db: Session):
             add_log("🚀 Routing to Advanced ML Engine: Auto-Encoder (Anomaly Detection)...")
             try:
                 model, model_path, metrics = AdvancedMLEngine.train_autoencoder(
-                    job, df, features, db, add_log,
+                    job, df_scaled, features, db, add_log,
                     previous_model_path=_prev_path if is_fine_tune else None
                 )
                 final_latency = 2.0

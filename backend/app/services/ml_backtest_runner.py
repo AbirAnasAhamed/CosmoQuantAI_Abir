@@ -99,23 +99,33 @@ def _generate_signals(model, algorithm: str, X_test: np.ndarray, prediction_targ
 
         if algorithm in DEEP_LEARNING_ALGOS:
             if algorithm == "Auto-Encoder":
-                add_log("[Post-Backtest] Auto-Encoder anomaly backtesting not supported yet. Skipped.")
-                return None
-                
-            import torch
-            model.eval()
-            with torch.no_grad():
-                if algorithm in ["LSTM", "GRU", "TCN"]:
-                    X_t = torch.FloatTensor(X_test).unsqueeze(1)
-                else:
+                import torch
+                model.eval()
+                with torch.no_grad():
                     X_t = torch.FloatTensor(X_test)
-                out = model(X_t).numpy().flatten()
-
-            if prediction_target == "classification":
-                signals = (1 / (1 + np.exp(-out)) > 0.5).astype(int).tolist()
+                    reconstructed = model(X_t)
+                    mse = torch.mean((reconstructed - X_t) ** 2, dim=1).numpy()
+                
+                # Use the top 20% highest MSE values as anomalies
+                threshold = np.percentile(mse, 80)
+                signals = (mse > threshold).astype(int).tolist()
+                add_log(f"[Post-Backtest] Auto-Encoder Anomaly Threshold (80th percentile) set to: {threshold:.6f}")
+                
             else:
-                # For regression: signal=1 if predicted value is positive momentum
-                signals = (out > np.median(out)).astype(int).tolist()
+                import torch
+                model.eval()
+                with torch.no_grad():
+                    if algorithm in ["LSTM", "GRU", "TCN"]:
+                        X_t = torch.FloatTensor(X_test).unsqueeze(1)
+                    else:
+                        X_t = torch.FloatTensor(X_test)
+                    out = model(X_t).numpy().flatten()
+
+                if prediction_target == "classification":
+                    signals = (1 / (1 + np.exp(-out)) > 0.5).astype(int).tolist()
+                else:
+                    # For regression: signal=1 if predicted value is positive momentum
+                    signals = (out > np.median(out)).astype(int).tolist()
 
         elif algorithm == "PPO-RL":
             add_log("[Post-Backtest] PPO-RL backtest via signal replay not supported. Skipped.")

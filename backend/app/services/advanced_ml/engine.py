@@ -39,7 +39,7 @@ class AdvancedMLEngine:
             add_log(error_msg)
             raise Exception(error_msg)
 
-        target_col = "Target_Up" if config.get("prediction_target") == "classification" else "Target_Return"
+        target_col = "Target"
         X, y = AdvancedDataHandler.create_sequences(df, features, sequence_length=seq_len, target_col=target_col)
         
         split = int(len(X) * 0.8)
@@ -133,7 +133,7 @@ class AdvancedMLEngine:
         batch_size = 64
         
         add_log(f"Preparing sequence data for TCN (Window Size: {seq_len})...")
-        target_col = "Target_Up" if config.get("prediction_target") == "classification" else "Target_Return"
+        target_col = "Target"
         X, y = AdvancedDataHandler.create_sequences(df, features, sequence_length=seq_len, target_col=target_col)
         
         split = int(len(X) * 0.8)
@@ -202,7 +202,7 @@ class AdvancedMLEngine:
         batch_size = 64
         
         X = df[features].fillna(0).values
-        y = np.where(df['Target_Up'] == 1, 1, 0) if config.get("prediction_target") == "classification" else df['Target_Return'].fillna(0).values
+        y = df['Target'].fillna(0).values
         
         split = int(len(X) * 0.8)
         X_train, X_test = torch.FloatTensor(X[:split]), torch.FloatTensor(X[split:])

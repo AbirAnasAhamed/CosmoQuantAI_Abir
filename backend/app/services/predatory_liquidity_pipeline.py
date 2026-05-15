@@ -48,6 +48,10 @@ def calculate_plp_features(df: pd.DataFrame, selected_features: list) -> pd.Data
     price_std_20 = close.rolling(window=20, min_periods=1).std().fillna(1e-9)
     returns = close.pct_change().fillna(0)
     
+    # Rolling Spread metrics
+    spread_mean = spread.rolling(20, min_periods=1).mean()
+    spread_std = spread.rolling(20, min_periods=1).std().fillna(1e-9)
+    
     # ─────────────────────────────────────────────────────────────────────────
     # MODULE 1: Liquidity Cluster & Density Module
     # ─────────────────────────────────────────────────────────────────────────
@@ -70,8 +74,6 @@ def calculate_plp_features(df: pd.DataFrame, selected_features: list) -> pd.Data
         
     if 'leverage_washout_z_score' in selected_features:
         # Proxy: Sudden spread widening + volume
-        spread_mean = spread.rolling(20, min_periods=1).mean()
-        spread_std = spread.rolling(20, min_periods=1).std().fillna(1e-9)
         spread_z = (spread - spread_mean) / (spread_std + 1e-9)
         df['leverage_washout_z_score'] = spread_z.clip(lower=0) * (qty / (vol_mean_20 + 1e-9))
         

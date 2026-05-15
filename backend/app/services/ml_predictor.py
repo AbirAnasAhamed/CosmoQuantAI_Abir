@@ -136,6 +136,38 @@ def predict(model_id: str, symbol_override: Optional[str], db: Session) -> dict:
         except Exception as e:
             print(f"[ml_predictor] Failed to calculate PLP features: {e}")
 
+    # ── 5.5 Fetch Recent Trades for Hybrid/Trade features ─────────────────────
+    trade_features = {'cvd', 'buy_volume', 'sell_volume', 'trade_count', 'aggressor_ratio', 'large_trade_flag', 'vwap_deviation', 'trade_imbalance_ratio', 'tick_speed', 'price_impact', 'rolling_cvd_5', 'rolling_cvd_20'}
+    missing_trade_feats = [f for f in features if f in trade_features and f not in df.columns]
+    
+    if missing_trade_feats:
+        try:
+            import ccxt
+            exchange = ccxt.binance({'enableRateLimit': True})
+            trades = exchange.fetch_trades(symbol, limit=1000)
+            if trades:
+                t_data = []
+                for t in trades:
+                    t_data.append({
+                        'timestamp': pd.to_datetime(t['timestamp'], unit='ms'),
+                        'price': float(t['price']),
+                        'qty': float(t['amount']),
+                        'is_buyer_maker': t['side'] == 'sell'
+                    })
+                df_trades = pd.DataFrame(t_data)
+                df_trades.set_index('timestamp', inplace=True)
+                
+                from app.services.hybrid_deep_pipeline import calculate_trade_tick_features
+                df_trades = calculate_trade_tick_features(df_trades, missing_trade_feats)
+                
+                # Take the last row of the engineered trade features and append to our main df
+                last_trade_row = df_trades.iloc[-1]
+                for col in missing_trade_feats:
+                    if col in df_trades.columns:
+                        df[col] = last_trade_row[col]
+        except Exception as e:
+            print(f"[ml_predictor] Failed to fetch live trades: {e}")
+
     # ── 6. Prepare Feature Row ───────────────────────────────────────────────
     # Take the last available row for prediction
     available_features = [f for f in features if f in df.columns]
@@ -161,7 +193,8 @@ def predict(model_id: str, symbol_override: Optional[str], db: Session) -> dict:
 
     # ── 5. Run Inference ─────────────────────────────────────────────────────
     try:
-        X = df[features].fillna(0).values[-1].reshape(1, -1)
+        # FIX: Use `last_row` instead of `df[features]` to avoid KeyError for missing/padded columns
+        X = last_row
         
         # Scale
         if scaler_x is not None:
@@ -173,6 +206,21 @@ def predict(model_id: str, symbol_override: Optional[str], db: Session) -> dict:
             anomaly_threshold = version.explainability.get("anomaly_threshold")
 
         signal_str, confidence = _run_inference(model_path, algorithm, X, prediction_target, features, anomaly_threshold)
+        
+        # Post-process Auto-Encoder signal with momentum heuristic
+        if algorithm == "Auto-Encoder" and signal_str == "Market can sudden crash":
+            try:
+                if 'Close' in df.columns:
+                    returns = df['Close'].pct_change().dropna().tail(10)
+                    if returns.sum() > 0:
+                        signal_str = "CRASH RISK"  # Anomaly during uptrend -> Crash
+                    else:
+                        signal_str = "PUMP RISK"   # Anomaly during downtrend -> Pump
+            except Exception:
+                signal_str = "ANOMALY"
+        elif algorithm == "Auto-Encoder":
+            signal_str = "NORMAL"
+            
     except Exception as e:
         print(f"[ml_predictor] Inference error: {e}")
         signal_str, confidence = "HOLD", 0.0

@@ -215,7 +215,23 @@ const SignalModal: React.FC<{
             glow:        'rgba(245,158,11,0.15)',
         },
     };
-    const cfg = cfgMap[result.signal];
+    
+    // Fallback for custom signals (like Auto-Encoder anomaly strings)
+    const signalUpper = result.signal.toUpperCase();
+    const isCrash = signalUpper.includes('CRASH');
+    const isPump = signalUpper.includes('PUMP');
+    const cfg = cfgMap[result.signal as keyof typeof cfgMap] || {
+        outerGlow:   isCrash ? 'shadow-rose-500/30' : isPump ? 'shadow-emerald-500/30' : 'shadow-cyan-500/30',
+        ring:        isCrash ? 'from-rose-400 to-pink-300' : isPump ? 'from-emerald-400 to-teal-300' : 'from-cyan-400 to-blue-300',
+        ringBg:      isCrash ? 'bg-rose-500/10' : isPump ? 'bg-emerald-500/10' : 'bg-cyan-500/10',
+        border:      isCrash ? 'border-rose-500/30' : isPump ? 'border-emerald-500/30' : 'border-cyan-500/30',
+        text:        isCrash ? 'text-rose-400' : isPump ? 'text-emerald-400' : 'text-cyan-400',
+        badge:       isCrash ? 'bg-rose-500/20 border-rose-500/40' : isPump ? 'bg-emerald-500/20 border-emerald-500/40' : 'bg-cyan-500/20 border-cyan-500/40',
+        accent:      isCrash ? 'from-rose-500 via-pink-400 to-rose-600' : isPump ? 'from-emerald-500 via-teal-400 to-emerald-600' : 'from-cyan-500 via-blue-400 to-cyan-600',
+        label:       result.signal.toUpperCase(),
+        icon:        isCrash ? '▼' : isPump ? '▲' : '⚡',
+        glow:        isCrash ? 'rgba(244,63,94,0.15)' : isPump ? 'rgba(16,185,129,0.15)' : 'rgba(6,182,212,0.15)',
+    };
 
     // Circular progress for confidence
     const pct    = Math.round(result.confidence * 100);
