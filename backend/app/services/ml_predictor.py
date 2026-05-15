@@ -159,9 +159,6 @@ def predict(model_id: str, symbol_override: Optional[str], db: Session) -> dict:
                 full_row[0, i] = last_row[0, col_idx]
         last_row = full_row
 
-    # ── 7. Scale ─────────────────────────────────────────────────────────────
-    if scaler_x is not None:
-        try:
     # ── 5. Run Inference ─────────────────────────────────────────────────────
     try:
         X = df[features].fillna(0).values[-1].reshape(1, -1)
