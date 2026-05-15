@@ -422,3 +422,51 @@ def generate_real_explainability(model, X_test, y_test, y_pred, feature_names, i
         print(f"Failed to generate decision tree logic: {e}")
 
     return result
+
+def apply_data_cleaning(df, config, add_log):
+    """Apply data cleaning strategies (missing values, outliers)."""
+    import numpy as np
+    
+    initial_len = len(df)
+    
+    # 1. Missing Data Strategy
+    missing_strategy = config.get("missing_data_strategy", "drop")
+    if missing_strategy == "ffill":
+        add_log("Applying Forward Fill (ffill) for missing data...")
+        df.ffill(inplace=True)
+        df.dropna(inplace=True) # Drop remaining NaNs (e.g. at the beginning)
+    elif missing_strategy == "mean":
+        add_log("Applying Mean Imputation for missing data...")
+        df.fillna(df.mean(), inplace=True)
+        df.dropna(inplace=True)
+    else:
+        # Default: drop
+        df.dropna(inplace=True)
+        
+    dropped = initial_len - len(df)
+    if dropped > 0 and missing_strategy == "drop":
+        add_log(f"Dropped {dropped} rows containing missing values.")
+        
+    # 2. Outlier Removal
+    outlier_strategy = config.get("outlier_removal", "none")
+    if outlier_strategy == "zscore" and len(df) > 10:
+        add_log("Applying Z-Score outlier removal (>3 std dev)...")
+        from scipy import stats
+        num_cols = df.select_dtypes(include=[np.number]).columns
+        z_scores = np.abs(stats.zscore(df[num_cols].fillna(0)))
+        z_scores = np.nan_to_num(z_scores) # Handle constant columns
+        df = df[(z_scores < 3).all(axis=1)]
+        add_log(f"Removed {initial_len - len(df) - dropped} outlier rows using Z-Score.")
+    elif outlier_strategy == "iqr" and len(df) > 10:
+        add_log("Applying IQR outlier clipping...")
+        num_cols = df.select_dtypes(include=[np.number]).columns
+        Q1 = df[num_cols].quantile(0.25)
+        Q3 = df[num_cols].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        # Clip values to bounds instead of dropping to preserve time series continuity
+        df[num_cols] = df[num_cols].clip(lower=lower_bound, upper=upper_bound, axis=1)
+        add_log("Clipped outliers using IQR method.")
+        
+    return df

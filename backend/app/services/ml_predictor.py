@@ -108,6 +108,10 @@ def predict(model_id: str, symbol_override: Optional[str], db: Session) -> dict:
         scaler_path_fallback = os.path.join(os.path.dirname(model_path), "model.scaler")
         if os.path.exists(scaler_path_fallback):
             scaler_x = joblib.load(scaler_path_fallback)
+            
+    # Handle explicit 'none' string saved by our new pipeline
+    if isinstance(scaler_x, str) and scaler_x == "none":
+        scaler_x = None
 
     # ── 4. Fetch Live Data ───────────────────────────────────────────────────
     if dataset_type in ("l2_orderbook", "hybrid_deep", "hybrid"):

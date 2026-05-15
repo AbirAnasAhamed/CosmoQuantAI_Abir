@@ -29,6 +29,9 @@ export interface TrainingConfig {
         ohlcv_period?: string;
         resample_l2?: boolean;
         prediction_target?: string;
+        missing_data_strategy?: string;
+        outlier_removal?: string;
+        scaling_method?: string;
         learning_rate?: number;
         max_depth?: number;
         model_name?: string;

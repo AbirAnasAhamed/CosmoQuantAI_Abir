@@ -46,6 +46,11 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     const [slippage, setSlippage] = useState(0.01); // ✅ New
     const [sequenceLength, setSequenceLength] = useState(30); // ✅ New
     
+    // Preprocessing States
+    const [missingDataStrategy, setMissingDataStrategy] = useState('drop');
+    const [outlierRemoval, setOutlierRemoval] = useState('none');
+    const [scalingMethod, setScalingMethod] = useState('none');
+    
     const [isTraining, setIsTraining] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
     
@@ -266,6 +271,9 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                     ohlcv_period: (dataSource === 'ohlcv' || dataSource === 'hybrid') ? ohlcvPeriod : undefined,
                     resample_l2: (dataSource === 'l2_orderbook' || dataSource === 'hybrid') ? isResampleL2 : undefined,
                     prediction_target: predictionTarget,
+                    missing_data_strategy: missingDataStrategy,
+                    outlier_removal: outlierRemoval,
+                    scaling_method: scalingMethod,
                     learning_rate: learningRate,
                     max_depth: maxDepth,
                     model_name: modelName,
@@ -484,6 +492,83 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                             </div>
                         </div>
                         )}
+                        
+                        {/* Data Preprocessing & Cleaning */}
+                        <div className="mt-6 pt-6 border-t border-white/10">
+                            <h4 className="text-xs font-bold text-teal-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <Activity className="w-4 h-4" /> Data Preprocessing
+                            </h4>
+                            
+                            <div className="space-y-4">
+                                {/* Missing Data Strategy */}
+                                <div>
+                                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 uppercase">Missing Data Handling</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[
+                                            { id: 'drop', label: 'Drop Rows' },
+                                            { id: 'ffill', label: 'Forward Fill' },
+                                            { id: 'mean', label: 'Fill Mean' }
+                                        ].map(opt => (
+                                            <button
+                                                key={opt.id}
+                                                disabled={isTraining}
+                                                onClick={() => setMissingDataStrategy(opt.id)}
+                                                className={`py-1.5 rounded-lg text-xs font-bold transition-all ${missingDataStrategy === opt.id ? 'bg-teal-500/20 text-teal-300 border border-teal-500/50 shadow-[0_0_10px_rgba(20,184,166,0.2)]' : 'bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10'}`}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Outlier Removal */}
+                                <div>
+                                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 uppercase">Outlier Filtering</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[
+                                            { id: 'none', label: 'None' },
+                                            { id: 'zscore', label: 'Z-Score (>3σ)' },
+                                            { id: 'iqr', label: 'IQR Clipping' }
+                                        ].map(opt => (
+                                            <button
+                                                key={opt.id}
+                                                disabled={isTraining}
+                                                onClick={() => setOutlierRemoval(opt.id)}
+                                                className={`py-1.5 rounded-lg text-xs font-bold transition-all ${outlierRemoval === opt.id ? 'bg-teal-500/20 text-teal-300 border border-teal-500/50 shadow-[0_0_10px_rgba(20,184,166,0.2)]' : 'bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10'}`}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Scaling Method */}
+                                <div>
+                                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 uppercase">Feature Scaling</label>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {[
+                                            { id: 'none', label: 'None' },
+                                            { id: 'standard', label: 'Standard' },
+                                            { id: 'minmax', label: 'MinMax' },
+                                            { id: 'robust', label: 'Robust' }
+                                        ].map(opt => (
+                                            <button
+                                                key={opt.id}
+                                                disabled={isTraining}
+                                                onClick={() => setScalingMethod(opt.id)}
+                                                className={`py-1.5 rounded-lg text-xs font-bold transition-all ${scalingMethod === opt.id ? 'bg-teal-500/20 text-teal-300 border border-teal-500/50 shadow-[0_0_10px_rgba(20,184,166,0.2)]' : 'bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10'}`}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-1.5 font-medium leading-tight">
+                                        💡 Note: Deep Learning models use MinMax automatically if none is selected.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
                             </div>
                         </div>
 

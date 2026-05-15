@@ -453,7 +453,8 @@ def train_model_task(job_id: str, db: Session):
             else:
                 df['Target'] = df['Close'].shift(-1)
                 
-            df.dropna(inplace=True)
+            from app.services.ml_utils import apply_data_cleaning
+            df = apply_data_cleaning(df, config, add_log)
             if len(df) < 10:
                 raise Exception(f"Not enough L2 data to train a model. Found {len(df)} rows after processing. Please lower timeframe or collect more data.")
                 
@@ -631,7 +632,8 @@ def train_model_task(job_id: str, db: Session):
             else:
                 df['Target'] = df['Close'].shift(-1)
                 
-            df.dropna(inplace=True)
+            from app.services.ml_utils import apply_data_cleaning
+            df = apply_data_cleaning(df, config, add_log)
             if len(df) < 10:
                 raise Exception(
                     f"Not enough data to train after processing Trades. Found {len(df)} rows after dropna. "
@@ -725,7 +727,8 @@ def train_model_task(job_id: str, db: Session):
             else:
                 df['Target'] = df['Close'].shift(-1)
                 
-            df.dropna(inplace=True)
+            from app.services.ml_utils import apply_data_cleaning
+            df = apply_data_cleaning(df, config, add_log)
             
             features = [col for col in df.columns if col not in ['Target', 'Open', 'High', 'Low', 'Close', 'Volume', 'Adj Close']]
             if not features:
@@ -739,24 +742,43 @@ def train_model_task(job_id: str, db: Session):
         
         # 3. Prepare Data
         add_log("Preparing and scaling data...")
-        from sklearn.preprocessing import MinMaxScaler
+        from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
         import pandas as pd
         
         X = df[features].values
         y = df['Target'].values
         
-        scaler_x = MinMaxScaler()
-        scaler_y = MinMaxScaler()
-        X_scaled = scaler_x.fit_transform(X)
+        scaling_method = config.get("scaling_method", "none")
+        if scaling_method == "standard":
+            add_log("Using StandardScaler for feature scaling.")
+            scaler_x = StandardScaler()
+        elif scaling_method == "robust":
+            add_log("Using RobustScaler for feature scaling.")
+            scaler_x = RobustScaler()
+        elif scaling_method == "minmax":
+            add_log("Using MinMaxScaler for feature scaling.")
+            scaler_x = MinMaxScaler()
+        else:
+            add_log("No feature scaling applied (None).")
+            scaler_x = None
+
+        scaler_y = MinMaxScaler() if scaling_method != "none" else None
+        
+        if scaler_x is not None:
+            X_scaled = scaler_x.fit_transform(X)
+        else:
+            X_scaled = X
         
         prediction_target_early = config.get("prediction_target", "classification")
         if prediction_target_early == "classification":
             # FIX: Classification labels must NOT be scaled.
-            # Scaling y to floats breaks LightGBM/SHAP and causes "Class 0 only" output.
             y_scaled = y.reshape(-1, 1).astype(int)
             scaler_y = None  # no y scaler needed for classification
         else:
-            y_scaled = scaler_y.fit_transform(y.reshape(-1, 1))
+            if scaler_y is not None:
+                y_scaled = scaler_y.fit_transform(y.reshape(-1, 1))
+            else:
+                y_scaled = y.reshape(-1, 1)
         
         split = int(len(X) * 0.8)
         X_train, X_test = X_scaled[:split], X_scaled[split:]
@@ -1498,6 +1520,18 @@ def train_model_task(job_id: str, db: Session):
             db.flush()
             
             # Add version pointing to model
+            # ── Fix 1: Save Scaler ────────────────────────────────────────────────
+            scaler_save_path = os.path.join(model_dir, f"scaler_{job.id}.pkl")
+            try:
+                if scaler_x is not None:
+                    joblib.dump(scaler_x, scaler_save_path)
+                    add_log(f"✅ Scaler saved to: {scaler_save_path}")
+                else:
+                    # Save a placeholder string to indicate 'none' scaling
+                    joblib.dump("none", scaler_save_path)
+                    add_log(f"✅ Scaler config saved (none) to: {scaler_save_path}")
+            except Exception as _sc_ex:
+                add_log(f"⚠️ Scaler save failed (non-critical): {_sc_ex}")
             db_version = models.ModelVersion(
                 id=version_id,
                 model_id=registry_id,
