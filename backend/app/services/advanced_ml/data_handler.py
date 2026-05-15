@@ -57,8 +57,10 @@ class AdvancedDataHandler:
         """
         # For now, we return the filtered dataframe. 
         # The environment will handle the current step.
-        needed_cols = features + ['Close']
-        if 'Target' in df.columns:
+        needed_cols = features.copy()
+        if 'Close' not in needed_cols:
+            needed_cols.append('Close')
+        if 'Target' in df.columns and 'Target' not in needed_cols:
             needed_cols.append('Target')
             
         res_df = df[needed_cols].copy()
@@ -70,4 +72,5 @@ class AdvancedDataHandler:
             scaler = StandardScaler()
             res_df[features] = scaler.fit_transform(res_df[features].values)
             
+        res_df['Raw_Close'] = df['Close'].copy()
         return res_df

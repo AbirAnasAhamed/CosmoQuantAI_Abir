@@ -46,7 +46,7 @@ class AdvancedTradingEnv(gym.Env):
 
         # Observation Space: All columns except 'Target' or 'timestamp'
         # We assume the caller provides a DF already filtered to features + 'Close'
-        self.feature_cols = [col for col in df.columns if col not in ['timestamp', 'Target']]
+        self.feature_cols = [col for col in df.columns if col not in ['timestamp', 'Target', 'Raw_Close']]
         self.observation_space = spaces.Box(
             low=-np.inf, 
             high=np.inf, 
@@ -92,7 +92,7 @@ class AdvancedTradingEnv(gym.Env):
 
     def step(self, action):
         # 1. Update market state
-        current_price = self.df.loc[self.current_step, 'Close']
+        current_price = self.df.loc[self.current_step, 'Raw_Close'] if 'Raw_Close' in self.df.columns else self.df.loc[self.current_step, 'Close']
         prev_net_worth = self.net_worth
         
         # 2. Execute Action Logic (Trade)
@@ -180,7 +180,7 @@ class AdvancedTradingEnv(gym.Env):
         
         # Correct approach for continuous step:
         if self.current_step > 0:
-            prev_price = self.df.loc[self.current_step - 1, 'Close']
+            prev_price = self.df.loc[self.current_step - 1, 'Raw_Close'] if 'Raw_Close' in self.df.columns else self.df.loc[self.current_step - 1, 'Close']
             # If we just opened the position this step, the return starts from entry_price
             ref_price = prev_price if self.trade_history and self.trade_history[-1]['step'] < self.current_step else self.entry_price
             

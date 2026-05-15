@@ -39,7 +39,8 @@ class AdvancedMLEngine:
             add_log(error_msg)
             raise Exception(error_msg)
 
-        X, y = AdvancedDataHandler.create_sequences(df, features, sequence_length=seq_len)
+        target_col = "Target_Up" if config.get("prediction_target") == "classification" else "Target_Return"
+        X, y = AdvancedDataHandler.create_sequences(df, features, sequence_length=seq_len, target_col=target_col)
         
         split = int(len(X) * 0.8)
         X_train, X_test = torch.FloatTensor(X[:split]), torch.FloatTensor(X[split:])
@@ -132,7 +133,8 @@ class AdvancedMLEngine:
         batch_size = 64
         
         add_log(f"Preparing sequence data for TCN (Window Size: {seq_len})...")
-        X, y = AdvancedDataHandler.create_sequences(df, features, sequence_length=seq_len)
+        target_col = "Target_Up" if config.get("prediction_target") == "classification" else "Target_Return"
+        X, y = AdvancedDataHandler.create_sequences(df, features, sequence_length=seq_len, target_col=target_col)
         
         split = int(len(X) * 0.8)
         X_train, X_test = torch.FloatTensor(X[:split]), torch.FloatTensor(X[split:])
@@ -357,8 +359,9 @@ class AdvancedMLEngine:
         if previous_model_path and os.path.exists(previous_model_path):
             try:
                 add_log(f"✅ Continuing {job.algorithm} from checkpoint: {previous_model_path}")
-                if job.algorithm == "SAC-RL":
-                    model = SAC.load(previous_model_path, env=env, learning_rate=lr)
+                if job.algorithm in ["A2C-RL", "SAC-RL"]:
+                    # Defaulting to PPO as fallback since SAC requires Continuous spaces
+                    model = PPO.load(previous_model_path, env=env, learning_rate=lr)
                 else:
                     model = PPO.load(previous_model_path, env=env, learning_rate=lr)
                 model.set_env(env)
@@ -366,16 +369,10 @@ class AdvancedMLEngine:
             except Exception as _ft_e:
                 add_log(f"⚠️ {job.algorithm} checkpoint load failed ({_ft_e}), starting fresh agent.")
                 add_log(f"Initializing fresh {job.algorithm} Agent with MLP Policy...")
-                if job.algorithm == "SAC-RL":
-                    model = SAC("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
-                else:
-                    model = PPO("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
+                model = PPO("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
         else:
             add_log(f"Initializing fresh {job.algorithm} Agent with MLP Policy...")
-            if job.algorithm == "SAC-RL":
-                model = SAC("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
-            else:
-                model = PPO("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
+            model = PPO("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
         
         add_log(f"Starting RL Training (Total Timesteps: {total_timesteps})...")
         
