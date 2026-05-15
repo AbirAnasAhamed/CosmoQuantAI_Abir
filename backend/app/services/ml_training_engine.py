@@ -385,6 +385,14 @@ def train_model_task(job_id: str, db: Session):
         
         config = job.config or {}
         dataset_type = config.get("dataset_type", "ohlcv")
+        
+        # ── Update Prometheus Metrics ──
+        try:
+            from app.metrics import TRAINING_JOB_COUNT
+            TRAINING_JOB_COUNT.labels(algorithm=job.algorithm, dataset_type=dataset_type).inc()
+        except Exception as e:
+            add_log(f"⚠️ Failed to update metrics: {e}")
+
         lookback_hours = config.get("data_lookback_hours", 6)
 
         # ── Fine-Tune Detection ─────────────────────────────────────────────
@@ -737,6 +745,35 @@ def train_model_task(job_id: str, db: Session):
             if len(df) < 10:
                 raise Exception(f"Not enough market data to train a model. Found {len(df)} rows. Please increase the dataset period or lookback time.")
         
+        # ── Append Alternative Data ──
+        alt_features = config.get("alt_features", [])
+        if alt_features:
+            add_log(f"Fetching Alternative Data Features: {', '.join(alt_features)}")
+            from app.services.alternative_data_fetcher import AlternativeDataFetcher
+            import asyncio
+            fetcher = AlternativeDataFetcher()
+            try:
+                # Need to use new event loop if inside a celery worker thread
+                try:
+                    loop = asyncio.get_event_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    
+                alt_df = loop.run_until_complete(fetcher.build_alternative_features(df.index, job.symbol))
+                for f in alt_features:
+                    if f in alt_df.columns:
+                        df[f] = alt_df[f].values
+                        if f not in features:
+                            features.append(f)
+                add_log("Successfully merged alternative data.")
+            except Exception as e:
+                add_log(f"⚠️ Failed to fetch alternative data: {str(e)}")
+            finally:
+                try:
+                    loop.run_until_complete(fetcher.close())
+                except: pass
+                
         job.progress = 30.0
         check_cancelled()
         

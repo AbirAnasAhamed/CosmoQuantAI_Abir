@@ -55,6 +55,11 @@ app.add_middleware(IPWhitelistMiddleware)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+# ✅ Mount Prometheus Metrics Endpoint
+from prometheus_client import make_asgi_app
+metrics_app = make_asgi_app()
+app.mount("/metrics", metrics_app)
+
 # ✅ Global variable to hold references to background tasks
 running_tasks = set()
 

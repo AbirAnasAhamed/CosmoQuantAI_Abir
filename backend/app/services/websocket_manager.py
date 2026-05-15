@@ -18,6 +18,12 @@ class ConnectionManager:
         self.active_connections[channel_id].append(websocket)
         # Changed to debug to avoid console spam on frequent reconnects
         logger.debug(f"🔌 Client connected to channel: {channel_id}")
+        
+        try:
+            from app.metrics import WS_ACTIVE_CONNECTIONS
+            WS_ACTIVE_CONNECTIONS.set(sum(len(clients) for clients in self.active_connections.values()))
+        except Exception:
+            pass
 
     def disconnect(self, websocket: WebSocket, channel_id: str):
         if channel_id in self.active_connections:
@@ -25,6 +31,12 @@ class ConnectionManager:
                 self.active_connections[channel_id].remove(websocket)
             if not self.active_connections[channel_id]:
                 del self.active_connections[channel_id]
+
+        try:
+            from app.metrics import WS_ACTIVE_CONNECTIONS
+            WS_ACTIVE_CONNECTIONS.set(sum(len(clients) for clients in self.active_connections.values()))
+        except Exception:
+            pass
 
     async def broadcast(self, message: dict, channel_id: str):
         """Send message to a specific channel's subscribers"""

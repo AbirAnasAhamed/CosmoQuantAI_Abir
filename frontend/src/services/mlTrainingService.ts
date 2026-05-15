@@ -52,6 +52,10 @@ export interface TrainingConfig {
         trade_features?: string[];
         hybrid_deep_trade_features?: string[]; // ✅ Hybrid Deep (L2 + aggTrade)
         plp_features?: string[]; // ✅ Predatory Liquidity Pipeline (PLP) Features
+        execution_strategy?: string;
+        iceberg_slices?: number;
+        twap_duration_minutes?: number;
+        alt_features?: string[];
     };
 }
 

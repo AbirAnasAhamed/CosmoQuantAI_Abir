@@ -242,11 +242,43 @@ def _run_backtrader(test_df: pd.DataFrame, signals: list, initial_balance: float
         profit_pct = round((end_value - start_value) / start_value * 100, 2)
 
         total_closed = trade_analysis.get('total', {}).get('closed', 0)
-        won          = trade_analysis.get('won', {}).get('total', 0)
-        win_rate     = round(won / total_closed * 100, 2) if total_closed > 0 else 0.0
+        won_trades   = trade_analysis.get('won', {}).get('total', 0)
+        win_rate     = round(won_trades / total_closed * 100, 2) if total_closed > 0 else 0.0
         max_dd       = round(dd_analysis.get('max', {}).get('drawdown', 0), 2)
 
-        add_log(f"[Post-Backtest] ✅ Profit: {profit_pct:+.2f}% | Win Rate: {win_rate:.1f}% | Max Drawdown: {max_dd:.2f}% | Trades: {total_closed}")
+        # ── Mathematical Tools: Kelly Criterion & Monte Carlo ──
+        avg_win = trade_analysis.get('won', {}).get('pnl', {}).get('average', 0)
+        avg_loss = abs(trade_analysis.get('lost', {}).get('pnl', {}).get('average', 0.0001))
+        
+        W = win_rate / 100.0
+        R = avg_win / avg_loss if avg_loss > 0 else 1.0
+        
+        kelly_pct = W - ((1 - W) / R) if R > 0 else 0.0
+        kelly_pct = max(0.0, round(kelly_pct * 100, 2))
+        
+        # Parametric Monte Carlo (1000 paths)
+        simulations = 1000
+        ruin_count = 0
+        mc_drawdowns = []
+        
+        if total_closed > 0:
+            for _ in range(simulations):
+                outcomes = np.random.choice([1, 0], size=total_closed, p=[W, 1-W])
+                pnls = np.where(outcomes == 1, avg_win, -avg_loss)
+                cumulative = np.cumsum(pnls)
+                
+                peak = np.maximum.accumulate(cumulative)
+                drawdowns = peak - cumulative
+                max_dd_path = np.max(drawdowns) if len(drawdowns) > 0 else 0
+                mc_drawdowns.append(max_dd_path)
+                
+                if np.any(cumulative <= -initial_balance * 0.5):
+                    ruin_count += 1
+                    
+        monte_carlo_var_95 = round((np.percentile(mc_drawdowns, 95) / initial_balance) * 100, 2) if mc_drawdowns else 0.0
+        risk_of_ruin = round((ruin_count / simulations) * 100, 2)
+
+        add_log(f"[Post-Backtest] ✅ Profit: {profit_pct:+.2f}% | Win Rate: {win_rate:.1f}% | Kelly: {kelly_pct}% | Trades: {total_closed}")
 
         return {
             "initial_balance": initial_balance,
@@ -257,7 +289,10 @@ def _run_backtrader(test_df: pd.DataFrame, signals: list, initial_balance: float
             "total_trades":    total_closed,
             "commission":      commission,
             "stop_loss":       stop_loss,
-            "take_profit":     take_profit
+            "take_profit":     take_profit,
+            "kelly_pct":       kelly_pct,
+            "monte_carlo_var": monte_carlo_var_95,
+            "risk_of_ruin":    risk_of_ruin
         }
 
     except Exception as e:

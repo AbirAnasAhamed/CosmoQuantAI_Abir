@@ -164,6 +164,12 @@ class L2DataCollector:
                         bids = payload.get("bids", [])
                         asks = payload.get("asks", [])
 
+                        try:
+                            from app.metrics import L2_TICK_COUNT
+                            L2_TICK_COUNT.labels(symbol=sym).inc()
+                        except Exception:
+                            pass
+
                         now = time.time()
                         # Rate-limit: 1 DB save per symbol per second
                         if sym not in last_save or (now - last_save[sym]) >= 1.0:

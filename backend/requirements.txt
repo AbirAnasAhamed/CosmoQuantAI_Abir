@@ -94,3 +94,5 @@ stable-baselines3[extra]
 gymnasium
 shap
 tensorboard
+pytrends
+prometheus-client

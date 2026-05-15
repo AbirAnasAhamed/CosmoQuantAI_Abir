@@ -12,6 +12,8 @@ import { FloatingTVChartButton } from '@/components/features/market/FloatingTVCh
 import EquityCurveChart from '@/components/ml/EquityCurveChart'; // ✅ New
 import { DatasetVisualizerModal } from '@/components/DatasetVisualizerModal';
 import PredatoryLiquidityPipeline, { GET_DEFAULT_MANDATORY_PLP_FEATURES } from '@/components/ml/PredatoryLiquidityPipeline';
+import { AdvancedExecutionSettings } from '@/components/app/AdvancedExecutionSettings'; // ✅ New
+import { AlternativeDataSettings } from '@/components/app/AlternativeDataSettings'; // ✅ New
 
 import { mlModelsService } from '@/services/mlModelsService';
 
@@ -46,6 +48,11 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     const [slippage, setSlippage] = useState(0.01); // ✅ New
     const [sequenceLength, setSequenceLength] = useState(30); // ✅ New
     
+    // Execution Strategy States
+    const [executionStrategy, setExecutionStrategy] = useState('standard');
+    const [icebergSlices, setIcebergSlices] = useState(10);
+    const [twapDuration, setTwapDuration] = useState(30);
+    
     // Preprocessing States
     const [missingDataStrategy, setMissingDataStrategy] = useState('drop');
     const [outlierRemoval, setOutlierRemoval] = useState('none');
@@ -58,6 +65,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     const [isSuggesting, setIsSuggesting] = useState(false);
     const [suggestedFeatures, setSuggestedFeatures] = useState<any[]>([]);
     const [selectedL2Features, setSelectedL2Features] = useState<string[]>(['obi', 'spread', 'microprice']);
+    const [selectedAltFeatures, setSelectedAltFeatures] = useState<string[]>(['fng_value']); // ✅ New
     const [analysisStats, setAnalysisStats] = useState<{rows: number, features: number} | null>(null);
     const [showManualFeatures, setShowManualFeatures] = useState(false);
     
@@ -117,6 +125,9 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                 if (config.config?.plp_features) {
                     setSelectedPlpFeatures(config.config.plp_features);
                     setInitialLoadedPlpFeatures(config.config.plp_features);
+                }
+                if (config.config?.alt_features) {
+                    setSelectedAltFeatures(config.config.alt_features);
                 }
                 if (config.config?.dataset_type) setDataSource(config.config.dataset_type);
                 if (config.config?.exchange) setExchange(config.config.exchange);
@@ -338,6 +349,12 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                     // Hybrid Deep params (new)
                     hybrid_deep_trade_features: dataSource === 'hybrid_deep' ? selectedHybridDeepTradeFeatures : undefined,
                     plp_features: dataSource === 'hybrid_deep' ? selectedPlpFeatures : undefined,
+                    // Execution strategy params
+                    execution_strategy: executionStrategy,
+                    iceberg_slices: executionStrategy === 'iceberg' ? icebergSlices : undefined,
+                    twap_duration_minutes: executionStrategy === 'twap' ? twapDuration : undefined,
+                    // Alternative Data params
+                    alt_features: selectedAltFeatures,
                 }
             });
             setCurrentJob(job);
@@ -1530,8 +1547,24 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                             </div>
                         )}
 
+                        {/* Alternative Data (Google Trends, Fear & Greed, GitHub) */}
+                        <AlternativeDataSettings 
+                            isTraining={isTraining}
+                            selectedAltFeatures={selectedAltFeatures}
+                            setSelectedAltFeatures={setSelectedAltFeatures}
+                        />
 
-                        <div className="p-5 bg-gradient-to-br from-purple-900/20 to-blue-900/10 rounded-2xl border border-white/10 shadow-inner">
+                        <AdvancedExecutionSettings 
+                            isTraining={isTraining}
+                            executionStrategy={executionStrategy}
+                            setExecutionStrategy={setExecutionStrategy}
+                            icebergSlices={icebergSlices}
+                            setIcebergSlices={setIcebergSlices}
+                            twapDuration={twapDuration}
+                            setTwapDuration={setTwapDuration}
+                        />
+
+                        <div className="p-5 mt-4 bg-gradient-to-br from-purple-900/20 to-blue-900/10 rounded-2xl border border-white/10 shadow-inner">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h4 className="text-sm font-bold text-white flex items-center gap-2">

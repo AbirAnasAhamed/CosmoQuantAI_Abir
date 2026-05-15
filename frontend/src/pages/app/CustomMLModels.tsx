@@ -540,7 +540,7 @@ const ExplainabilityView: React.FC<{ data: any; algorithm?: string }> = ({ data,
                         Post-Training Backtest Performance
                         <span className="ml-auto text-[10px] text-gray-500 font-normal">Initial: ${data.backtest_result.initial_balance?.toLocaleString()}</span>
                     </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                         <div className="bg-black/40 border border-white/5 rounded-lg p-3 text-center">
                             <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Return</p>
                             <p className={`text-xl font-mono font-bold ${data.backtest_result.profit_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -552,8 +552,18 @@ const ExplainabilityView: React.FC<{ data: any; algorithm?: string }> = ({ data,
                             <p className="text-xl font-mono font-bold text-blue-400">{data.backtest_result.win_rate?.toFixed(1)}%</p>
                         </div>
                         <div className="bg-black/40 border border-white/5 rounded-lg p-3 text-center">
-                            <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Max Drawdown</p>
+                            <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Max DD</p>
                             <p className="text-xl font-mono font-bold text-rose-400">-{data.backtest_result.max_drawdown?.toFixed(2)}%</p>
+                        </div>
+                        <div className="bg-black/40 border border-white/5 rounded-lg p-3 text-center">
+                            <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Kelly %</p>
+                            <p className="text-xl font-mono font-bold text-teal-400">{data.backtest_result.kelly_pct !== undefined ? data.backtest_result.kelly_pct.toFixed(1) + '%' : 'N/A'}</p>
+                        </div>
+                        <div className="bg-black/40 border border-white/5 rounded-lg p-3 text-center">
+                            <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">MC Ruin Risk</p>
+                            <p className={`text-xl font-mono font-bold ${data.backtest_result.risk_of_ruin > 5 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                {data.backtest_result.risk_of_ruin !== undefined ? data.backtest_result.risk_of_ruin.toFixed(1) + '%' : 'N/A'}
+                            </p>
                         </div>
                         <div className="bg-black/40 border border-white/5 rounded-lg p-3 text-center">
                             <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Trades</p>

@@ -57,6 +57,9 @@ def predict(model_id: str, symbol_override: Optional[str], db: Session) -> dict:
         }
     """
     from app import models as db_models
+    import time
+
+    start_time = time.time()
 
     # ── 1. Load model from Registry ─────────────────────────────────────────
     db_model = db.query(db_models.CustomMLModel).filter(db_models.CustomMLModel.id == model_id).first()
@@ -224,6 +227,14 @@ def predict(model_id: str, symbol_override: Optional[str], db: Session) -> dict:
     except Exception as e:
         print(f"[ml_predictor] Inference error: {e}")
         signal_str, confidence = "HOLD", 0.0
+
+    latency = time.time() - start_time
+    try:
+        from app.metrics import ML_PREDICTION_COUNT, ML_INFERENCE_LATENCY
+        ML_PREDICTION_COUNT.labels(model_name=algorithm, symbol=symbol, signal=signal_str).inc()
+        ML_INFERENCE_LATENCY.labels(model_name=algorithm).observe(latency)
+    except Exception as e:
+        print(f"[ml_predictor] Metrics error: {e}")
 
     return {
         "signal":     signal_str,
