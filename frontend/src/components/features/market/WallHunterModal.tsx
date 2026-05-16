@@ -158,7 +158,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         utBotSensitivity: 1.0,
         utBotAtrPeriod: 10,
         utBotUseHeikinAshi: false,
-        utBotTimeframe: '5m',
+        utBotTimeframe: '15m',
         
         utBotCandleClose: false,
         utBotValidationSecs: 0,
@@ -174,7 +174,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         supertrendExitTimeout: 5,
         supertrendPeriod: 10,
         supertrendMultiplier: 3.0,
-        supertrendTimeframe: '5m',
+        supertrendTimeframe: '15m',
         supertrendCandleClose: false,
 
         // --- NEW: Proxy Orderbook Routing ---
@@ -198,7 +198,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         // --- NEW: Auto Fibo TP ---
         enableAutoFiboTp: true,
         autoFiboTargetLevel: 0.236,
-        autoFiboTimeframe: '5m',
+        autoFiboTimeframe: '15m',
         autoFiboLookback: 50,
 
         // --- NEW: VWAP SD Snipe ---
@@ -373,7 +373,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             utBotSensitivity: c.ut_bot_sensitivity || 1.0,
                             utBotAtrPeriod: c.ut_bot_atr_period || 10,
                             utBotUseHeikinAshi: c.ut_bot_use_heikin_ashi !== undefined ? c.ut_bot_use_heikin_ashi : false,
-                            utBotTimeframe: c.ut_bot_timeframe || '5m',
+                            utBotTimeframe: c.ut_bot_timeframe || '15m',
                             
                             utBotCandleClose: c.ut_bot_candle_close !== undefined ? c.ut_bot_candle_close : false,
                             utBotValidationSecs: c.ut_bot_validation_secs || 0,
@@ -389,7 +389,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             supertrendExitTimeout: c.supertrend_exit_timeout || 5,
                             supertrendPeriod: c.supertrend_period || 10,
                             supertrendMultiplier: c.supertrend_multiplier || 3.0,
-                            supertrendTimeframe: c.supertrend_timeframe || '5m',
+                            supertrendTimeframe: c.supertrend_timeframe || '15m',
                             supertrendCandleClose: c.supertrend_candle_close !== undefined ? c.supertrend_candle_close : false,
                             
                             // Load custom buy order settings
@@ -416,7 +416,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             
                             // Auto Fibo TP
                             enableAutoFiboTp: c.enable_auto_fibo_tp !== undefined ? c.enable_auto_fibo_tp : true,
-                            autoFiboTimeframe: c.auto_fibo_timeframe || '5m',
+                            autoFiboTimeframe: c.auto_fibo_timeframe || '15m',
                             autoFiboLookback: c.auto_fibo_lookback || 50,
 
                             // VWAP SD Snipe

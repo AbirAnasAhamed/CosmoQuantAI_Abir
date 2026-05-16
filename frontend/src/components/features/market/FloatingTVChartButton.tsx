@@ -198,7 +198,7 @@ const MiniOrderFlowChart: React.FC<MiniChartProps> = ({ symbol, exchange, interv
 
     const clean = stripFutures(symbol).toUpperCase();
 
-    marketDepthService.getOHLCV(clean, exchange, interval, 200)
+    marketDepthService.getOHLCV(clean, exchange, interval, 2000)
       .then((data: any[]) => {
         if (cancelled) return;
         if (!candleRef.current || !volRef.current) return;

@@ -291,7 +291,7 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
                     symbol.toUpperCase(),
                     exchange,
                     interval,
-                    200
+                    2000
                 );
 
                 if (!isMounted) return;
@@ -844,7 +844,7 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
 
         const runWickSRCalc = async () => {
             try {
-                const tf = indicatorSettings.wickSRTimeframe || '5m';
+                const tf = indicatorSettings.wickSRTimeframe || '15m';
                 // If it's 1m, and chart is 1m, we could reuse allCandlesRef, but for true generic support, we fetch independent data series for Wick SR
                 const data = await marketDepthService.getOHLCV(symbol.toUpperCase(), exchange, tf, 500);
                 if (!isMounted) return;
