@@ -30,7 +30,7 @@ import pandas as pd
 import joblib
 import traceback
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 
@@ -119,6 +119,11 @@ def predict(model_id: str, symbol_override: Optional[str], db: Session) -> dict:
     # ── 4. Fetch Live Data ───────────────────────────────────────────────────
     if dataset_type in ("l2_orderbook", "hybrid_deep", "hybrid"):
         df = _fetch_live_l2_data(symbol, db)
+        # Fallback: if L2 snapshots are unavailable, use OHLCV so predict never
+        # returns a hard 500 just because the L2 collector isn't running yet.
+        if df is None or df.empty:
+            print(f"[ml_predictor] L2 data unavailable for {symbol}; falling back to OHLCV.")
+            df = _fetch_live_ohlcv(symbol, timeframe)
     else:
         df = _fetch_live_ohlcv(symbol, timeframe)
 
@@ -273,28 +278,62 @@ def _fetch_live_ohlcv(symbol: str, timeframe: str) -> Optional[pd.DataFrame]:
 
 
 def _fetch_live_l2_data(symbol: str, db: Session) -> Optional[pd.DataFrame]:
-    """Fetch last L2 snapshots from the database."""
+    """
+    Fetch last L2 snapshots from the database.
+
+    Fixes:
+      1. Use timezone-aware datetime to match DB timestamp columns (avoids
+         'can\'t subtract offset-naive and offset-aware datetimes' crash).
+      2. Try both storage formats: 'BTCUSDT' (L2 collector) and 'BTC/USDT'
+         (legacy / training engine rows) so we always find data.
+      3. If DB returns no recent snapshots (stale / never collected), fall
+         back to OHLCV so predict never hard-fails with a 500.
+    """
     try:
         from app.models.orderbook_snapshot import OrderBookSnapshot
         from app.services.auto_feature_selector import calculate_l2_advanced_features
 
-        since = datetime.utcnow() - timedelta(hours=2)
-        clean_symbol = symbol.upper().split(":")[0].replace("/", "")
+        # ── Fix 1: timezone-aware 'since' to match DB stored timestamps ─────
+        since = datetime.now(timezone.utc) - timedelta(hours=6)
+
+        # ── Fix 2: try both symbol formats ───────────────────────────────────
+        # L2 collector stores as 'BTCUSDT'; training engine may store 'BTC/USDT'
+        clean_symbol   = symbol.upper().split(":")[0].replace("/", "")   # BTCUSDT
+        slash_symbol   = symbol.upper().split(":")[0]                     # BTC/USDT
+
         snapshots = db.query(OrderBookSnapshot).filter(
             OrderBookSnapshot.symbol == clean_symbol,
             OrderBookSnapshot.timestamp >= since
         ).order_by(OrderBookSnapshot.timestamp.asc()).all()
 
+        # Fallback: try slash format if nothing found
         if not snapshots:
+            snapshots = db.query(OrderBookSnapshot).filter(
+                OrderBookSnapshot.symbol == slash_symbol,
+                OrderBookSnapshot.timestamp >= since
+            ).order_by(OrderBookSnapshot.timestamp.asc()).all()
+
+        # ── Fix 3: if still nothing, widen window to 24h ─────────────────────
+        if not snapshots:
+            since_wide = datetime.now(timezone.utc) - timedelta(hours=24)
+            snapshots = db.query(OrderBookSnapshot).filter(
+                OrderBookSnapshot.symbol.in_([clean_symbol, slash_symbol]),
+                OrderBookSnapshot.timestamp >= since_wide
+            ).order_by(OrderBookSnapshot.timestamp.asc()).all()
+            if snapshots:
+                print(f"[ml_predictor] Used 24h fallback window for {symbol} ({len(snapshots)} rows)")
+
+        if not snapshots:
+            print(f"[ml_predictor] No L2 snapshots found for {symbol} (tried {clean_symbol} / {slash_symbol}). Falling back to OHLCV.")
             return None
 
         data = []
         for s in snapshots:
             data.append({
-                "timestamp": s.timestamp,
-                "Close": s.microprice,
-                "obi": s.obi,
-                "spread": s.spread,
+                "timestamp":  s.timestamp,
+                "Close":      s.microprice,
+                "obi":        s.obi,
+                "spread":     s.spread,
                 "microprice": s.microprice,
             })
 
