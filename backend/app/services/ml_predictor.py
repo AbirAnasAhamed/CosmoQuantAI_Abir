@@ -119,11 +119,22 @@ def predict(model_id: str, symbol_override: Optional[str], db: Session) -> dict:
     # ── 4. Fetch Live Data ───────────────────────────────────────────────────
     if dataset_type in ("l2_orderbook", "hybrid_deep", "hybrid"):
         df = _fetch_live_l2_data(symbol, db)
-        # Fallback: if L2 snapshots are unavailable, use OHLCV so predict never
-        # returns a hard 500 just because the L2 collector isn't running yet.
+        # Fallback: if L2 snapshots are unavailable/all-null, use OHLCV so
+        # predict never returns a hard 500.
         if df is None or df.empty:
             print(f"[ml_predictor] L2 data unavailable for {symbol}; falling back to OHLCV.")
             df = _fetch_live_ohlcv(symbol, timeframe)
+            # When an L2-trained model gets OHLCV data, inject proxy L2 features
+            # so the model can still produce a prediction (missing cols are padded
+            # with 0 anyway, but we need at least one matching feature to proceed).
+            if df is not None and not df.empty:
+                if 'microprice' not in df.columns:
+                    df['microprice'] = df['Close']
+                if 'obi' not in df.columns:
+                    df['obi'] = 0.0
+                if 'spread' not in df.columns:
+                    # Estimate spread as 0.1% of price (typical for liquid futures)
+                    df['spread'] = df['Close'] * 0.001
     else:
         df = _fetch_live_ohlcv(symbol, timeframe)
 
@@ -256,15 +267,23 @@ def predict(model_id: str, symbol_override: Optional[str], db: Session) -> dict:
 # ─── Internal Helpers ─────────────────────────────────────────────────────────
 
 def _fetch_live_ohlcv(symbol: str, timeframe: str) -> Optional[pd.DataFrame]:
-    """Fetch the last 100 candles via CCXT."""
+    """Fetch the last 100 candles via CCXT.
+    Automatically uses binanceusdm for futures symbols (containing ':').
+    """
     try:
         import ccxt
-        exchange = ccxt.binance({'enableRateLimit': True})
         tf_map = {
             "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
             "1h": "1h", "4h": "4h", "1d": "1d"
         }
         tf = tf_map.get(timeframe, "1h")
+
+        # Futures symbols contain ':' (e.g. DOGE/USDT:USDT)
+        if ":" in symbol:
+            exchange = ccxt.binanceusdm({'enableRateLimit': True})
+        else:
+            exchange = ccxt.binance({'enableRateLimit': True})
+
         ohlcv = exchange.fetch_ohlcv(symbol, tf, limit=100)
         if not ohlcv:
             return None
@@ -277,43 +296,83 @@ def _fetch_live_ohlcv(symbol: str, timeframe: str) -> Optional[pd.DataFrame]:
         return None
 
 
+def _compute_micro_features_from_raw(bids, asks):
+    """
+    Compute obi, spread, microprice from raw bids/asks.
+    Supports two formats:
+      - Binance WebSocket: [[price_str, qty_str], ...]
+      - Heatmap service:   [{'price': float, 'volume': float}, ...]
+    Returns (obi, spread, microprice) or (None, None, None) on failure.
+    """
+    try:
+        def _parse_level(level):
+            if isinstance(level, dict):
+                return float(level.get('price', 0) or 0), float(level.get('volume', level.get('qty', 0)) or 0)
+            return float(level[0]), float(level[1])
+
+        parsed_bids = [_parse_level(b) for b in (bids or [])[:10]]
+        parsed_asks = [_parse_level(a) for a in (asks or [])[:10]]
+
+        # Filter out zero-price levels (bad data from heatmap bucketing at 0)
+        parsed_bids = [(p, q) for p, q in parsed_bids if p > 0]
+        parsed_asks = [(p, q) for p, q in parsed_asks if p > 0]
+
+        if not parsed_bids or not parsed_asks:
+            return None, None, None
+
+        best_bid = parsed_bids[0][0]
+        best_ask = parsed_asks[0][0]
+        spread   = best_ask - best_bid
+
+        bid_vol = sum(q for _, q in parsed_bids)
+        ask_vol = sum(q for _, q in parsed_asks)
+        total   = bid_vol + ask_vol
+
+        if total <= 0:
+            return None, None, None
+
+        obi        = (bid_vol - ask_vol) / total
+        microprice = (best_bid * ask_vol + best_ask * bid_vol) / total
+        return obi, spread, microprice
+    except Exception:
+        return None, None, None
+
+
 def _fetch_live_l2_data(symbol: str, db: Session) -> Optional[pd.DataFrame]:
     """
     Fetch last L2 snapshots from the database.
 
     Fixes:
-      1. Use timezone-aware datetime to match DB timestamp columns (avoids
-         'can\'t subtract offset-naive and offset-aware datetimes' crash).
-      2. Try both storage formats: 'BTCUSDT' (L2 collector) and 'BTC/USDT'
-         (legacy / training engine rows) so we always find data.
-      3. If DB returns no recent snapshots (stale / never collected), fall
-         back to OHLCV so predict never hard-fails with a 500.
+      1. Use timezone-aware datetime to match DB timestamp columns.
+      2. Try both symbol formats (BTCUSDT + BTC/USDT) and widen time window.
+      3. Recompute obi/spread/microprice from raw bids/asks when the
+         snapshot was saved by orderbook_snapshot_service (which stores
+         these as None with only raw bids/asks in dict format).
+      4. Return None (→ OHLCV fallback) if all rows end up null.
     """
     try:
         from app.models.orderbook_snapshot import OrderBookSnapshot
         from app.services.auto_feature_selector import calculate_l2_advanced_features
 
-        # ── Fix 1: timezone-aware 'since' to match DB stored timestamps ─────
+        # ── timezone-aware 'since' ───────────────────────────────────────
         since = datetime.now(timezone.utc) - timedelta(hours=6)
 
-        # ── Fix 2: try both symbol formats ───────────────────────────────────
-        # L2 collector stores as 'BTCUSDT'; training engine may store 'BTC/USDT'
-        clean_symbol   = symbol.upper().split(":")[0].replace("/", "")   # BTCUSDT
-        slash_symbol   = symbol.upper().split(":")[0]                     # BTC/USDT
+        # ── try both symbol formats ─────────────────────────────────────
+        clean_symbol = symbol.upper().split(":")[0].replace("/", "")   # BTCUSDT / DOGEUSDT
+        slash_symbol = symbol.upper().split(":")[0]                     # BTC/USDT / DOGE/USDT
 
         snapshots = db.query(OrderBookSnapshot).filter(
             OrderBookSnapshot.symbol == clean_symbol,
             OrderBookSnapshot.timestamp >= since
         ).order_by(OrderBookSnapshot.timestamp.asc()).all()
 
-        # Fallback: try slash format if nothing found
         if not snapshots:
             snapshots = db.query(OrderBookSnapshot).filter(
                 OrderBookSnapshot.symbol == slash_symbol,
                 OrderBookSnapshot.timestamp >= since
             ).order_by(OrderBookSnapshot.timestamp.asc()).all()
 
-        # ── Fix 3: if still nothing, widen window to 24h ─────────────────────
+        # Widen to 24h if still empty
         if not snapshots:
             since_wide = datetime.now(timezone.utc) - timedelta(hours=24)
             snapshots = db.query(OrderBookSnapshot).filter(
@@ -324,21 +383,41 @@ def _fetch_live_l2_data(symbol: str, db: Session) -> Optional[pd.DataFrame]:
                 print(f"[ml_predictor] Used 24h fallback window for {symbol} ({len(snapshots)} rows)")
 
         if not snapshots:
-            print(f"[ml_predictor] No L2 snapshots found for {symbol} (tried {clean_symbol} / {slash_symbol}). Falling back to OHLCV.")
+            print(f"[ml_predictor] No L2 snapshots for {symbol} (tried {clean_symbol}/{slash_symbol}). Falling back to OHLCV.")
             return None
 
+        # ── Build DataFrame; recompute features from bids/asks when NULL ───
         data = []
         for s in snapshots:
+            obi, spread, microprice = s.obi, s.spread, s.microprice
+
+            # If core metrics are NULL (snapshot saved by orderbook_snapshot_service
+            # which only stores raw bids/asks), recompute them on-the-fly.
+            if obi is None or microprice is None:
+                obi, spread, microprice = _compute_micro_features_from_raw(s.bids, s.asks)
+
+            if microprice is None or microprice == 0:
+                continue   # Skip unparseable rows
+
             data.append({
                 "timestamp":  s.timestamp,
-                "Close":      s.microprice,
-                "obi":        s.obi,
-                "spread":     s.spread,
-                "microprice": s.microprice,
+                "Close":      microprice,
+                "obi":        obi,
+                "spread":     spread,
+                "microprice": microprice,
             })
+
+        if not data:
+            print(f"[ml_predictor] All {len(snapshots)} snapshots for {symbol} had null/zero microprice. Falling back to OHLCV.")
+            return None
 
         df = pd.DataFrame(data)
         df.set_index("timestamp", inplace=True)
+
+        # Cast to float (rows may have been stored as objects)
+        for col in ["Close", "obi", "spread", "microprice"]:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
 
         # Add advanced features
         try:
