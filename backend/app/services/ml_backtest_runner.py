@@ -119,13 +119,13 @@ def _generate_signals(model, algorithm: str, X_test: np.ndarray, prediction_targ
                         X_t = torch.FloatTensor(X_test).unsqueeze(1)
                     else:
                         X_t = torch.FloatTensor(X_test)
-                    out = model(X_t).numpy().flatten()
-
-                if prediction_target == "classification":
-                    signals = (1 / (1 + np.exp(-out)) > 0.5).astype(int).tolist()
-                else:
-                    # For regression: signal=1 if predicted value is positive momentum
-                    signals = (out > np.median(out)).astype(int).tolist()
+                    
+                    if prediction_target == "classification":
+                        out = torch.sigmoid(model(X_t)).numpy().flatten()
+                        signals = (out > 0.5).astype(int).tolist()
+                    else:
+                        out = model(X_t).numpy().flatten()
+                        signals = (out > np.median(out)).astype(int).tolist()
 
         elif algorithm in ["PPO-RL", "SAC-RL", "A2C-RL"]:
             add_log(f"[Post-Backtest] {algorithm} backtest via signal replay not supported. Skipped.")

@@ -184,15 +184,32 @@ class AdvancedTradingEnv(gym.Env):
             # If we just opened the position this step, the return starts from entry_price
             ref_price = prev_price if self.trade_history and self.trade_history[-1]['step'] < self.current_step else self.entry_price
             
+            if ref_price <= 0:
+                ref_price = 1e-8
+                
             price_change_pct = (current_price - ref_price) / ref_price
             step_return = price_change_pct * self.position
+            
+            # Cap the loss to 100% to prevent negative net worth
+            step_return = max(step_return, -0.9999)
+            
             self.net_worth *= (1 + step_return)
+            
+            if self.net_worth <= 0:
+                self.net_worth = 1e-6
 
     def _calculate_reward(self, prev_net_worth):
+        if prev_net_worth <= 0:
+            prev_net_worth = 1e-6
+            
+        ratio = self.net_worth / prev_net_worth
+        if ratio <= 0:
+            ratio = 1e-6
+            
         if self.reward_type == 'log_returns':
-            return float(np.log(self.net_worth / prev_net_worth))
+            return float(np.clip(np.log(ratio), -10.0, 10.0))
         elif self.reward_type == 'pct_returns':
-            return float((self.net_worth - prev_net_worth) / prev_net_worth)
+            return float(ratio - 1.0)
         else:
             return float(self.net_worth - prev_net_worth)
 

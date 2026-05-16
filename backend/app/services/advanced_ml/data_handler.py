@@ -65,6 +65,11 @@ class AdvancedDataHandler:
             
         res_df = df[needed_cols].copy()
         
+        # FIX: Ensure no NaNs or Infs
+        res_df.replace([np.inf, -np.inf], np.nan, inplace=True)
+        res_df.ffill(inplace=True)
+        res_df.fillna(0, inplace=True)
+        
         # Normalize features for RL Neural Network (MlpPolicy)
         # We must NOT scale 'Close' as it's used for actual PnL calculation
         from sklearn.preprocessing import StandardScaler

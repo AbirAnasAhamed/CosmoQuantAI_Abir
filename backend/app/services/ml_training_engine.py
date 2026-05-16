@@ -1472,7 +1472,7 @@ def train_model_task(job_id: str, db: Session):
                 is_cls = (prediction_target == "classification")
                 final_explainability = generate_real_explainability(model, X_test, y_test.ravel(), y_pred, features, is_classification=is_cls)
             
-            elif job.algorithm in ["LSTM", "GRU", "1D-CNN", "DeepLOB", "TCN", "TabNet"]:
+            elif job.algorithm in ["LSTM", "GRU", "1D-CNN", "DeepLOB"]:
                 add_log("Generating Basic Explainability Metrics for Deep Learning model...")
                 import torch
                 is_cls = (prediction_target == "classification")

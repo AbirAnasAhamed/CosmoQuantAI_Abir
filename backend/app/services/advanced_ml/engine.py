@@ -251,7 +251,19 @@ class AdvancedMLEngine:
             test_outputs = model(X_test)
             preds = (torch.sigmoid(test_outputs).squeeze() > 0.5).int().numpy() if config.get("prediction_target") == "classification" else test_outputs.squeeze().numpy()
             y_true = y_test.int().numpy() if config.get("prediction_target") == "classification" else y_test.squeeze().numpy()
-            metrics = { "accuracy": float(accuracy_score(y_true, preds)) } if config.get("prediction_target") == "classification" else { "mse": float(mean_squared_error(y_true, preds)) }
+            if config.get("prediction_target") == "classification":
+                metrics = {
+                    "accuracy": float(accuracy_score(y_true, preds)),
+                    "precision": float(precision_score(y_true, preds, zero_division=0)),
+                    "recall": float(recall_score(y_true, preds, zero_division=0)),
+                    "f1_score": float(f1_score(y_true, preds, zero_division=0))
+                }
+            else:
+                metrics = {
+                    "mse": float(mean_squared_error(y_true, preds)),
+                    "mae": float(mean_absolute_error(y_true, preds)),
+                    "rmse": float(np.sqrt(mean_squared_error(y_true, preds)))
+                }
             add_log(f"[METRICS] {json.dumps(metrics)}")
             
         return model, model_path, metrics

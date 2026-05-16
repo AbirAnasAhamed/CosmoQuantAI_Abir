@@ -236,8 +236,10 @@ async def fetch_market_data_background():
     asyncio.create_task(_keep_tickers_updated())
 
     # Rate limiting control
-    last_depth_update = {}
     last_overview_update = 0  
+    
+    # Track active stream tasks: symbol -> list of tasks
+    active_stream_tasks = {}
     
     # We will fetch Top 50 dynamically, so no hardcoded list needed here.
     import random
@@ -260,11 +262,13 @@ async def fetch_market_data_background():
                     continue
 
             # --- 1. Process Individual Subscriptions (Existing Logic) ---
+            NON_MARKET_CHANNELS = {
+                "general", "backtest", "block_trades", "system_alerts", "container_logs",
+            }
+            
+            current_target_symbols = set()
+
             if active_symbols:
-                # Internal pub-sub channels — never treat as market symbols
-                NON_MARKET_CHANNELS = {
-                    "general", "backtest", "block_trades", "system_alerts", "container_logs",
-                }
                 for symbol in active_symbols:
                     if (
                         symbol in NON_MARKET_CHANNELS
@@ -282,59 +286,79 @@ async def fetch_market_data_background():
                                 target_symbol = m_symbol
                                 break
                     
+                    current_target_symbols.add(symbol)
+                    
                     try:
                         # Use websocket cache instead of REST
                         ticker = local_exchange_client.tickers.get(target_symbol)
-                        if not ticker:
-                            continue
-                        
-                        def safe_float(val):
-                            try: return float(val) if val is not None else 0.0
-                            except: return 0.0
+                        if ticker:
+                            def safe_float(val):
+                                try: return float(val) if val is not None else 0.0
+                                except: return 0.0
 
-                        ticker_data = {
-                            "symbol": symbol,
-                            "price": safe_float(ticker.get('last')),
-                            "change": safe_float(ticker.get('change')),
-                            "changePercent": safe_float(ticker.get('percentage')),
-                            "high": safe_float(ticker.get('high')),
-                            "low": safe_float(ticker.get('low')),
-                            "volume": safe_float(ticker.get('baseVolume')), 
-                            "timestamp": datetime.utcnow().isoformat()
-                        }
-                        await manager.broadcast_market_data(symbol, "ticker", ticker_data)
-
-                        # Recent Trades
-                        trades = await local_exchange_client.fetch_trades(target_symbol, limit=20)
-                        formatted_trades = []
-                        for t in trades:
-                            try:
-                                formatted_trades.append({
-                                    "id": t.get('id'),
-                                    "time": datetime.fromtimestamp(t.get('timestamp')/1000).strftime('%H:%M:%S'),
-                                    "price": t.get('price'),
-                                    "amount": t.get('amount'),
-                                    "type": t.get('side'),
-                                })
-                            except: pass
-                        
-                        if formatted_trades:
-                            await manager.broadcast_market_data(symbol, "trade", formatted_trades)
-
-                        # Order Book
-                        now = asyncio.get_event_loop().time()
-                        if symbol not in last_depth_update or (now - last_depth_update[symbol]) > 2:
-                            orderbook = await local_exchange_client.fetch_order_book(target_symbol, limit=20)
-                            depth_data = {
-                                "bids": [{"price": b[0], "amount": b[1], "total": 0} for b in orderbook.get('bids', [])],
-                                "asks": [{"price": a[0], "amount": a[1], "total": 0} for a in orderbook.get('asks', [])]
+                            ticker_data = {
+                                "symbol": symbol,
+                                "price": safe_float(ticker.get('last')),
+                                "change": safe_float(ticker.get('change')),
+                                "changePercent": safe_float(ticker.get('percentage')),
+                                "high": safe_float(ticker.get('high')),
+                                "low": safe_float(ticker.get('low')),
+                                "volume": safe_float(ticker.get('baseVolume')), 
+                                "timestamp": datetime.utcnow().isoformat()
                             }
-                            await manager.broadcast_market_data(symbol, "depth", depth_data)
-                            last_depth_update[symbol] = now
-
-                    except Exception as e:
-                        # print(f"Error for {symbol}: {e}")
+                            await manager.broadcast_market_data(symbol, "ticker", ticker_data)
+                    except Exception:
                         pass
+                        
+                    # Spawn WebSocket stream tasks if not already running for this symbol
+                    if symbol not in active_stream_tasks:
+                        async def _watch_trades(sym, raw_sym):
+                            while True:
+                                try:
+                                    trades = await local_exchange_client.watch_trades(raw_sym)
+                                    formatted_trades = []
+                                    for t in trades[-20:]: # Get latest 20
+                                        try:
+                                            formatted_trades.append({
+                                                "id": t.get('id'),
+                                                "time": datetime.fromtimestamp(t.get('timestamp')/1000).strftime('%H:%M:%S'),
+                                                "price": t.get('price'),
+                                                "amount": t.get('amount'),
+                                                "type": t.get('side'),
+                                            })
+                                        except: pass
+                                    if formatted_trades:
+                                        await manager.broadcast_market_data(sym, "trade", formatted_trades)
+                                except asyncio.CancelledError:
+                                    break
+                                except Exception:
+                                    await asyncio.sleep(5)
+                                    
+                        async def _watch_ob(sym, raw_sym):
+                            while True:
+                                try:
+                                    orderbook = await local_exchange_client.watch_order_book(raw_sym)
+                                    depth_data = {
+                                        "bids": [{"price": b[0], "amount": b[1], "total": 0} for b in orderbook.get('bids', [])[:20]],
+                                        "asks": [{"price": a[0], "amount": a[1], "total": 0} for a in orderbook.get('asks', [])[:20]]
+                                    }
+                                    await manager.broadcast_market_data(sym, "depth", depth_data)
+                                    await asyncio.sleep(0.5) # throttle depth broadcast slightly
+                                except asyncio.CancelledError:
+                                    break
+                                except Exception:
+                                    await asyncio.sleep(5)
+                                    
+                        t1 = asyncio.create_task(_watch_trades(symbol, target_symbol))
+                        t2 = asyncio.create_task(_watch_ob(symbol, target_symbol))
+                        active_stream_tasks[symbol] = [t1, t2]
+
+            # Clean up disconnected symbols
+            for sym in list(active_stream_tasks.keys()):
+                if sym not in current_target_symbols:
+                    for t in active_stream_tasks[sym]:
+                        t.cancel()
+                    del active_stream_tasks[sym]
             
             # --- 2. Market Overview Broadcast (Dynamic Top 50) ---
             # Run this every ~5 seconds (fetching all tickers is heavy)

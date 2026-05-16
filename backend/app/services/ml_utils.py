@@ -427,6 +427,9 @@ def apply_data_cleaning(df, config, add_log):
     """Apply data cleaning strategies (missing values, outliers)."""
     import numpy as np
     
+    # Replace infinities with NaNs before dropping
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    
     initial_len = len(df)
     
     # 1. Missing Data Strategy
