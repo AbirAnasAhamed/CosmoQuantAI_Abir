@@ -158,13 +158,15 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
         { name: 'Momentum', indicators: ['RSI', 'Stoch', 'ROC', 'CCI', 'WillR', 'MFI'] },
         { name: 'Trend', indicators: ['MACD', 'EMA', 'SMA', 'ADX', 'Supertrend', 'Parabolic SAR'] },
         { name: 'Volatility', indicators: ['BBANDS', 'ATR', 'Keltner Channel', 'Donchian Channel'] },
-        { name: 'Volume', indicators: ['OBV', 'VWAP', 'CMF', 'ADOSC'] }
+        { name: 'Volume', indicators: ['OBV', 'VWAP', 'CMF', 'ADOSC'] },
+        { name: 'Multi-Parameter (Dynamic)', indicators: ['RSI Multi', 'Stoch Multi', 'ROC Multi', 'CCI Multi', 'WillR Multi', 'MFI Multi', 'MACD Multi', 'EMA Multi', 'SMA Multi', 'ADX Multi', 'Supertrend Multi', 'Parabolic SAR Multi', 'BBANDS Multi', 'ATR Multi', 'Keltner Channel Multi', 'Donchian Channel Multi', 'CMF Multi'] }
     ];
 
     const PRESET_PACKS = [
         { name: 'Institutional', icon: '🏦', list: ['SMC FVG', 'ICT Killzones', 'Order Blocks', 'Market Structure', 'Wick Rejection', 'VWAP_SD'] },
         { name: 'Momentum', icon: '🚀', list: ['RSI', 'ROC', 'Stoch', 'MFI', 'WillR'] },
         { name: 'Trend', icon: '📈', list: ['MACD', 'EMA', 'SMA', 'ADX', 'Supertrend'] },
+        { name: 'Dynamic (Multi)', icon: '🧠', list: ['RSI Multi', 'MACD Multi', 'EMA Multi', 'ATR Multi'] },
         { name: 'Kitchen Sink', icon: '🏆', list: ['SMC FVG', 'ICT Killzones', 'Order Blocks', 'Market Structure', 'Wick Rejection', 'VWAP_SD', 'RSI', 'Stoch', 'ROC', 'CCI', 'WillR', 'MFI', 'MACD', 'EMA', 'SMA', 'ADX', 'Supertrend', 'Parabolic SAR', 'BBANDS', 'ATR', 'Keltner Channel', 'Donchian Channel', 'OBV', 'VWAP', 'CMF', 'ADOSC'] }
     ];
     const ALGORITHM_CATEGORIES = [

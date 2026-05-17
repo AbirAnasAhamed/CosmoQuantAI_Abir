@@ -611,7 +611,33 @@ def train_model_task(job_id: str, db: Session):
                 "ICT Killzones": lambda d: add_ict_killzones(d),
                 "Wick Rejection": lambda d: add_wick_rejection(d),
                 "Market Structure": lambda d: add_swing_structure(d),
-                "Order Blocks": lambda d: add_order_blocks(d)
+                "Order Blocks": lambda d: add_order_blocks(d),
+                
+                # --- Multi-Parameter (Dynamic) Variants ---
+                # Momentum Multi
+                "RSI Multi": lambda d: [d.ta.rsi(length=l, append=True) for l in [7, 14, 21]],
+                "Stoch Multi": lambda d: [d.ta.stoch(k=k, d=3, append=True) for k in [9, 14, 21]],
+                "ROC Multi": lambda d: [d.ta.roc(length=l, append=True) for l in [10, 20, 50]],
+                "CCI Multi": lambda d: [d.ta.cci(length=l, append=True) for l in [14, 20, 40]],
+                "WillR Multi": lambda d: [d.ta.willr(length=l, append=True) for l in [14, 28, 50]],
+                "MFI Multi": lambda d: [d.ta.mfi(length=l, append=True) for l in [14, 21, 50]],
+                
+                # Trend Multi
+                "MACD Multi": lambda d: [d.ta.macd(fast=f, slow=s, signal=sig, append=True) for f, s, sig in [(12,26,9), (8,21,5), (5,13,3)]],
+                "EMA Multi": lambda d: [d.ta.ema(length=l, append=True) for l in [9, 21, 50, 200]],
+                "SMA Multi": lambda d: [d.ta.sma(length=l, append=True) for l in [10, 20, 50, 200]],
+                "ADX Multi": lambda d: [d.ta.adx(length=l, append=True) for l in [14, 28]],
+                "Supertrend Multi": lambda d: [d.ta.supertrend(length=l, multiplier=m, append=True) for l, m in [(7,3), (10,3), (14,2)]],
+                "Parabolic SAR Multi": lambda d: [d.ta.psar(af0=af, af=af, max_af=0.2, append=True) for af in [0.02, 0.04]],
+                
+                # Volatility Multi
+                "BBANDS Multi": lambda d: [d.ta.bbands(length=l, append=True) for l in [20, 50]],
+                "ATR Multi": lambda d: [d.ta.atr(length=l, append=True) for l in [7, 14, 21]],
+                "Keltner Channel Multi": lambda d: [d.ta.kc(length=l, append=True) for l in [20, 50]],
+                "Donchian Channel Multi": lambda d: [d.ta.donchian(length=l, append=True) for l in [20, 50]],
+                
+                # Volume Multi
+                "CMF Multi": lambda d: [d.ta.cmf(length=l, append=True) for l in [20, 50]],
             }
             
             successful_indicators = []
@@ -706,7 +732,33 @@ def train_model_task(job_id: str, db: Session):
                 "ICT Killzones": lambda d: add_ict_killzones(d),
                 "Wick Rejection": lambda d: add_wick_rejection(d),
                 "Market Structure": lambda d: add_swing_structure(d),
-                "Order Blocks": lambda d: add_order_blocks(d)
+                "Order Blocks": lambda d: add_order_blocks(d),
+                
+                # --- Multi-Parameter (Dynamic) Variants ---
+                # Momentum Multi
+                "RSI Multi": lambda d: [d.ta.rsi(length=l, append=True) for l in [7, 14, 21]],
+                "Stoch Multi": lambda d: [d.ta.stoch(k=k, d=3, append=True) for k in [9, 14, 21]],
+                "ROC Multi": lambda d: [d.ta.roc(length=l, append=True) for l in [10, 20, 50]],
+                "CCI Multi": lambda d: [d.ta.cci(length=l, append=True) for l in [14, 20, 40]],
+                "WillR Multi": lambda d: [d.ta.willr(length=l, append=True) for l in [14, 28, 50]],
+                "MFI Multi": lambda d: [d.ta.mfi(length=l, append=True) for l in [14, 21, 50]],
+                
+                # Trend Multi
+                "MACD Multi": lambda d: [d.ta.macd(fast=f, slow=s, signal=sig, append=True) for f, s, sig in [(12,26,9), (8,21,5), (5,13,3)]],
+                "EMA Multi": lambda d: [d.ta.ema(length=l, append=True) for l in [9, 21, 50, 200]],
+                "SMA Multi": lambda d: [d.ta.sma(length=l, append=True) for l in [10, 20, 50, 200]],
+                "ADX Multi": lambda d: [d.ta.adx(length=l, append=True) for l in [14, 28]],
+                "Supertrend Multi": lambda d: [d.ta.supertrend(length=l, multiplier=m, append=True) for l, m in [(7,3), (10,3), (14,2)]],
+                "Parabolic SAR Multi": lambda d: [d.ta.psar(af0=af, af=af, max_af=0.2, append=True) for af in [0.02, 0.04]],
+                
+                # Volatility Multi
+                "BBANDS Multi": lambda d: [d.ta.bbands(length=l, append=True) for l in [20, 50]],
+                "ATR Multi": lambda d: [d.ta.atr(length=l, append=True) for l in [7, 14, 21]],
+                "Keltner Channel Multi": lambda d: [d.ta.kc(length=l, append=True) for l in [20, 50]],
+                "Donchian Channel Multi": lambda d: [d.ta.donchian(length=l, append=True) for l in [20, 50]],
+                
+                # Volume Multi
+                "CMF Multi": lambda d: [d.ta.cmf(length=l, append=True) for l in [20, 50]],
             }
             
             successful_indicators = []
