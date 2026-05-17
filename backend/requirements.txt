@@ -96,3 +96,4 @@ shap
 tensorboard
 pytrends
 prometheus-client
+optuna
