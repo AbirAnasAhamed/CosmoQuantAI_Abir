@@ -109,7 +109,10 @@ class AlternativeDataFetcher:
         logger.info(f"Fetching alternative data for {symbol}...")
         
         # 1. Fetch F&G
-        days_needed = (datetime.utcnow() - df_index.min()).days + 2
+        min_date = df_index.min()
+        if min_date.tz is not None:
+            min_date = min_date.tz_localize(None)
+        days_needed = (pd.Timestamp.utcnow().tz_localize(None) - min_date).days + 2
         fng_df = await self.fetch_fear_and_greed(limit=days_needed)
         
         # 2. Fetch GitHub (assuming BTC for symbol BTC/USDT)
@@ -129,14 +132,26 @@ class AlternativeDataFetcher:
         gt_df = await loop.run_in_executor(None, self.fetch_google_trends, keyword, "today 3-m")
 
         # Combine into a single daily DataFrame
-        alt_df = pd.DataFrame(index=pd.date_range(start=df_index.min(), end=df_index.max(), freq='D'))
+        start_date = df_index.min()
+        end_date = df_index.max()
+        if start_date.tz is not None:
+            start_date = start_date.tz_localize(None)
+            end_date = end_date.tz_localize(None)
+            
+        alt_df = pd.DataFrame(index=pd.date_range(start=start_date, end=end_date, freq='D'))
         
         if not fng_df.empty:
+            if fng_df.index.tz is not None:
+                fng_df.index = fng_df.index.tz_localize(None)
             alt_df = alt_df.join(fng_df, how='left')
         if not gh_df.empty:
+            if gh_df.index.tz is not None:
+                gh_df.index = gh_df.index.tz_localize(None)
             alt_df = alt_df.join(gh_df, how='left')
         if not gt_df.empty:
             # Resample gt_df to daily if needed (pytrends returns daily for 3-m)
+            if gt_df.index.tz is not None:
+                gt_df.index = gt_df.index.tz_localize(None)
             alt_df = alt_df.join(gt_df, how='left')
             
         # Forward fill daily alternative data to match potentially higher frequency df_index
@@ -147,6 +162,10 @@ class AlternativeDataFetcher:
         alt_df['fng_value'] = alt_df.get('fng_value', pd.Series(50, index=alt_df.index)).fillna(50)
         alt_df['commit_count'] = alt_df.get('commit_count', pd.Series(0, index=alt_df.index)).fillna(0)
         alt_df['search_interest'] = alt_df.get('search_interest', pd.Series(50, index=alt_df.index)).fillna(50)
+
+        # Localize back to original timezone if needed
+        if df_index.tz is not None:
+            alt_df.index = alt_df.index.tz_localize(df_index.tz)
 
         # Finally, reindex to the exact timestamps of the main dataframe using forward fill
         final_df = alt_df.reindex(df_index, method='ffill')
