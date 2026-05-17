@@ -522,7 +522,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
 
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 flex-1 min-h-0">
                         {/* COLUMN 1: Core Parameters */}
-                        <div className="flex flex-col h-full bg-white/5 border border-white/10 rounded-2xl shadow-inner overflow-hidden">
+                        <div className="flex flex-col h-full bg-white/5 border border-amber-500/50 rounded-2xl shadow-[0_0_12px_rgba(245,158,11,0.4)] overflow-hidden">
                             <div className="p-5 bg-black/40 border-b border-white/10 flex-shrink-0 relative z-20">
                                 <h3 className="text-sm font-bold text-cyan-400 flex items-center gap-2 uppercase tracking-widest"><Settings className="w-4 h-4" /> Core Parameters</h3>
                             </div>
@@ -658,7 +658,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                         </div>
 
                         {/* COLUMN 2: Neural Architecture */}
-                        <div className="flex flex-col h-full bg-white/5 border border-white/10 rounded-2xl shadow-inner overflow-hidden">
+                        <div className="flex flex-col h-full bg-white/5 border border-amber-500/50 rounded-2xl shadow-[0_0_12px_rgba(245,158,11,0.4)] overflow-hidden">
                             <div className="p-5 bg-black/40 border-b border-white/10 flex-shrink-0 relative z-20">
                                 <h3 className="text-sm font-bold text-purple-400 flex items-center gap-2 uppercase tracking-widest"><Cpu className="w-4 h-4" /> Neural Architecture</h3>
                             </div>
@@ -832,7 +832,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                         </div>
 
                         {/* COLUMN 3: Data Engine & Features */}
-                        <div className="flex flex-col h-full bg-white/5 border border-white/10 rounded-2xl shadow-inner overflow-hidden">
+                        <div className="flex flex-col h-full bg-white/5 border border-amber-500/50 rounded-2xl shadow-[0_0_12px_rgba(245,158,11,0.4)] overflow-hidden">
                             <div className="p-5 bg-black/40 border-b border-white/10 flex-shrink-0 relative z-20">
                                 <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2 uppercase tracking-widest"><Database className="w-4 h-4" /> Data Engine & Features</h3>
                             </div>
