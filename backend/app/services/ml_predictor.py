@@ -84,11 +84,20 @@ def predict(model_id: str, symbol_override: Optional[str], db: Session) -> dict:
 
     # ── 2. Load metadata (features, dataset_type, indicators, symbol) ────────
     metadata_path = model_path.replace(".pkl", ".json").replace(".pt", ".json").replace(".zip", ".json")
-    if not os.path.exists(metadata_path):
-        raise FileNotFoundError(f"Metadata file not found: {metadata_path}")
-
-    with open(metadata_path, "r") as f:
-        metadata = json.load(f)
+    
+    if os.path.exists(metadata_path):
+        with open(metadata_path, "r") as f:
+            metadata = json.load(f)
+    else:
+        # Provide fallback metadata for manually uploaded models
+        metadata = {
+            "features": ["Open", "High", "Low", "Close", "Volume"],
+            "dataset_type": "ohlcv",
+            "indicators": [],
+            "timeframe": "1h",
+            "symbol": symbol_override or "BTC/USDT",
+            "prediction_target": "classification"
+        }
 
     features     = metadata.get("features", [])
     dataset_type = metadata.get("dataset_type", "ohlcv")

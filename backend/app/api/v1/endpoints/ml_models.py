@@ -107,6 +107,7 @@ async def create_custom_model(
     version: float = Form(...),
     description: str = Form(...),
     file: UploadFile = File(...),
+    metadata_file: UploadFile = File(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(deps.get_current_user),
 ) -> Any:
@@ -124,13 +125,20 @@ async def create_custom_model(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # Create model entry
+    # Save metadata file if provided
+    if metadata_file:
+        ext = os.path.splitext(file.filename)[1]
+        metadata_path = file_path.replace(ext, ".json") if ext else file_path + ".json"
+        with open(metadata_path, "wb") as buffer:
+            shutil.copyfileobj(metadata_file.file, buffer)
+
+    # Create model entry without active_version_id initially
     db_model = models.CustomMLModel(
         id=model_id,
         name=name,
         model_type=model_type,
         user_id=current_user.id,
-        active_version_id=version_id
+        active_version_id=None
     )
     db.add(db_model)
     db.commit()
@@ -146,6 +154,10 @@ async def create_custom_model(
     )
     db.add(db_version)
     db.commit()
+    
+    # Set active version now that both exist
+    db_model.active_version_id = version_id
+    db.commit()
     db.refresh(db_model)
     
     # Trigger background processing
@@ -160,6 +172,7 @@ async def upload_new_version(
     version: float = Form(...),
     description: str = Form(...),
     file: UploadFile = File(...),
+    metadata_file: UploadFile = File(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(deps.get_current_user),
 ) -> Any:
@@ -179,6 +192,13 @@ async def upload_new_version(
     file_path = os.path.join(version_dir, f"{version_id}_{file.filename}")
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+
+    # Save metadata file if provided
+    if metadata_file:
+        ext = os.path.splitext(file.filename)[1]
+        metadata_path = file_path.replace(ext, ".json") if ext else file_path + ".json"
+        with open(metadata_path, "wb") as buffer:
+            shutil.copyfileobj(metadata_file.file, buffer)
 
     # Create version entry
     db_version = models.ModelVersion(
@@ -373,13 +393,36 @@ def download_model(
     # Try to get the extension from the stored filename (after the version prefix)
     ext = os.path.splitext(original_filename)[1] or ".bin"
     safe_model_name = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in db_model.name)
-    download_filename = f"{safe_model_name}_v{version.version:.1f}{ext}"
-
-    return FileResponse(
-        path=file_path,
-        filename=download_filename,
-        media_type="application/octet-stream",
-    )
+    
+    # Check if metadata exists
+    json_path = file_path.replace(".pkl", ".json").replace(".pt", ".json").replace(".zip", ".json").replace(".onnx", ".json").replace(".h5", ".json")
+    
+    if os.path.exists(json_path):
+        import zipfile
+        import io
+        from fastapi.responses import StreamingResponse
+        
+        # Create a ZIP file in memory
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            zip_file.write(file_path, arcname=original_filename)
+            zip_file.write(json_path, arcname=os.path.basename(json_path))
+            
+        zip_buffer.seek(0)
+        download_filename = f"{safe_model_name}_v{version.version:.1f}_bundle.zip"
+        
+        return StreamingResponse(
+            zip_buffer,
+            media_type="application/zip",
+            headers={"Content-Disposition": f"attachment; filename={download_filename}"}
+        )
+    else:
+        download_filename = f"{safe_model_name}_v{version.version:.1f}{ext}"
+        return FileResponse(
+            path=file_path,
+            filename=download_filename,
+            media_type="application/octet-stream",
+        )
 
 
 @router.get("/{model_id}/dataset/download")

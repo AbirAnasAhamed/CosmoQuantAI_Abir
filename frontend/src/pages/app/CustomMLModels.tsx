@@ -64,13 +64,14 @@ const StatusPill: React.FC<{ status: ModelVersion['status'] }> = ({ status }) =>
 
 const UploadModelModal: React.FC<{
     onClose: () => void;
-    onUpload: (data: { modelName?: string; modelType?: CustomMLModel['modelType']; file: File; description: string; version: number }, existingModelId?: string) => void;
+    onUpload: (data: { modelName?: string; modelType?: CustomMLModel['modelType']; file: File; metadataFile?: File; description: string; version: number }, existingModelId?: string) => void;
     existingModel?: CustomMLModel;
 }> = ({ onClose, onUpload, existingModel }) => {
     const isNewVersionMode = !!existingModel;
     const [modelName, setModelName] = useState(existingModel?.name || '');
     const [modelType, setModelType] = useState<CustomMLModel['modelType']>(existingModel?.modelType || 'LSTM');
     const [file, setFile] = useState<File | null>(null);
+    const [metadataFile, setMetadataFile] = useState<File | null>(null);
     const [description, setDescription] = useState('');
 
     const nextVersion = isNewVersionMode ? (Math.max(...existingModel.versions.map(v => v.version)) + 0.1).toFixed(1) : '1.0';
@@ -82,6 +83,7 @@ const UploadModelModal: React.FC<{
                 modelName: isNewVersionMode ? undefined : modelName,
                 modelType: isNewVersionMode ? undefined : modelType,
                 file: file,
+                metadataFile: metadataFile || undefined,
                 description,
                 version: parseFloat(nextVersion),
             }, existingModel?.id);
@@ -116,16 +118,19 @@ const UploadModelModal: React.FC<{
                                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Architecture</label>
                                 <select value={modelType} onChange={(e) => setModelType(e.target.value as any)} className={inputBaseClasses}>
                                     <optgroup label="Indicator & Tabular Engines">
-                                        <option>Random Forest</option> <option>XGBoost</option> <option>LightGBM</option> <option>CatBoost</option>
+                                        <option>Random Forest</option> <option>XGBoost</option> <option>LightGBM</option> <option>CatBoost</option> <option>TabNet</option>
                                     </optgroup>
                                     <optgroup label="Trend & Sequence Memory">
-                                        <option>LSTM</option> <option>GRU</option>
+                                        <option>LSTM</option> <option>GRU</option> <option>TCN</option>
                                     </optgroup>
                                     <optgroup label="Micro-Pattern & Scalping">
                                         <option>1D-CNN</option> <option>DeepLOB</option> <option>Transformer</option>
                                     </optgroup>
                                     <optgroup label="Autonomous Agents">
-                                        <option>PPO-RL</option>
+                                        <option>PPO-RL</option> <option>SAC-RL</option>
+                                    </optgroup>
+                                    <optgroup label="Anomaly Detection">
+                                        <option>Auto-Encoder</option>
                                     </optgroup>
                                     <optgroup label="Other">
                                         <option>ARIMA</option> <option>Other</option>
@@ -135,14 +140,27 @@ const UploadModelModal: React.FC<{
                         </div>
                     )}
 
-                    <div className="bg-brand-primary/5 p-4 rounded-xl border border-brand-primary/10 border-dashed">
-                        <label className="block text-xs font-bold text-brand-primary uppercase tracking-wider mb-2 text-center">Upload Binary / Weights</label>
-                        <div className="flex flex-col items-center justify-center gap-3">
-                            <label htmlFor="file-upload" className="cursor-pointer px-6 py-3 bg-brand-primary text-white rounded-full text-sm font-bold hover:bg-brand-primary-hover transition-all shadow-lg shadow-brand-primary/20">
-                                Choose File
-                                <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] || null)} required />
-                            </label>
-                            <span className="text-xs font-mono text-gray-400">{file?.name || "Supports .pkl, .h5, .onnx, .pt"}</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-brand-primary/5 p-4 rounded-xl border border-brand-primary/10 border-dashed">
+                            <label className="block text-xs font-bold text-brand-primary uppercase tracking-wider mb-2 text-center">Upload Binary / Weights</label>
+                            <div className="flex flex-col items-center justify-center gap-3">
+                                <label htmlFor="file-upload" className="cursor-pointer px-6 py-3 bg-brand-primary text-white rounded-full text-sm font-bold hover:bg-brand-primary-hover transition-all shadow-lg shadow-brand-primary/20">
+                                    Choose File
+                                    <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] || null)} required />
+                                </label>
+                                <span className="text-xs font-mono text-gray-400 text-center">{file?.name || "Supports .pkl, .h5, .onnx, .pt"}</span>
+                            </div>
+                        </div>
+
+                        <div className="bg-purple-500/5 p-4 rounded-xl border border-purple-500/10 border-dashed">
+                            <label className="block text-xs font-bold text-purple-400 uppercase tracking-wider mb-2 text-center">Upload Metadata (Optional)</label>
+                            <div className="flex flex-col items-center justify-center gap-3">
+                                <label htmlFor="metadata-upload" className="cursor-pointer px-6 py-3 bg-purple-600 text-white rounded-full text-sm font-bold hover:bg-purple-700 transition-all shadow-lg shadow-purple-500/20">
+                                    Choose JSON
+                                    <input id="metadata-upload" name="metadata-upload" type="file" accept=".json" className="sr-only" onChange={(e) => setMetadataFile(e.target.files?.[0] || null)} />
+                                </label>
+                                <span className="text-xs font-mono text-gray-400 text-center">{metadataFile?.name || "metadata.json"}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -694,7 +712,7 @@ const ModelDetailsModal: React.FC<{
                                 ) : (
                                     <>
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                        Download Weights
+                                        Download Bundle (.zip)
                                     </>
                                 )}
                             </div>
@@ -1216,7 +1234,7 @@ const CustomMLModels: React.FC<{ onNavigate?: (view: AppView, section?: string) 
     });
 
     const createMutation = useMutation({
-        mutationFn: (data: any) => mlModelsService.createModel(data.modelName!, data.modelType!, data.version, data.description, data.file),
+        mutationFn: (data: any) => mlModelsService.createModel(data.modelName!, data.modelType!, data.version, data.description, data.file, data.metadataFile),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['mlModels'] });
             toast.success('Model created and uploading!');
@@ -1225,7 +1243,7 @@ const CustomMLModels: React.FC<{ onNavigate?: (view: AppView, section?: string) 
     });
 
     const uploadVersionMutation = useMutation({
-        mutationFn: ({ modelId, data }: { modelId: string; data: any }) => mlModelsService.uploadVersion(modelId, data.version, data.description, data.file),
+        mutationFn: ({ modelId, data }: { modelId: string; data: any }) => mlModelsService.uploadVersion(modelId, data.version, data.description, data.file, data.metadataFile),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['mlModels'] });
             toast.success('New version uploaded!');
@@ -1251,7 +1269,7 @@ const CustomMLModels: React.FC<{ onNavigate?: (view: AppView, section?: string) 
         onError: () => toast.error('Failed to delete model'),
     });
 
-    const handleUpload = (data: { modelName?: string; modelType?: CustomMLModel['modelType']; file: File; description: string; version: number }, existingModelId?: string) => {
+    const handleUpload = (data: { modelName?: string; modelType?: CustomMLModel['modelType']; file: File; metadataFile?: File; description: string; version: number }, existingModelId?: string) => {
         if (existingModelId) { // Uploading a new version
             uploadVersionMutation.mutate({ modelId: existingModelId, data });
         } else { // Uploading a new model

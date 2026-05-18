@@ -27,7 +27,8 @@ export const mlModelsService = {
         modelType: string,
         version: number,
         description: string,
-        file: File
+        file: File,
+        metadataFile?: File
     ): Promise<CustomMLModel> => {
         const formData = new FormData();
         formData.append('name', name);
@@ -35,6 +36,9 @@ export const mlModelsService = {
         formData.append('version', version.toString());
         formData.append('description', description);
         formData.append('file', file);
+        if (metadataFile) {
+            formData.append('metadata_file', metadataFile);
+        }
 
         const response = await api.post('/ml-models', formData, {
             headers: {
@@ -49,12 +53,16 @@ export const mlModelsService = {
         modelId: string,
         version: number,
         description: string,
-        file: File
+        file: File,
+        metadataFile?: File
     ): Promise<CustomMLModel> => {
         const formData = new FormData();
         formData.append('version', version.toString());
         formData.append('description', description);
         formData.append('file', file);
+        if (metadataFile) {
+            formData.append('metadata_file', metadataFile);
+        }
 
         const response = await api.post(`/ml-models/${modelId}/versions`, formData, {
             headers: {
