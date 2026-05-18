@@ -693,6 +693,12 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                 setBaseModels={setBaseModels}
                                 metaModel={metaModel}
                                 setMetaModel={setMetaModel}
+                                votingStrategy={votingStrategy}
+                                setVotingStrategy={setVotingStrategy}
+                                autoOptimizeWeights={autoOptimizeWeights}
+                                setAutoOptimizeWeights={setAutoOptimizeWeights}
+                                featureSubspacing={featureSubspacing}
+                                setFeatureSubspacing={setFeatureSubspacing}
                                 disabled={isTraining}
                             />
 

@@ -87,6 +87,7 @@ class AlternativeDataFetcher:
         """
         try:
             from pytrends.request import TrendReq
+            from requests.exceptions import HTTPError
             pytrend = TrendReq(hl='en-US', tz=360)
             pytrend.build_payload(kw_list=[keyword], timeframe=timeframe)
             df = pytrend.interest_over_time()
@@ -99,7 +100,10 @@ class AlternativeDataFetcher:
             logger.error("pytrends is not installed. Run `pip install pytrends`.")
             return pd.DataFrame()
         except Exception as e:
-            logger.error(f"Error fetching Google Trends for {keyword}: {e}")
+            if "429" in str(e):
+                logger.warning(f"Google Trends rate limit exceeded (429) for {keyword}. Using neutral fallback.")
+            else:
+                logger.error(f"Error fetching Google Trends for {keyword}: {e}")
             return pd.DataFrame()
 
     async def build_alternative_features(self, df_index: pd.DatetimeIndex, symbol: str) -> pd.DataFrame:

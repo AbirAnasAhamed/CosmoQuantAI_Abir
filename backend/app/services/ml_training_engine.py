@@ -457,9 +457,9 @@ def train_model_task(job_id: str, db: Session):
             
             prediction_target = config.get("prediction_target", "classification")
             if prediction_target == "classification":
-                df['Target'] = (df['Close'].shift(-1) > df['Close']).astype(int)
+                df['Target'] = (df['Close'].shift(-5) > df['Close']).astype(int)
             else:
-                df['Target'] = df['Close'].shift(-1)
+                df['Target'] = df['Close'].shift(-5)
                 
             from app.services.ml_utils import apply_data_cleaning
             df = apply_data_cleaning(df, config, add_log)
@@ -662,9 +662,9 @@ def train_model_task(job_id: str, db: Session):
                 
             prediction_target = config.get("prediction_target", "classification")
             if prediction_target == "classification":
-                df['Target'] = (df['Close'].shift(-1) > df['Close']).astype(int)
+                df['Target'] = (df['Close'].shift(-5) > df['Close']).astype(int)
             else:
-                df['Target'] = df['Close'].shift(-1)
+                df['Target'] = df['Close'].shift(-5)
                 
             from app.services.ml_utils import apply_data_cleaning
             df = apply_data_cleaning(df, config, add_log)
@@ -783,9 +783,9 @@ def train_model_task(job_id: str, db: Session):
                 
             prediction_target = config.get("prediction_target", "classification")
             if prediction_target == "classification":
-                df['Target'] = (df['Close'].shift(-1) > df['Close']).astype(int)
+                df['Target'] = (df['Close'].shift(-5) > df['Close']).astype(int)
             else:
-                df['Target'] = df['Close'].shift(-1)
+                df['Target'] = df['Close'].shift(-5)
                 
             from app.services.ml_utils import apply_data_cleaning
             df = apply_data_cleaning(df, config, add_log)
@@ -839,6 +839,13 @@ def train_model_task(job_id: str, db: Session):
         # FIX: Ensure no NaNs or Infs exist from alternative data
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
         df.dropna(inplace=True)
+        
+        prediction_target = config.get("prediction_target", "classification")
+        if prediction_target == "classification" and df['Target'].nunique() == 1:
+            add_log("⚠️ Target variable has only one class (no variance). Artificially adding an opposite label to prevent model crash.")
+            opposite_label = 1 if df['Target'].iloc[0] == 0 else 0
+            df.iloc[0, df.columns.get_loc('Target')] = opposite_label
+            df.iloc[-1, df.columns.get_loc('Target')] = opposite_label
         
         X = df[features].values
         y = df['Target'].values
@@ -978,6 +985,7 @@ def train_model_task(job_id: str, db: Session):
         # 4. Train Model
         check_cancelled()
         is_ensemble = config.get("is_ensemble", False)
+        ensemble_fi_list = None
         
         if is_ensemble:
             add_log(f"Building Custom Ensemble ({config.get('ensemble_method', 'voting')})...")
@@ -1124,7 +1132,7 @@ def train_model_task(job_id: str, db: Session):
                     for est in model.estimators_:
                         actual_est = est
                         if hasattr(est, 'steps'):
-                            actual_est = est.steps[-1][1] # Get last step of pipeline
+                            actual_est = est.steps[-1][1] 
                         if hasattr(actual_est, "feature_importances_"):
                             importances_list.append(actual_est.feature_importances_)
                     
@@ -1136,6 +1144,7 @@ def train_model_task(job_id: str, db: Session):
                         sorted_fi = sorted(fi_dict.items(), key=lambda x: x[1], reverse=True)[:10]
                         fi_log = "[FEATURE_IMPORTANCE] " + json.dumps({k: v for k, v in sorted_fi})
                         add_log(fi_log)
+                        ensemble_fi_list = [{"name": str(k), "value": float(v)} for k, v in sorted_fi]
                 except Exception as e:
                     pass
             
@@ -1724,6 +1733,8 @@ def train_model_task(job_id: str, db: Session):
                 add_log("Generating Real Explainability Metrics (SHAP, Feature Importance, etc.)...")
                 is_cls = (prediction_target == "classification")
                 final_explainability = generate_real_explainability(model, X_test, y_test.ravel(), y_pred, features, is_classification=is_cls)
+                if is_ensemble and ensemble_fi_list is not None:
+                    final_explainability["featureImportance"] = ensemble_fi_list
             
             elif job.algorithm in ["LSTM", "GRU", "1D-CNN", "DeepLOB"]:
                 add_log("Generating Basic Explainability Metrics for Deep Learning model...")
@@ -1852,10 +1863,14 @@ def train_model_task(job_id: str, db: Session):
             custom_model_name = config.get("model_name", "").strip()
             
             registry_id = f"model_{timestamp}"
+            
+            final_model_type = "Ensemble" if is_ensemble else job.algorithm
+            final_auto_name = f"{job.symbol} Ensemble Auto" if is_ensemble else f"{job.symbol} {job.algorithm} Auto"
+
             db_model = models.CustomMLModel(
                 id=registry_id,
-                name=custom_model_name if custom_model_name else f"{job.symbol} {job.algorithm} Auto",
-                model_type=job.algorithm,
+                name=custom_model_name if custom_model_name else final_auto_name,
+                model_type=final_model_type,
                 user_id=job.user_id,
                 active_version_id=None,
                 is_auto_retrain=1 if is_auto_retrain else 0,

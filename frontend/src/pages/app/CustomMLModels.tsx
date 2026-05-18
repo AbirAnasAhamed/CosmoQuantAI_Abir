@@ -12,6 +12,7 @@ import type { CustomMLModel, ModelVersion } from '@/types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, AreaChart, Area, LineChart, Line } from 'recharts';
 import ReactFlow, { Background, Controls } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { Layers } from 'lucide-react';
 // --- Visual Components ---
 
 const NeuralMeshBackground = () => (
@@ -743,7 +744,7 @@ const ModelDetailsModal: React.FC<{
                                     {[
                                         { label: 'Target Asset', value: config.symbol || 'N/A', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', color: 'cyan' },
                                         { label: 'Timeframe', value: config.timeframe || 'N/A', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', color: 'blue' },
-                                        { label: 'Algorithm', value: config.algorithm || 'N/A', icon: 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z', color: 'purple' },
+                                        { label: 'Algorithm', value: config.config?.is_ensemble ? `Ensemble (${config.config?.ensemble_method || 'Voting'})` : (config.algorithm || 'N/A'), icon: 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z', color: 'purple' },
                                         { label: 'Epochs/Trees', value: config.config?.epochs || 'N/A', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', color: 'emerald' },
                                     ].map((stat, i) => (
                                         <div key={i} className={`group relative bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 hover:bg-white/[0.04] hover:border-${stat.color}-500/30 transition-all overflow-hidden`}>
@@ -916,6 +917,7 @@ const ModelCard: React.FC<{
         'PPO-RL': <OtherModelIcon className="w-8 h-8 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]" />,
         'ARIMA': <ArimaIcon className="w-8 h-8 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" />,
         'Other': <OtherModelIcon className="w-8 h-8 drop-shadow-[0_0_8px_rgba(148,163,184,0.8)]" />,
+        'Ensemble': <Layers className="w-8 h-8 text-rose-500 drop-shadow-[0_0_8px_rgba(243,24,113,0.8)]" />,
     };
 
     const activeVersion = model.versions.find(v => v.id === model.activeVersionId);

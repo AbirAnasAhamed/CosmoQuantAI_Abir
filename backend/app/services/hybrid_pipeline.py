@@ -165,11 +165,17 @@ def build_hybrid_dataset(job, db: Session, config: dict, add_log) -> tuple[pd.Da
             raise Exception("[HYBRID] 'Close' price is missing from merged dataset.")
 
     if prediction_target == "classification":
-        df['Target'] = (df['Close'].shift(-1) > df['Close']).astype(int)
+        df['Target'] = (df['Close'].shift(-5) > df['Close']).astype(int)
     else:
-        df['Target'] = df['Close'].shift(-1)
+        df['Target'] = df['Close'].shift(-5)
         
     df.dropna(inplace=True)
+
+    if prediction_target == "classification" and df['Target'].nunique() == 1:
+        add_log("⚠️ Target variable has only one class (no variance). Artificially adding an opposite label to prevent model crash.")
+        opposite_label = 1 if df['Target'].iloc[0] == 0 else 0
+        df.iloc[0, df.columns.get_loc('Target')] = opposite_label
+        df.iloc[-1, df.columns.get_loc('Target')] = opposite_label
 
     if len(df) < 10:
         raise Exception(f"[HYBRID] Not enough data after merging. Found {len(df)} rows. Please increase dataset lookbacks.")
