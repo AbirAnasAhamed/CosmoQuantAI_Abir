@@ -396,6 +396,10 @@ class OrderBlockExecutionEngine:
             self.logger.info(f"[REAL] Cancelled order {order_id} on {self.exchange_id}")
             return True
         except Exception as e:
+            err_str = str(e).lower()
+            if "unknown order" in err_str or "-2011" in err_str:
+                self.logger.debug(f"[REAL] Order {order_id} already closed/filled (Unknown Order).")
+                return True
             self.logger.error(f"[REAL] Failed to cancel order {order_id}: {e}")
             return False
 

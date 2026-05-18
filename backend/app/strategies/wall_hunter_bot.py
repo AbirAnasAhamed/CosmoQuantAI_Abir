@@ -355,15 +355,33 @@ class WallHunterBot:
     async def _clear_state(self):
         """Clear active position state from Redis and cancel hanging orders."""
         if self.active_pos and not getattr(self, 'is_paper_trading', False):
+            # 1. Clean up known tracked orders
             order_keys = ['limit_order_id', 'sl_order_id', 'sl_limit_order_id', 'entry_order_id']
             for key in order_keys:
                 order_id = self.active_pos.get(key)
                 if order_id:
                     try:
-                        await self.engine.cancel_order(order_id)
-                        self.logger.info(f"🧹 Cleaned up hanging order {order_id} ({key}) during state clear.")
+                        success = await self.engine.cancel_order(order_id)
+                        if success:
+                            self.logger.info(f"🧹 Cleaned up hanging order {order_id} ({key}) during state clear.")
                     except Exception:
                         pass
+                        
+            # 2. Bulletproof exchange-level sweep for any orphaned orders belonging to this bot
+            try:
+                if getattr(self, 'exchange', None):
+                    open_orders = await self.exchange.fetch_open_orders(self.symbol)
+                    prefix = f"WH_{self.bot_id}_"
+                    to_cancel = [o for o in open_orders if str(o.get('clientOrderId', '')).startswith(prefix) or str(o.get('info', {}).get('clientOrderId', '')).startswith(prefix)]
+                    for o in to_cancel:
+                        try:
+                            success = await self.engine.cancel_order(o['id'])
+                            if success:
+                                self.logger.info(f"🧹 Swept orphaned order {o['id']} directly from exchange during state clear.")
+                        except Exception:
+                            pass
+            except Exception as e:
+                self.logger.debug(f"Exchange-level sweep failed (normal if rate limited): {e}")
         
         state_key = f"wallhunter:state:{self.bot_id}"
         try:
