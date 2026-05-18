@@ -352,8 +352,19 @@ class WallHunterBot:
             except Exception as e:
                 self.logger.warning(f"Failed to save state to Redis: {e}")
 
-    def _clear_state(self):
-        """Clear active position state from Redis."""
+    async def _clear_state(self):
+        """Clear active position state from Redis and cancel hanging orders."""
+        if self.active_pos and not getattr(self, 'is_paper_trading', False):
+            order_keys = ['limit_order_id', 'sl_order_id', 'sl_limit_order_id', 'entry_order_id']
+            for key in order_keys:
+                order_id = self.active_pos.get(key)
+                if order_id:
+                    try:
+                        await self.engine.cancel_order(order_id)
+                        self.logger.info(f"🧹 Cleaned up hanging order {order_id} ({key}) during state clear.")
+                    except Exception:
+                        pass
+        
         state_key = f"wallhunter:state:{self.bot_id}"
         try:
             self.redis.delete(state_key)
@@ -2321,7 +2332,7 @@ class WallHunterBot:
                         if filled <= 0:
                             self.logger.info(f"❌ Entry order was completely unfilled before cancellation. Aborting snipe.")
                             self.active_pos = None
-                            self._clear_state()
+                            await self._clear_state()
                             return
                             
                         self.logger.info(f"🔄 Partial Fill Detected! Requested: {base_amount}, Filled: {filled}. Adjusting position size.")
@@ -2566,13 +2577,13 @@ class WallHunterBot:
                         self._save_state()
                     else:
                         self.logger.warning(f"🗑️ Entry Order {entry_order_id} was {status.get('status')} with zero fills. Discarding position.")
-                        self._clear_state()
+                        await self._clear_state()
                         self.active_pos = None
                         return
             except Exception as e:
                 if "Order not found" in str(e):
                     self.logger.error(f"❌ Entry order {entry_order_id} not found on Binance during recovery. Clearing state.")
-                    self._clear_state()
+                    await self._clear_state()
                     self.active_pos = None
                 else:
                     self.logger.warning(f"⚠️ Could not verify entry order {entry_order_id}: {e}")
@@ -2633,7 +2644,7 @@ class WallHunterBot:
                     
                     # Log exit telegram
                     await self._send_telegram(f"🛡️ WallHunter EXIT - Stopped out via Limit Maker!\nPair: {self.symbol}\nExit Price: {filled_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}")
-                    self._clear_state()
+                    await self._clear_state()
                     self.active_pos = None
                     return
                 elif status and status.get('status') in ['canceled', 'cancelled', 'expired', 'rejected']:
@@ -2642,7 +2653,7 @@ class WallHunterBot:
                         self.logger.info(f"⚠️ Limit SL Order completely broken but partial fill ({filled}). Discarding position state to sync.")
                     else:
                         self.logger.warning(f"🗑️ Limit SL Order {sl_limit_order_id} was {status.get('status')}. You may need to manual exit.")
-                    self._clear_state()
+                    await self._clear_state()
                     self.active_pos = None
                     return
             except Exception as e:
@@ -2707,7 +2718,7 @@ class WallHunterBot:
                         self.total_losses += 1
                     await self._send_telegram(f"🎯 WallHunter EXIT - Limit TP Filled!\nPair: {self.symbol}\nExit Price: {filled_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
                     self.logger.info(f"✅ Limit TP Order {self.active_pos['limit_order_id']} was filled by exchange at {filled_price}")
-                    self._clear_state()
+                    await self._clear_state()
                     self.active_pos = None
                     return
             except Exception as e:
@@ -2869,7 +2880,7 @@ class WallHunterBot:
                     self.total_wins += 1
                     self.total_executed_orders += 1
                     await self._send_telegram(f"🎯 WallHunter EXIT - Full TP Hit (Dust Prevented)!\nPair: {self.symbol}\nMode: {getattr(self, 'strategy_mode', 'long').upper()}\n💰 Locked Profit: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
-                    self._clear_state()
+                    await self._clear_state()
                     self.active_pos = None
                 else:
                     self.active_pos['amount'] = float(self.engine.exchange.amount_to_precision(self.symbol, remaining_raw))
@@ -2960,7 +2971,7 @@ class WallHunterBot:
                                     self.total_losses += 1 if pnl_val <= 0 else 0
                                     
                                     await self._send_telegram(f"🛡️ WallHunter EXIT - Stopped out via Limit Sweep!\nPair: {self.symbol}\n💰 Secured PnL: ${pnl_val:.2f}")
-                                    self._clear_state()
+                                    await self._clear_state()
                                     self.active_pos = None
                                     return
                                     
@@ -3130,7 +3141,7 @@ class WallHunterBot:
                  else:
                      self.total_losses += 1
                      await self._send_telegram(f"🛑 WallHunter EXIT - Stopped Out!\nPair: {self.symbol}\nMode: {getattr(self, 'strategy_mode', 'long').upper()}\nExit Price: {current_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
-            self._clear_state()
+            await self._clear_state()
             self.active_pos = None
             self.logger.info("Exit: Stop Loss / TSL Hit")
             
@@ -3226,7 +3237,7 @@ class WallHunterBot:
             else:
                 self.total_losses += 1
             await self._send_telegram(f"🎯 WallHunter EXIT - Final Take Profit Hit!\nPair: {self.symbol}\nMode: {getattr(self, 'strategy_mode', 'long').upper()}\nExit Price: {current_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
-            self._clear_state()
+            await self._clear_state()
             self.active_pos = None
             self.logger.info("Exit: Take Profit Hit")
 
@@ -3344,7 +3355,7 @@ class WallHunterBot:
                 self.total_losses += 1
                 
             await self._send_telegram(f"⚡ WallHunter EXIT - Supertrend Fallback Hit!\nPair: {self.symbol}\nMode: {getattr(self, 'strategy_mode', 'long').upper()}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
-            self._clear_state()
+            await self._clear_state()
             self.active_pos = None
             
         except Exception as e:

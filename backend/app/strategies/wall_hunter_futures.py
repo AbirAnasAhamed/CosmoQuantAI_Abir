@@ -363,8 +363,19 @@ class WallHunterFuturesStrategy:
             except Exception as e:
                 logger.warning(f"Failed to save state to Redis: {e}")
 
-    def _clear_state(self):
-        """Clear active position state from Redis."""
+    async def _clear_state(self):
+        """Clear active position state from Redis and cancel hanging orders."""
+        if self.active_pos and not getattr(self, 'is_paper_trading', False):
+            order_keys = ['limit_order_id', 'sl_order_id', 'sl_limit_order_id', 'entry_order_id']
+            for key in order_keys:
+                order_id = self.active_pos.get(key)
+                if order_id:
+                    try:
+                        await self.engine.cancel_order(order_id)
+                        self.logger.info(f"🧹 Cleaned up hanging order {order_id} ({key}) during state clear.")
+                    except Exception:
+                        pass
+        
         state_key = f"wallhunter_futures:state:{self.bot_id}"
         try:
             self.redis.delete(state_key)
@@ -1801,7 +1812,7 @@ class WallHunterFuturesStrategy:
                         self._save_state()
                     else:
                         self.logger.warning(f"🗑️ Futures Entry Order {entry_order_id} cancelled with zero fill. Discarding position state.")
-                        self._clear_state()
+                        await self._clear_state()
                         self.active_pos = None
                         return
             except Exception as e:
@@ -1858,7 +1869,7 @@ class WallHunterFuturesStrategy:
                     self.total_executed_orders += 1
                     
                     await self._send_telegram(f"🛡️ Futures EXIT - Stopped out via Limit Maker!\nPair: {self.symbol}\nExit Price: {filled_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}")
-                    self._clear_state()
+                    await self._clear_state()
                     self.active_pos = None
                     return
                 elif status and status.get('status') in ['canceled', 'cancelled', 'expired', 'rejected']:
@@ -1867,7 +1878,7 @@ class WallHunterFuturesStrategy:
                         logger.info(f"⚠️ Limit SL Order completely broken but partial fill ({filled}). Discarding position state to sync.")
                     else:
                         logger.warning(f"🗑️ Limit SL Order {sl_limit_order_id} was {status.get('status')}. You may need to manual exit.")
-                    self._clear_state()
+                    await self._clear_state()
                     self.active_pos = None
                     return
             except Exception as e:
@@ -1932,7 +1943,7 @@ class WallHunterFuturesStrategy:
                         except Exception as e:
                             self.logger.warning(f"Failed to clean up Native SL Order: {e}")
                             
-                    self._clear_state()
+                    await self._clear_state()
                     self.active_pos = None
                     return
             except Exception as e:
@@ -2178,7 +2189,7 @@ class WallHunterFuturesStrategy:
                                 if sell_amount_raw <= 0:
                                     logger.info("✅ Partial fill actually completely closed out the remaining position. Exit sweep aborted.")
                                     await self._send_telegram(f"🏁 *{side.upper()} Closed* via Partial Fill Sweep\nPair: {self.symbol}")
-                                    self._clear_state()
+                                    await self._clear_state()
                                     self.active_pos = None
                                     return
                     except Exception as e:
@@ -2447,7 +2458,7 @@ class WallHunterFuturesStrategy:
                 
                 logger.info(f"✅ {side.upper()} Position Closed: {reason}")
                 await self._send_telegram(f"🏁 *{side.upper()} Closed* ({reason})\nPrice: {current_price}\nPair: {self.symbol}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
-                self._clear_state()
+                await self._clear_state()
                 self.active_pos = None
 
     async def execute_partial_close(self, current_price: float):
@@ -2537,7 +2548,7 @@ class WallHunterFuturesStrategy:
                     
                 logger.info(f"✅ TP1 Full Output Completed. Dust position was prevented.")
                 await self._send_telegram(f"🎯 *Full TP Hit at TP1!* (Dust Prevented)\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
-                self._clear_state()
+                await self._clear_state()
                 self.active_pos = None
             else:
                 self.active_pos['tp1_hit'] = True
@@ -2656,7 +2667,7 @@ class WallHunterFuturesStrategy:
                 self.total_losses += 1
                 
             await self._send_telegram(f"⚡ Futures EXIT - Supertrend Fallback Hit!\nPair: {self.symbol}\nMode: {side.upper()}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
-            self._clear_state()
+            await self._clear_state()
             self.active_pos = None
             
         except Exception as e:
