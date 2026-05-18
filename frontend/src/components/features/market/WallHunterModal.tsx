@@ -214,6 +214,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
 
     const [existingBot, setExistingBot] = useState<any>(null);
     const [lastInitializedSymbol, setLastInitializedSymbol] = useState('');
+    // 'update' = update the existing bot | 'new' = deploy a brand new bot regardless
+    const [deployMode, setDeployMode] = useState<'update' | 'new'>('update');
 
     useEffect(() => {
         setForm(prev => ({ ...prev, symbol, exchange }));
@@ -267,6 +269,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     const activeWallHunter = bots.find((b: any) => b.market === symbol && b.strategy === 'wall_hunter' && b.status === 'active');
                     if (activeWallHunter) {
                         setExistingBot(activeWallHunter);
+                        setDeployMode('update'); // Default to update mode when existing bot detected
                         const c = activeWallHunter.config || {};
                         
                         // Detect mode from existing config
@@ -805,7 +808,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                 }
             };
 
-            if (existingBot) {
+            if (existingBot && deployMode === 'update') {
+                // UPDATE mode: patch the existing running bot's config
                 await botService.updateBot(existingBot.id, payload);
                 setTimeout(() => {
                     setIsLoading(false);
@@ -2790,6 +2794,44 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
 
                 {/* --- FOOTER ACTIONS --- */}
                 <div className="pt-4 border-t border-white/10 mt-2 flex-shrink-0">
+
+                    {/* --- ACTIVE BOT WARNING BANNER (Option C) --- */}
+                    {existingBot && (
+                        <div className="mb-3 p-3 rounded-xl border border-amber-500/40 bg-amber-500/5 animate-fadeIn">
+                            <div className="flex items-center gap-2 mb-2">
+                                <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <p className="text-[10px] font-black text-amber-400 uppercase tracking-wider">Active Bot Detected on {existingBot.market}</p>
+                            </div>
+                            <p className="text-[10px] text-gray-400 mb-2.5 pl-6">
+                                <span className="text-white font-bold">"{existingBot.name}"</span> is currently <span className="text-green-400 font-bold">running</span>. Choose an action:
+                            </p>
+                            <div className="flex gap-2 pl-6">
+                                <button
+                                    onClick={() => setDeployMode('update')}
+                                    className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all border ${
+                                        deployMode === 'update'
+                                            ? 'bg-blue-500/20 border-blue-500/60 text-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.2)]'
+                                            : 'bg-black/30 border-white/10 text-gray-500 hover:text-gray-300 hover:border-white/20'
+                                    }`}
+                                >
+                                    ⚙️ Update Existing
+                                </button>
+                                <button
+                                    onClick={() => setDeployMode('new')}
+                                    className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all border ${
+                                        deployMode === 'new'
+                                            ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.2)]'
+                                            : 'bg-black/30 border-white/10 text-gray-500 hover:text-gray-300 hover:border-white/20'
+                                    }`}
+                                >
+                                    🚀 Deploy New Bot
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {errorMsg && (
                         <p className={`text-xs font-bold mb-3 animate-pulse text-center py-2 rounded-lg ${errorMsg.includes('Success') ? 'text-green-400 bg-green-500/10' : 'text-red-500 bg-red-500/10'}`}>
                             {errorMsg}
@@ -2803,9 +2845,24 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                         <button
                             onClick={handleDeploy}
                             disabled={isLoading}
-                            className={`flex-1 h-12 rounded-xl font-black text-white text-sm transition-all shadow-[0_0_15px_rgba(245,158,11,0.2)] ${isLoading ? 'bg-gray-600 cursor-not-allowed opacity-70' : existingBot ? 'bg-gradient-to-r from-blue-500 to-indigo-600' : tradingMode === 'futures' ? 'bg-gradient-to-r from-orange-500 to-red-600 hover:scale-[1.02]' : 'bg-gradient-to-r from-yellow-400 to-orange-600 hover:scale-[1.02]'}`}
+                            className={`flex-1 h-12 rounded-xl font-black text-white text-sm transition-all shadow-[0_0_15px_rgba(245,158,11,0.2)] ${
+                                isLoading
+                                    ? 'bg-gray-600 cursor-not-allowed opacity-70'
+                                    : (existingBot && deployMode === 'update')
+                                        ? 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:scale-[1.02]'
+                                        : tradingMode === 'futures'
+                                            ? 'bg-gradient-to-r from-orange-500 to-red-600 hover:scale-[1.02]'
+                                            : 'bg-gradient-to-r from-yellow-400 to-orange-600 hover:scale-[1.02]'
+                            }`}
                         >
-                            {isLoading ? 'PROCESSING...' : existingBot ? '⚙️ UPDATE CONFIGURATION' : tradingMode === 'futures' ? '⚡ DEPLOY FUTURE BOT' : '🚀 DEPLOY SNIPER'}
+                            {isLoading
+                                ? 'PROCESSING...'
+                                : (existingBot && deployMode === 'update')
+                                    ? '⚙️ UPDATE CONFIGURATION'
+                                    : tradingMode === 'futures'
+                                        ? '⚡ DEPLOY FUTURE BOT'
+                                        : '🚀 DEPLOY SNIPER'
+                            }
                         </button>
                     </div>
                 </div>

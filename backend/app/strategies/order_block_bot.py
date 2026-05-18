@@ -232,9 +232,20 @@ class OrderBlockExecutionEngine:
             except Exception as prec_e:
                 self.logger.warning(f"Precision handling failed (normal if markets not loaded): {prec_e}")
 
+            # 2b. Fix -1111: Apply precision to stopPrice param (stop_market orders pass price
+            # via params, not the main price arg — so precision must be applied separately).
+            order_params_pre = params or {}
+            if 'stopPrice' in order_params_pre and hasattr(self.exchange, 'price_to_precision'):
+                try:
+                    order_params_pre['stopPrice'] = float(
+                        self.exchange.price_to_precision(symbol, order_params_pre['stopPrice'])
+                    )
+                except Exception as sp_e:
+                    self.logger.warning(f"stopPrice precision handling failed: {sp_e}")
+
             self.logger.info(f"[REAL] Executing {final_order_type.upper()} {side} order on {self.exchange_id} for {amount} {symbol} at {final_price if final_order_type == 'limit' else 'Market'}")
             
-            order_params = params or {}
+            order_params = order_params_pre if 'order_params_pre' in dir() else (params or {})
             
             # --- Inject Bot-Specific Client Order ID for Isolation ---
             if self.bot_id:
@@ -302,13 +313,26 @@ class OrderBlockExecutionEngine:
         except Exception as e:
             err_str = str(e)
             # ── postOnly Maker-Price Retry ────────────────────────────────────────
-            # Binance error: "Order would immediately match and take" means our
-            # postOnly limit price crossed the spread at the moment of submission.
-            # We fetch the live book, compute a safe maker price, and retry once.
-            if order_params.get('postOnly') and 'immediately match' in err_str.lower():
+            # Binance errors that indicate a postOnly order was rejected because the
+            # price crossed the spread and would execute as a taker:
+            #   • "Order would immediately match and take"  (common REST message)
+            #   • error code -5022 (Post Only order rejection)
+            # In both cases we fetch the live book, compute a safe maker price just
+            # outside the spread, and retry once.
+            _is_postonly_rejection = (
+                order_params.get('postOnly')
+                and (
+                    'immediately match' in err_str.lower()
+                    or '-5022' in err_str
+                    or 'post only' in err_str.lower()
+                    or 'postonly' in err_str.lower()
+                )
+            )
+            if _is_postonly_rejection:
                 self.logger.warning(
-                    f"[REAL] postOnly {side.upper()} at {final_price} was rejected (spread crossed). "
-                    f"Fetching live book and retrying with adjusted maker price..."
+                    f"[REAL] postOnly {side.upper()} at {final_price} rejected "
+                    f"(spread crossed / -5022). Fetching live book and retrying with "
+                    f"adjusted maker price..."
                 )
                 try:
                     retry_book = await self.exchange.fetch_order_book(self.pair, limit=5)
@@ -327,9 +351,11 @@ class OrderBlockExecutionEngine:
                         tick_r = round(best_bid_r * 1e-5, 10)
 
                     if side.lower() == 'sell':
-                        retry_price = best_ask_r + tick_r   # safely above best_bid
+                        # SELL postOnly: must sit ABOVE best_bid (ask side)
+                        retry_price = best_ask_r + tick_r
                     else:
-                        retry_price = best_bid_r - tick_r   # safely below best_ask
+                        # BUY postOnly: must sit BELOW best_ask (bid side)
+                        retry_price = best_bid_r - tick_r
 
                     if hasattr(self.exchange, 'price_to_precision'):
                         retry_price = float(self.exchange.price_to_precision(self.pair, retry_price))

@@ -102,6 +102,8 @@ class WallHunterFuturesStrategy:
         self.sl_order_type = self.config.get("sl_order_type", "market")
         self.limit_buffer = self.config.get("limit_buffer", 0.05)  # % buffer for maker limit orders
         self.tsl_activation_pct = self.config.get("tsl_activation_pct", 0.0)
+        # Soft Limit TP: how long (seconds) to wait for a postOnly maker TP order before market sweep
+        self.tp_soft_limit_timeout = self.config.get("tp_soft_limit_timeout", 4)
         
         # --- NEW FEATURES: Partial TP & Triggers ---
         self.partial_tp_pct = self.config.get("partial_tp_pct", 50.0)
@@ -1624,6 +1626,14 @@ class WallHunterFuturesStrategy:
                         tp_price = actual_entry + self.target_spread
                         if getattr(self, 'enable_dynamic_wick_tp', False) or getattr(self, 'enable_auto_fibo_tp', False):
                             logger.info(f"⚠️ [Dynamic TP] Fallback Spread TP activated: {tp_price:.6f}")
+                    
+                    # Apply exchange precision to avoid float imprecision errors (-1111, -5022)
+                    try:
+                        if self.public_exchange and hasattr(self.public_exchange, 'price_to_precision'):
+                            tp_price = float(self.public_exchange.price_to_precision(self.symbol, tp_price))
+                            sl_price = float(self.public_exchange.price_to_precision(self.symbol, sl_price)) if sl_price > 0 else sl_price
+                    except Exception:
+                        pass
                             
                     self.active_pos = {
                         "entry": float(actual_entry),
@@ -1644,7 +1654,16 @@ class WallHunterFuturesStrategy:
                         tp_price = actual_entry - self.target_spread
                         if getattr(self, 'enable_dynamic_wick_tp', False) or getattr(self, 'enable_auto_fibo_tp', False):
                             logger.info(f"⚠️ [Dynamic TP] Fallback Spread TP activated: {tp_price:.6f}")
-                            
+
+                    # Apply exchange precision to avoid float imprecision errors (-1111, -5022)
+                    try:
+                        if self.public_exchange and hasattr(self.public_exchange, 'price_to_precision'):
+                            tp_price = float(self.public_exchange.price_to_precision(self.symbol, tp_price))
+                            if sl_price and sl_price != float('inf'):
+                                sl_price = float(self.public_exchange.price_to_precision(self.symbol, sl_price))
+                    except Exception:
+                        pass
+
                     self.active_pos = {
                         "entry": float(actual_entry),
                         "amount": base_amount,
@@ -2261,8 +2280,121 @@ class WallHunterFuturesStrategy:
                     self._save_state()
                     return
             else:
-                actual_type = exit_order_type_actual if exit_order_type_actual != "limit" else "market"
-                res = await self.engine.execute_trade(exit_side, sell_amount_raw, current_price, order_type=actual_type, params={'reduceOnly': True})
+                # ── Soft Limit TP Exit ────────────────────────────────────────────────
+                # For Take Profit exits where exit_order_type == 'limit':
+                #   Instead of converting limit → market (always Taker), we use a
+                #   time-bounded Maker approach:
+                #     1. Place postOnly limit at best ask/bid (safe maker price)
+                #     2. Poll for fill up to `tp_soft_limit_timeout` seconds
+                #     3. If filled → Maker fee ✅
+                #     4. If NOT filled → cancel + market sweep → Taker fee (guaranteed exit)
+                # For all other exit_order_type values (market, marketable_limit): direct market.
+                # ─────────────────────────────────────────────────────────────────────
+                if reason == "Take Profit" and exit_order_type_actual == "limit" and not self.is_paper_trading:
+                    try:
+                        # Fetch live best bid/ask for a safe postOnly maker price
+                        ob = await self.public_exchange.fetch_order_book(self.symbol, limit=5)
+                        best_bid_tp = ob['bids'][0][0] if ob.get('bids') else current_price
+                        best_ask_tp = ob['asks'][0][0] if ob.get('asks') else current_price
+
+                        # Maker price: SELL (long exit) → sit at ask+1tick; BUY (short exit) → bid-1tick
+                        tick_tp = 0.0
+                        try:
+                            mkt_tp = self.public_exchange.markets.get(self.symbol, {})
+                            p_tp = mkt_tp.get('precision', {}).get('price')
+                            if p_tp and float(p_tp) > 0:
+                                tick_tp = float(p_tp)
+                        except Exception:
+                            pass
+                        if not tick_tp:
+                            tick_tp = round(best_bid_tp * 1e-5, 10)
+
+                        if exit_side == "sell":
+                            soft_tp_price = best_ask_tp + tick_tp  # above bid → rests on book
+                        else:
+                            soft_tp_price = best_bid_tp - tick_tp  # below ask → rests on book
+
+                        if hasattr(self.public_exchange, 'price_to_precision'):
+                            soft_tp_price = float(self.public_exchange.price_to_precision(self.symbol, soft_tp_price))
+
+                        logger.info(
+                            f"🎯 [Soft Limit TP] Placing postOnly {exit_side.upper()} at {soft_tp_price} "
+                            f"(bid={best_bid_tp}, ask={best_ask_tp}). Aiming for Maker fee..."
+                        )
+                        soft_tp_res = await self.engine.execute_trade(
+                            exit_side, sell_amount_raw, soft_tp_price,
+                            order_type="limit",
+                            params={'reduceOnly': True, 'postOnly': True}
+                        )
+
+                        if soft_tp_res and soft_tp_res.get('id'):
+                            soft_tp_id = soft_tp_res['id']
+                            timeout_secs = getattr(self, 'tp_soft_limit_timeout', 4)
+                            polls = int(timeout_secs / 0.5)
+                            logger.info(f"⏳ [Soft Limit TP] Polling {soft_tp_id} for {timeout_secs}s...")
+
+                            for _ in range(polls):
+                                await asyncio.sleep(0.5)
+                                try:
+                                    chk = await self.engine.exchange.fetch_order(soft_tp_id, self.symbol)
+                                    if chk and chk.get('status') not in ['open', 'new']:
+                                        break
+                                except Exception:
+                                    pass
+
+                            final_chk = await self.engine.exchange.fetch_order(soft_tp_id, self.symbol)
+                            if final_chk and final_chk.get('status') in ['closed', 'filled']:
+                                logger.info("✅ [Soft Limit TP] Maker order filled! Paying Maker fee.")
+                                res = final_chk
+                            else:
+                                # Timeout — cancel and sweep at market
+                                logger.warning(
+                                    f"⚠️ [Soft Limit TP] {soft_tp_id} did not fill in {timeout_secs}s. "
+                                    f"Cancelling and sweeping at Market (Taker)..."
+                                )
+                                try:
+                                    await self.engine.cancel_order(soft_tp_id)
+                                    await asyncio.sleep(0.3)
+                                    cancel_chk = await self.engine.exchange.fetch_order(soft_tp_id, self.symbol)
+                                    already_filled = cancel_chk.get('filled', 0.0)
+                                    rem_amount = max(0.0, sell_amount_raw - already_filled)
+                                    if rem_amount > 0:
+                                        sweep_amt = float(self.engine.exchange.amount_to_precision(self.symbol, rem_amount)) if hasattr(self.engine.exchange, 'amount_to_precision') else rem_amount
+                                        res = await self.engine.execute_trade(
+                                            exit_side, sweep_amt, current_price,
+                                            order_type="market",
+                                            params={'reduceOnly': True}
+                                        )
+                                        logger.info("✅ [Soft Limit TP] Market sweep completed (Taker fallback).")
+                                    else:
+                                        res = cancel_chk  # partial fill already closed it
+                                        logger.info("✅ [Soft Limit TP] Partial fill during cancel swept remaining position.")
+                                except Exception as sweep_e:
+                                    logger.error(f"[Soft Limit TP] Sweep failed: {sweep_e}. Forcing market exit.")
+                                    res = await self.engine.execute_trade(
+                                        exit_side, sell_amount_raw, current_price,
+                                        order_type="market",
+                                        params={'reduceOnly': True}
+                                    )
+                        else:
+                            # postOnly placement failed (e.g. -5022 already retried) → market
+                            logger.warning("[Soft Limit TP] postOnly placement failed. Falling back to Market.")
+                            res = await self.engine.execute_trade(
+                                exit_side, sell_amount_raw, current_price,
+                                order_type="market",
+                                params={'reduceOnly': True}
+                            )
+                    except Exception as soft_tp_e:
+                        logger.error(f"[Soft Limit TP] Exception: {soft_tp_e}. Falling back to Market.")
+                        res = await self.engine.execute_trade(
+                            exit_side, sell_amount_raw, current_price,
+                            order_type="market",
+                            params={'reduceOnly': True}
+                        )
+                else:
+                    # market / marketable_limit / paper trading — direct execution
+                    actual_type = exit_order_type_actual if exit_order_type_actual != "limit" else "market"
+                    res = await self.engine.execute_trade(exit_side, sell_amount_raw, current_price, order_type=actual_type, params={'reduceOnly': True})
             
             # --- NEW: Partial Fill Management for Active Exits ---
             if res and res.get('id') and not self.is_paper_trading:
