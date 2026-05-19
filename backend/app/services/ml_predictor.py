@@ -83,21 +83,58 @@ def predict(model_id: str, symbol_override: Optional[str], db: Session) -> dict:
     algorithm = db_model.model_type
 
     # ── 2. Load metadata (features, dataset_type, indicators, symbol) ────────
-    metadata_path = model_path.replace(".pkl", ".json").replace(".pt", ".json").replace(".zip", ".json")
-    
-    if os.path.exists(metadata_path):
-        with open(metadata_path, "r") as f:
-            metadata = json.load(f)
-    else:
-        # Provide fallback metadata for manually uploaded models
+    # Priority order:
+    #   1. version.metadata_path from DB (set by our fixed upload pipeline)
+    #   2. metadata.json in the same directory as the model file
+    #   3. Old naming convention: <model_name>.json (legacy)
+    #   4. Hardcoded fallback (no metadata at all)
+    metadata = None
+
+    # Priority 1: DB-stored path (most reliable)
+    if version.metadata_path and os.path.exists(version.metadata_path):
+        try:
+            with open(version.metadata_path, "r") as f:
+                metadata = json.load(f)
+            print(f"[ml_predictor] Loaded metadata from DB path: {version.metadata_path}")
+        except Exception as e:
+            print(f"[ml_predictor] Failed to read DB metadata_path: {e}")
+
+    # Priority 2: metadata.json in the same folder as the weight file
+    if metadata is None:
+        meta_in_dir = os.path.join(os.path.dirname(model_path), "metadata.json")
+        if os.path.exists(meta_in_dir):
+            try:
+                with open(meta_in_dir, "r") as f:
+                    metadata = json.load(f)
+                print(f"[ml_predictor] Loaded metadata from directory: {meta_in_dir}")
+            except Exception as e:
+                print(f"[ml_predictor] Failed to read directory metadata.json: {e}")
+
+    # Priority 3: Legacy naming (model_name.json beside the weight file)
+    if metadata is None:
+        legacy_path = model_path.replace(".pkl", ".json").replace(".pt", ".json").replace(".zip", ".json")
+        if os.path.exists(legacy_path):
+            try:
+                with open(legacy_path, "r") as f:
+                    metadata = json.load(f)
+                print(f"[ml_predictor] Loaded metadata from legacy path: {legacy_path}")
+            except Exception as e:
+                print(f"[ml_predictor] Failed to read legacy metadata: {e}")
+
+    # Priority 4: Hardcoded fallback — use model's known symbol from DB if available
+    if metadata is None:
+        fallback_symbol = symbol_override or "BTC/USDT"
+        print(f"[ml_predictor] No metadata found for model {model_id}. Using fallback symbol: {fallback_symbol}")
         metadata = {
             "features": ["Open", "High", "Low", "Close", "Volume"],
             "dataset_type": "ohlcv",
             "indicators": [],
             "timeframe": "1h",
-            "symbol": symbol_override or "BTC/USDT",
+            "symbol": fallback_symbol,
             "prediction_target": "classification"
         }
+
+
 
     features     = metadata.get("features", [])
     dataset_type = metadata.get("dataset_type", "ohlcv")

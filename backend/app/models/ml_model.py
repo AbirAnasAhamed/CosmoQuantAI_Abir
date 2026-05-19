@@ -45,5 +45,6 @@ class ModelVersion(Base):
     latency = Column(Float, nullable=True)
     explainability = Column(JSON, nullable=True)
     dataset_path = Column(String, nullable=True) # For DVC
+    metadata_path = Column(String, nullable=True) # For custom uploaded metadata.json
 
     model = relationship("CustomMLModel", back_populates="versions", foreign_keys=[model_id])

@@ -759,11 +759,11 @@ const ModelDetailsModal: React.FC<{
                             <div className="space-y-8 animate-fade-in">
                                 {/* General Stats Cards - Glassmorphism */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {/* First 3 static cards */}
                                     {[
                                         { label: 'Target Asset', value: config.symbol || 'N/A', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', color: 'cyan' },
                                         { label: 'Timeframe', value: config.timeframe || 'N/A', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', color: 'blue' },
                                         { label: 'Algorithm', value: config.config?.is_ensemble ? `Ensemble (${config.config?.ensemble_method || 'Voting'})` : (config.algorithm || 'N/A'), icon: 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z', color: 'purple' },
-                                        { label: 'Epochs/Trees', value: config.config?.epochs || 'N/A', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', color: 'emerald' },
                                     ].map((stat, i) => (
                                         <div key={i} className={`group relative bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 hover:bg-white/[0.04] hover:border-${stat.color}-500/30 transition-all overflow-hidden`}>
                                             <div className={`absolute -right-4 -top-4 w-24 h-24 bg-${stat.color}-500/10 rounded-full blur-2xl group-hover:bg-${stat.color}-500/20 transition-all`}></div>
@@ -774,6 +774,36 @@ const ModelDetailsModal: React.FC<{
                                             <p className="text-lg font-mono font-bold text-white drop-shadow-md">{stat.value}</p>
                                         </div>
                                     ))}
+
+                                    {/* 4th card: Smart Epochs/Steps/Estimators based on algorithm */}
+                                    {(() => {
+                                        const algo = (config.algorithm || '').toLowerCase();
+                                        const isRL = algo.includes('sac') || algo.includes('ppo') || algo.includes('-rl');
+                                        const isTree = algo.includes('forest') || algo.includes('xgboost') || algo.includes('lightgbm') || algo.includes('catboost') || algo.includes('tabnet');
+                                        const epochLabel = isRL ? 'Train Steps' : isTree ? 'Estimators' : 'Epochs';
+                                        const epochVal = config.config?.epochs;
+                                        const displayVal = epochVal != null ? epochVal.toLocaleString() : null;
+                                        return (
+                                            <div className="group relative bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 hover:bg-white/[0.04] hover:border-emerald-500/30 transition-all overflow-hidden">
+                                                <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all"></div>
+                                                <svg className="w-5 h-5 text-emerald-400 mb-3 opacity-70 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">{epochLabel}</p>
+                                                {displayVal ? (
+                                                    <p className="text-lg font-mono font-bold text-white drop-shadow-md">{displayVal}</p>
+                                                ) : (
+                                                    <div className="flex flex-col gap-1">
+                                                        <p className="text-lg font-mono font-bold text-gray-600">N/A</p>
+                                                        <p className="text-[9px] text-gray-600 leading-tight">
+                                                            Add <span className="text-emerald-700 font-mono">{isRL ? '"total_timesteps"' : isTree ? '"n_estimators"' : '"epochs"'}</span> to metadata.json
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
+
                                 </div>
 
                                 {/* Features Sections */}
@@ -868,12 +898,42 @@ const ModelDetailsModal: React.FC<{
                                     )}
 
                                     {(!config.config?.indicators?.length && !config.config?.l2_features?.length && !config.config?.trade_features?.length && !config.config?.plp_features?.length) && (
-                                        <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
-                                            <svg className="w-10 h-10 text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                                            <p className="text-sm font-bold text-gray-400">No Feature Data Available</p>
-                                            <p className="text-xs text-gray-500 mt-1 max-w-sm">This model may have been trained without specific feature tracking or was manually uploaded.</p>
+                                        <div className="space-y-4">
+                                            {/* If from metadata JSON, show raw training metrics as key-value grid */}
+                                            {config._source === 'metadata_json' && config.config && Object.keys(config.config).filter(k => !['indicators','l2_features','trade_features','plp_features','_raw_metadata'].includes(k) && config.config[k] !== null && config.config[k] !== undefined && typeof config.config[k] !== 'object').length > 0 ? (
+                                                <div className="bg-black/20 border border-violet-500/20 rounded-2xl p-5 shadow-inner relative overflow-hidden">
+                                                    <div className="absolute top-0 left-0 w-1 h-full bg-violet-500/50 shadow-[0_0_10px_rgba(139,92,246,0.5)]"></div>
+                                                    <h3 className="text-sm font-bold text-violet-400 mb-4 flex items-center gap-2">
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                        Training Metrics
+                                                        <span className="ml-auto text-[9px] bg-violet-500/20 border border-violet-500/30 text-violet-400 px-2 py-0.5 rounded-full font-bold tracking-wider uppercase">from metadata.json</span>
+                                                    </h3>
+                                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                                        {Object.entries(config.config)
+                                                            .filter(([k, v]) => !['indicators','l2_features','trade_features','plp_features','_raw_metadata'].includes(k) && v !== null && v !== undefined && typeof v !== 'object')
+                                                            .map(([key, value]) => (
+                                                            <div key={key} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 flex flex-col gap-1 hover:bg-white/[0.06] transition-colors">
+                                                                <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">{key.replace(/_/g, ' ')}</span>
+                                                                <span className="text-sm font-mono font-bold text-white">
+                                                                    {typeof value === 'number' 
+                                                                        ? (value > 0 && value < 1 ? `${(value * 100).toFixed(2)}%` : value.toLocaleString())
+                                                                        : String(value)
+                                                                    }
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
+                                                    <svg className="w-10 h-10 text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                                    <p className="text-sm font-bold text-gray-400">No Feature Data Available</p>
+                                                    <p className="text-xs text-gray-500 mt-1 max-w-sm">This model may have been trained without specific feature tracking or was manually uploaded.</p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
+
                                 </div>
                             </div>
                         ) : (
