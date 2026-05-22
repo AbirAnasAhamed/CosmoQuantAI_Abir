@@ -1881,8 +1881,12 @@ class WallHunterFuturesStrategy:
                         
                     self.total_realized_pnl += pnl_val
                     self.total_executed_orders += 1
+                    if pnl_val > 0:
+                        self.total_wins += 1
+                    else:
+                        self.total_losses += 1
                     
-                    await self._send_telegram(f"🛡️ Futures EXIT - Stopped out via Limit Maker!\nPair: {self.symbol}\nExit Price: {filled_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}")
+                    await self._send_telegram(f"🛡️ Futures EXIT - Stopped out via Limit Maker!\nPair: {self.symbol}\nExit Price: {filled_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
                     await self._clear_state()
                     self.active_pos = None
                     return
@@ -2316,6 +2320,18 @@ class WallHunterFuturesStrategy:
                                             break
                                 if not has_pos:
                                     logger.info("✅ Position already closed natively (e.g. Native SL hit). Exiting loop.")
+                                    assumed_exit = self.active_pos['sl'] if reason == "Stop Loss" else self.active_pos['tp']
+                                    amount = self.active_pos['amount']
+                                    if self.active_pos.get('side', 'long') == "long":
+                                        pnl_val = (assumed_exit - self.active_pos['entry']) * amount
+                                    else:
+                                        pnl_val = (self.active_pos['entry'] - assumed_exit) * amount
+                                    self.total_realized_pnl += pnl_val
+                                    self.total_executed_orders += 1
+                                    if pnl_val > 0:
+                                        self.total_wins += 1
+                                    else:
+                                        self.total_losses += 1
                                     await self._clear_state()
                                     self.active_pos = None
                                     return
@@ -2452,6 +2468,18 @@ class WallHunterFuturesStrategy:
                                 break
                     if not has_pos:
                         logger.info("✅ Position already closed natively. Exiting loop.")
+                        assumed_exit = self.active_pos['sl'] if reason == "Stop Loss" else self.active_pos['tp']
+                        amount = self.active_pos['amount']
+                        if self.active_pos.get('side', 'long') == "long":
+                            pnl_val = (assumed_exit - self.active_pos['entry']) * amount
+                        else:
+                            pnl_val = (self.active_pos['entry'] - assumed_exit) * amount
+                        self.total_realized_pnl += pnl_val
+                        self.total_executed_orders += 1
+                        if pnl_val > 0:
+                            self.total_wins += 1
+                        else:
+                            self.total_losses += 1
                         await self._clear_state()
                         self.active_pos = None
                         return

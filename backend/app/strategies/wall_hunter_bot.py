@@ -2653,9 +2653,13 @@ class WallHunterBot:
                         pnl_val = (filled_price - self.active_pos['entry']) * sell_amount
                     self.total_realized_pnl += pnl_val
                     self.total_executed_orders += 1
+                    if pnl_val > 0:
+                        self.total_wins += 1
+                    else:
+                        self.total_losses += 1
                     
                     # Log exit telegram
-                    await self._send_telegram(f"🛡️ WallHunter EXIT - Stopped out via Limit Maker!\nPair: {self.symbol}\nExit Price: {filled_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}")
+                    await self._send_telegram(f"🛡️ WallHunter EXIT - Stopped out via Limit Maker!\nPair: {self.symbol}\nExit Price: {filled_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
                     await self._clear_state()
                     self.active_pos = None
                     return
