@@ -401,18 +401,63 @@ class AdvancedMLEngine:
         start_time = time.time()
         
         from stable_baselines3.common.callbacks import BaseCallback
-        class CancelCheckCallback(BaseCallback):
-            def __init__(self, check_interval=1000):
+        import redis
+        from app.core.config import settings
+
+        # Connect to Redis using the synchronous client since this runs in a Celery worker thread
+        try:
+            redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+        except Exception as e:
+            add_log(f"⚠️ Failed to connect to Redis for live RL streaming: {e}")
+            redis_client = None
+
+        class LiveStreamingCallback(BaseCallback):
+            def __init__(self, check_interval=1000, stream_interval=10):
                 super().__init__(verbose=0)
                 self.check_interval = check_interval
+                self.stream_interval = stream_interval
+                self.last_streamed_step = 0
+
             def _on_step(self) -> bool:
+                # 1. Cancel Check
                 if self.num_timesteps % self.check_interval == 0:
                     db.refresh(job)
                     if job.status == models.TrainingStatus.FAILED and job.error_message and "cancelled" in job.error_message.lower():
                         raise Exception("Training cancelled by user.")
+                
+                # 2. Stream Data to Frontend
+                if redis_client and (self.num_timesteps - self.last_streamed_step >= self.stream_interval):
+                    env_instance = self.training_env.envs[0]
+                    # Extract latest step info
+                    if hasattr(env_instance, 'net_worth'):
+                        payload = {
+                            "step": env_instance.current_step,
+                            "net_worth": env_instance.net_worth,
+                            "position": env_instance.position,
+                            "balance": getattr(env_instance, 'balance', 0),
+                            "action": self.locals.get("actions", [0])[0].item() if "actions" in self.locals else 0,
+                            "reward": self.locals.get("rewards", [0.0])[0].item() if "rewards" in self.locals else 0.0,
+                            "price": env_instance.df.loc[env_instance.current_step, 'Close'] if env_instance.current_step < len(env_instance.df) else 0.0,
+                        }
+                        
+                        message = {
+                            "task_type": "RL_TRAINING_STEP",
+                            "task_id": job.id,
+                            "status": "processing",
+                            "progress": int((self.num_timesteps / total_timesteps) * 100),
+                            "data": payload
+                        }
+                        try:
+                            redis_client.publish("task_updates", json.dumps(message))
+                            self.last_streamed_step = self.num_timesteps
+                        except Exception:
+                            pass
                 return True
                 
-        callback = CancelCheckCallback(check_interval=max(100, total_timesteps // 20))
+        callback = LiveStreamingCallback(
+            check_interval=max(100, total_timesteps // 20),
+            stream_interval=max(1, total_timesteps // 1000) # Stream ~1000 points max to avoid overwhelming WS
+        )
         model.learn(total_timesteps=total_timesteps, callback=callback)
         
         # Save model
@@ -422,9 +467,27 @@ class AdvancedMLEngine:
         model_path = os.path.join(model_dir, model_filename)
         model.save(model_path)
         
-        # ✅ Log Equity Curve for Frontend Visualization
+        # ✅ Save Replay File and Log Equity Curve
         if hasattr(env.envs[0], 'equity_history'):
             equity_data = env.envs[0].equity_history
+            trade_data = env.envs[0].trade_history
+            
+            replay_payload = {
+                "initial_balance": initial_balance,
+                "algorithm": job.algorithm,
+                "symbol": job.symbol,
+                "equity_history": [float(e) for e in equity_data],
+                "trade_history": trade_data
+            }
+            
+            replay_file_path = os.path.join(model_dir, "replay.json")
+            try:
+                with open(replay_file_path, "w") as f:
+                    json.dump(replay_payload, f)
+                add_log(f"💾 Saved RL Replay data for frontend visualization.")
+            except Exception as e:
+                add_log(f"⚠️ Failed to save replay data: {e}")
+
             step_size = max(1, len(equity_data) // 100)
             downsampled_equity = [
                 {"step": i, "equity": float(equity_data[i])} 

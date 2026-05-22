@@ -15,6 +15,7 @@ import PredatoryLiquidityPipeline, { GET_DEFAULT_MANDATORY_PLP_FEATURES } from '
 import { AdvancedExecutionSettings } from '@/components/app/AdvancedExecutionSettings'; // ✅ New
 import { AlternativeDataSettings } from '@/components/app/AlternativeDataSettings'; // ✅ New
 import EnsembleBuilder from '@/components/ml/EnsembleBuilder';
+import RLTrainingVisualizer from '@/components/ml/RLTrainingVisualizer';
 
 import { mlModelsService } from '@/services/mlModelsService';
 
@@ -404,8 +405,8 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
             });
             setCurrentJob(job);
 
-            // Auto-open visualizer for live scraping, hybrid, or hybrid_deep
-            if (isDeepTraining || dataSource === 'hybrid' || dataSource === 'l2_orderbook' || dataSource === 'hybrid_deep') {
+            // Auto-open visualizer for live scraping, hybrid, hybrid_deep, or RL training
+            if (isDeepTraining || dataSource === 'hybrid' || dataSource === 'l2_orderbook' || dataSource === 'hybrid_deep' || algorithm === 'PPO-RL' || algorithm === 'SAC-RL') {
                 setShowVisualizer(true);
             }
         } catch (error) {
@@ -2004,12 +2005,22 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                 </AnimatePresence>
             </div>
 
-            {/* Dataset Visualizer Floating Modal */}
-            <DatasetVisualizerModal 
-                isOpen={showVisualizer} 
-                onClose={() => setShowVisualizer(false)} 
-                symbol={symbol} 
-            />
+            {/* Visualizer Floating Modal */}
+            {algorithm === 'PPO-RL' || algorithm === 'SAC-RL' ? (
+                <RLTrainingVisualizer
+                    isOpen={showVisualizer}
+                    onClose={() => setShowVisualizer(false)}
+                    jobId={currentJob?.id || ''}
+                    algorithm={algorithm}
+                    symbol={symbol}
+                />
+            ) : (
+                <DatasetVisualizerModal 
+                    isOpen={showVisualizer} 
+                    onClose={() => setShowVisualizer(false)} 
+                    symbol={symbol} 
+                />
+            )}
         </div>
     );
 };

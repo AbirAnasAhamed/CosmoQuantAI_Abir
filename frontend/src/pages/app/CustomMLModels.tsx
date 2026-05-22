@@ -12,6 +12,7 @@ import type { CustomMLModel, ModelVersion } from '@/types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, AreaChart, Area, LineChart, Line } from 'recharts';
 import ReactFlow, { Background, Controls } from 'reactflow';
 import 'reactflow/dist/style.css';
+import RLTrainingVisualizer from '@/components/ml/RLTrainingVisualizer';
 import { Layers } from 'lucide-react';
 // --- Visual Components ---
 
@@ -1217,7 +1218,7 @@ const ModelCard: React.FC<{
 
 
 // --- Active Training Jobs Section ---
-const ActiveTrainingJobsSection: React.FC<{ jobs: any[], onCancel: (id: string) => void }> = ({ jobs, onCancel }) => {
+const ActiveTrainingJobsSection: React.FC<{ jobs: any[], onCancel: (id: string) => void, onVisualize?: (job: any) => void }> = ({ jobs, onCancel, onVisualize }) => {
     if (!jobs || jobs.length === 0) return null;
 
     return (
@@ -1255,12 +1256,22 @@ const ActiveTrainingJobsSection: React.FC<{ jobs: any[], onCancel: (id: string) 
                                         {job.logs && job.logs.length > 0 ? job.logs[job.logs.length - 1] : 'Initializing...'}
                                     </p>
                                 </div>
-                                <button
-                                    onClick={() => onCancel(job.id)}
-                                    className="px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/30 rounded-lg text-xs font-bold hover:bg-red-500/20 hover:text-red-300 transition-colors flex-shrink-0"
-                                >
-                                    Cancel
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    {['PPO-RL', 'SAC-RL'].includes(job.algorithm) && onVisualize && (
+                                        <button
+                                            onClick={() => onVisualize(job)}
+                                            className="px-3 py-1.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-lg text-xs font-bold hover:bg-cyan-500/20 hover:text-cyan-300 transition-colors flex-shrink-0"
+                                        >
+                                            Live Visualizer
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => onCancel(job.id)}
+                                        className="px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/30 rounded-lg text-xs font-bold hover:bg-red-500/20 hover:text-red-300 transition-colors flex-shrink-0"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     );
@@ -1278,6 +1289,7 @@ const CustomMLModels: React.FC<{ onNavigate?: (view: AppView, section?: string) 
     const queryClient = useQueryClient();
     const [modalState, setModalState] = useState<{ isOpen: boolean; modelToUpdate?: CustomMLModel }>({ isOpen: false });
     const [detailsModalState, setDetailsModalState] = useState<{ isOpen: boolean; modelId: string; modelName: string }>({ isOpen: false, modelId: '', modelName: '' });
+    const [visualizingJob, setVisualizingJob] = useState<any | null>(null);
 
     // Fetch models
     const { data: models = [], isLoading } = useQuery({
@@ -1420,7 +1432,21 @@ const CustomMLModels: React.FC<{ onNavigate?: (view: AppView, section?: string) 
                 </div>
                 
                 {/* Render the Active Jobs Tracker Component */}
-                <ActiveTrainingJobsSection jobs={activeJobs} onCancel={(id) => cancelJobMutation.mutate(id)} />
+                <ActiveTrainingJobsSection 
+                    jobs={activeJobs} 
+                    onCancel={(id) => cancelJobMutation.mutate(id)} 
+                    onVisualize={setVisualizingJob}
+                />
+                
+                {visualizingJob && (
+                    <RLTrainingVisualizer
+                        isOpen={true}
+                        onClose={() => setVisualizingJob(null)}
+                        jobId={visualizingJob.id}
+                        algorithm={visualizingJob.algorithm}
+                        symbol={visualizingJob.symbol}
+                    />
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 laptop:gap-4">
                     {isLoading ? (

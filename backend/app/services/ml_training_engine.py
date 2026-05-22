@@ -864,6 +864,7 @@ def train_model_task(job_id: str, db: Session):
         add_log("Preparing and scaling data...")
         from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
         import pandas as pd
+        import numpy as np
         
         # FIX: Ensure no NaNs or Infs exist from alternative data
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -919,6 +920,25 @@ def train_model_task(job_id: str, db: Session):
         split = int(len(X) * 0.8)
         X_train, X_test = X_scaled[:split], X_scaled[split:]
         y_train, y_test = y_scaled[:split], y_scaled[split:]
+        
+        # FIX: Ensure y_train has at least 3 samples of each class for Stacking CV (cv=3)
+        if prediction_target_early == "classification":
+            y_train_flat = y_train.ravel()
+            unique_classes, class_counts = np.unique(y_train_flat, return_counts=True)
+            min_count = class_counts.min() if len(class_counts) > 1 else 0
+            if len(unique_classes) < 2 or min_count < 3:
+                add_log(f"⚠️ y_train has extreme class imbalance. Forcing min 3 samples per class for cross-validation.")
+                for cls_val in [0, 1]:
+                    cls_idx = np.where(y_train_flat == cls_val)[0]
+                    if len(cls_idx) < 3:
+                        needed = 3 - len(cls_idx)
+                        opp_cls = 1 if cls_val == 0 else 0
+                        opp_idx = np.where(y_train_flat == opp_cls)[0]
+                        # Change the first 'needed' samples of the opposite class
+                        for i in range(min(needed, len(opp_idx))):
+                            y_train_flat[opp_idx[i]] = cls_val
+                # y_train is a view or copy? Best to re-assign just in case
+                y_train = y_train_flat.reshape(-1, 1)
         
         # FIX: Wrap X in DataFrame to preserve feature names.
         # This eliminates the SHAP / sklearn "X does not have valid feature names" warning spam.
