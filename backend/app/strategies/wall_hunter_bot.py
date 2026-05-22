@@ -1020,6 +1020,34 @@ class WallHunterBot:
         else:
             self.logger.info(f"⚡ [WallHunter {self.bot_id}] Config update received, but no changes detected.")
 
+
+    async def _send_exit_telegram(self, title: str, filled_price: float, pnl_val: float, reason: str = ""):
+        import time
+        entry_time = self.active_pos.get("entry_time", time.time())
+        duration_sec = int(time.time() - entry_time)
+        h = duration_sec // 3600
+        m = (duration_sec % 3600) // 60
+        s = duration_sec % 60
+        duration_str = f"{h}hr, {m}min, {s}sec"
+        
+        msg = (
+            f"{title}\n"
+            f"Bot Name: {getattr(self, 'bot_name', f'Bot {self.bot_id}')}\n"
+            f"Bot ID: {self.bot_id}\n"
+            f"Trade Duration: {duration_str}\n"
+            f"Pair: {self.symbol}\n"
+            f"Exit Price: {filled_price:.6f}\n"
+        )
+        if reason:
+            msg += f"Reason: {reason}\n"
+            
+        msg += f"💰 Trade PnL: ${pnl_val:.7f}\n\n"
+        msg += (
+            f"📊 Total PnL: ${self.total_realized_pnl:.7f}\n"
+            f"🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}"
+        )
+        await self._send_telegram(msg)
+
     async def _send_telegram(self, msg: str):
         if not self.owner_id:
             return
@@ -2659,7 +2687,7 @@ class WallHunterBot:
                         self.total_losses += 1
                     
                     # Log exit telegram
-                    await self._send_telegram(f"🛡️ WallHunter EXIT - Stopped out via Limit Maker!\nPair: {self.symbol}\nExit Price: {filled_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
+                    await self._send_exit_telegram("🛡️ WallHunter EXIT - Stopped out via Limit Maker!", filled_price, pnl_val)
                     await self._clear_state()
                     self.active_pos = None
                     return
@@ -2732,7 +2760,7 @@ class WallHunterBot:
                         self.total_wins += 1
                     else:
                         self.total_losses += 1
-                    await self._send_telegram(f"🎯 WallHunter EXIT - Limit TP Filled!\nPair: {self.symbol}\nExit Price: {filled_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
+                    await self._send_exit_telegram("🎯 WallHunter EXIT - Limit TP Filled!", filled_price, pnl_val)
                     self.logger.info(f"✅ Limit TP Order {self.active_pos['limit_order_id']} was filled by exchange at {filled_price}")
                     await self._clear_state()
                     self.active_pos = None
@@ -3156,7 +3184,7 @@ class WallHunterBot:
                      await self._send_telegram(f"🛡️ WallHunter EXIT - Stopped out in Profit!\nPair: {self.symbol}\nMode: {getattr(self, 'strategy_mode', 'long').upper()}\nExit Price: {current_price:.6f}\n💰 Secured PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
                  else:
                      self.total_losses += 1
-                     await self._send_telegram(f"🛑 WallHunter EXIT - Stopped Out!\nPair: {self.symbol}\nMode: {getattr(self, 'strategy_mode', 'long').upper()}\nExit Price: {current_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
+                     await self._send_exit_telegram("🛑 WallHunter EXIT - Stopped Out!\nPair: {self.symbol}\nMode: {getattr(self, 'strategy_mode', 'long').upper()}\nExit Price: {current_price:.6f}", current_price, pnl_val)
             await self._clear_state()
             self.active_pos = None
             self.logger.info("Exit: Stop Loss / TSL Hit")
@@ -3252,7 +3280,7 @@ class WallHunterBot:
                 self.total_wins += 1
             else:
                 self.total_losses += 1
-            await self._send_telegram(f"🎯 WallHunter EXIT - Final Take Profit Hit!\nPair: {self.symbol}\nMode: {getattr(self, 'strategy_mode', 'long').upper()}\nExit Price: {current_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
+            await self._send_exit_telegram("🎯 WallHunter EXIT - Final Take Profit Hit!\nPair: {self.symbol}\nMode: {getattr(self, 'strategy_mode', 'long').upper()}\nExit Price: {current_price:.6f}", current_price, pnl_val)
             await self._clear_state()
             self.active_pos = None
             self.logger.info("Exit: Take Profit Hit")
@@ -3370,7 +3398,7 @@ class WallHunterBot:
             else:
                 self.total_losses += 1
                 
-            await self._send_telegram(f"⚡ WallHunter EXIT - Supertrend Fallback Hit!\nPair: {self.symbol}\nMode: {getattr(self, 'strategy_mode', 'long').upper()}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
+            await self._send_exit_telegram("⚡ WallHunter EXIT - Supertrend Fallback Hit!\nPair: {self.symbol}\nMode: {getattr(self, 'strategy_mode', 'long').upper()}", current_price, pnl_val)
             await self._clear_state()
             self.active_pos = None
             
@@ -3473,7 +3501,7 @@ class WallHunterBot:
                 self.total_wins += 1
             else:
                 self.total_losses += 1
-            await self._send_telegram(f"🚨 WallHunter EMERGENCY EXIT - {sell_type.upper()} {action_name}!\nPair: {self.symbol}\nExit Price: {current_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
+            await self._send_exit_telegram("🚨 WallHunter EMERGENCY EXIT - {sell_type.upper()} {action_name}!", current_price, pnl_val)
             self.active_pos = None
             
         elif sell_type == "limit":

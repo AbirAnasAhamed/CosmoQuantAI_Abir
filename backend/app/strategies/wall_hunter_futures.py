@@ -74,6 +74,7 @@ class WallHunterFuturesStrategy:
         self.bot_record = bot_record
         self.bot_id = bot_record.id
         self.owner_id = bot_record.owner_id
+        self.bot_name = getattr(bot_record, "name", getattr(bot_record, "bot_name", f"Bot {self.bot_id}"))
         self.exchange_service = ccxt_service
         self.config = bot_record.config or {}
         
@@ -1787,8 +1788,13 @@ class WallHunterFuturesStrategy:
 
                 self.logger.info(f"✅ Position Opened: {pos_side} | Entry {actual_entry}, SL {self.active_pos['sl']}, TP {self.active_pos['tp']}")
                 self._save_state()
+                self.active_pos['entry_time'] = time.time()
+                trade_type = "Long" if side == "buy" else "Short"
                 asyncio.create_task(self._send_telegram(
                     f"⚡ WallHunter Entered!\n"
+                    f"Bot Name: {getattr(self, 'bot_name', f'Bot {self.bot_id}')}\n"
+                    f"Bot ID: {self.bot_id}\n"
+                    f"Trade Types: {trade_type}\n"
                     f"Pair: {self.symbol}\n"
                     f"Entry {actual_entry:.6f}\n"
                     f"TP1: {self.active_pos['tp1']:.6f}\n"
@@ -1886,7 +1892,7 @@ class WallHunterFuturesStrategy:
                     else:
                         self.total_losses += 1
                     
-                    await self._send_telegram(f"🛡️ Futures EXIT - Stopped out via Limit Maker!\nPair: {self.symbol}\nExit Price: {filled_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
+                    await self._send_exit_telegram("🛡️ Futures EXIT - Stopped out via Limit Maker!", filled_price, pnl_val)
                     await self._clear_state()
                     self.active_pos = None
                     return
@@ -1950,7 +1956,7 @@ class WallHunterFuturesStrategy:
                     else:
                         self.total_losses += 1
                         
-                    await self._send_telegram(f"🎯 Futures EXIT - Limit TP Filled!\nPair: {self.symbol}\nExit Price: {filled_price:.6f}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
+                    await self._send_exit_telegram("🎯 Futures EXIT - Limit TP Filled!", filled_price, pnl_val)
                     self.logger.info(f"✅ Limit TP Order {self.active_pos['limit_order_id']} was filled by exchange at {filled_price}")
                     
                     # CANCEL DANGLING NATIVE SL
@@ -2628,7 +2634,7 @@ class WallHunterFuturesStrategy:
                     self.total_losses += 1
                     
                 logger.info(f"✅ TP1 Full Output Completed. Dust position was prevented.")
-                await self._send_telegram(f"🎯 *Full TP Hit at TP1!* (Dust Prevented)\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
+                await self._send_exit_telegram("🎯 *Full TP Hit at TP1!* (Dust Prevented)", current_price, pnl_val)
                 await self._clear_state()
                 self.active_pos = None
             else:
@@ -2747,7 +2753,7 @@ class WallHunterFuturesStrategy:
             else:
                 self.total_losses += 1
                 
-            await self._send_telegram(f"⚡ Futures EXIT - Supertrend Fallback Hit!\nPair: {self.symbol}\nMode: {side.upper()}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Total PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
+            await self._send_exit_telegram(f"⚡ Futures EXIT - Supertrend Fallback Hit! (Mode: {side.upper()})", filled_price, pnl_val)
             await self._clear_state()
             self.active_pos = None
             
@@ -3592,6 +3598,34 @@ class WallHunterFuturesStrategy:
 
             await self.execute_snipe(mid, side, mid, best_bid, best_ask, reason=reason)
         except Exception as e: self.logger.error(f"Liq Handler Error: {e}")
+
+
+    async def _send_exit_telegram(self, title: str, filled_price: float, pnl_val: float, reason: str = ""):
+        import time
+        entry_time = self.active_pos.get("entry_time", time.time())
+        duration_sec = int(time.time() - entry_time)
+        h = duration_sec // 3600
+        m = (duration_sec % 3600) // 60
+        s = duration_sec % 60
+        duration_str = f"{h}hr, {m}min, {s}sec"
+        
+        msg = (
+            f"{title}\n"
+            f"Bot Name: {getattr(self, 'bot_name', f'Bot {self.bot_id}')}\n"
+            f"Bot ID: {self.bot_id}\n"
+            f"Trade Duration: {duration_str}\n"
+            f"Pair: {self.symbol}\n"
+            f"Exit Price: {filled_price:.6f}\n"
+        )
+        if reason:
+            msg += f"Reason: {reason}\n"
+            
+        msg += f"💰 Trade PnL: ${pnl_val:.7f}\n\n"
+        msg += (
+            f"📊 Total PnL: ${self.total_realized_pnl:.7f}\n"
+            f"🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}"
+        )
+        await self._send_telegram(msg)
 
     async def _send_telegram(self, msg: str):
         if not self.owner_id: return
