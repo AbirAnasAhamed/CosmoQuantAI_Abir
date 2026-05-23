@@ -92,6 +92,7 @@ def calculate_l2_advanced_features(df: pd.DataFrame) -> pd.DataFrame:
     depth_ratio = []
     ask_wall_dist, bid_wall_dist = [], []
     order_book_skewness = []
+    slippage_proxy_list = []
     
     for i, row in df.iterrows():
         bids = row['bids_list']
@@ -145,6 +146,27 @@ def calculate_l2_advanced_features(df: pd.DataFrame) -> pd.DataFrame:
         # Basic Skewness proxy (volume weighted distance)
         ob_skew = (sum(a_v_10) - sum(b_v_10)) / (sum_v10 + 1e-9)
         order_book_skewness.append(ob_skew)
+        
+        # Slippage proxy (simulated cost of 10.0 units)
+        target_qty = 10.0
+        rem = target_qty
+        avg_price = 0
+        for p_str, q_str in asks:
+            p, q = float(p_str), float(q_str)
+            if rem <= q:
+                avg_price += rem * p
+                rem = 0
+                break
+            else:
+                avg_price += q * p
+                rem -= q
+        if rem > 0 and asks: 
+            avg_price += rem * float(asks[-1][0])
+        elif not asks:
+            avg_price = (row.get('Close', 0) * target_qty)
+        
+        avg_price /= (target_qty + 1e-9)
+        slippage_proxy_list.append((avg_price - row['mid_price']) / (row['mid_price'] + 1e-9))
 
     # Assign calculated arrays
     df['WAP_Top_5'] = wap_top_5
@@ -155,6 +177,7 @@ def calculate_l2_advanced_features(df: pd.DataFrame) -> pd.DataFrame:
     df['Ask_Wall_Distance'] = ask_wall_dist
     df['Bid_Wall_Distance'] = bid_wall_dist
     df['Order_Book_Skewness'] = order_book_skewness
+    df['slippage_proxy'] = slippage_proxy_list
     
     # Category 2: Depth & Liquidity
     df['Level_1_Imbalance'] = df['bb_v'] / (df['bb_v'] + df['ba_v'] + 1e-9)
@@ -188,6 +211,31 @@ def calculate_l2_advanced_features(df: pd.DataFrame) -> pd.DataFrame:
     df['Realized_Micro_Volatility'] = df['mid_price'].pct_change().rolling(window=10, min_periods=1).std().fillna(0)
     df['Tick_Test_Roll'] = df['mid_price'].diff().apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0)).rolling(window=5).mean().fillna(0)
     
+    # ── 12 New Advanced Institutional Metrics ──
+    # 1. obi_delta: Rate of change of Order Book Imbalance
+    df['obi_delta'] = df.get('obi', df['Level_1_Imbalance']).diff().fillna(0)
+    # 2. microprice_deviation: Deviation of volume-weighted microprice from midprice
+    df['microprice_deviation'] = (df.get('microprice', df['mid_price']) - df['mid_price']) / (df['mid_price'] + 1e-9)
+    # 3. quote_stuffing_ratio: Proxy for spam (rapid placement vs execution)
+    df['quote_stuffing_ratio'] = df['bb_v'].diff().abs() / (df['bb_v'].rolling(10).mean() + 1e-9)
+    # 4. depth_variance: Rolling variance of bid/ask depth at top levels
+    df['depth_variance'] = (df['bb_v'] + df['ba_v']).rolling(10, min_periods=1).var().fillna(0)
+    # 5. slippage_proxy is already calculated in the loop
+    # 6. spread_reversion_rate: Speed at which a widened spread contracts back to the moving average
+    df['spread_reversion_rate'] = (df['Effective_Spread'] - df['Effective_Spread'].rolling(10, min_periods=1).mean()) / (df['Effective_Spread'].rolling(10, min_periods=1).std() + 1e-9)
+    # 7. smart_money_divergence: Divergence between price momentum and depth momentum
+    df['smart_money_divergence'] = df['mid_price'].diff() * df['Order_Book_Skewness'].diff()
+    # 8. bid_ask_absorption: Rate at which limit orders are absorbing aggressive market flow
+    df['bid_ask_absorption'] = (df['bb_v'].diff() + df['ba_v'].diff()).fillna(0)
+    # 9. liquidity_replenishment_rate: Time-proxy for liquidity refilling after level clearance
+    df['liquidity_replenishment_rate'] = df['bb_v'].diff().where(df['bb_p'].diff() == 0, 0).fillna(0)
+    # 10. bbo_flicker_rate: Volatility of the top-of-book levels
+    df['bbo_flicker_rate'] = (df['bb_p'].diff() != 0).rolling(10, min_periods=1).sum().fillna(0)
+    # 11. order_flow_toxicity: Probability of Informed Trading (VPIN) based on depth
+    df['order_flow_toxicity'] = df['Order_Flow_Imbalance'].abs() / (df['bb_v'] + df['ba_v'] + 1e-9)
+    # 12. hidden_volume_proxy: Detection of abnormally low slippage despite large volume
+    df['hidden_volume_proxy'] = df['Depth_Ratio'] * df['Realized_Micro_Volatility']
+    
     # Drop intermediate columns
     cols_to_drop = ['bids_list', 'asks_list', 'bb_p', 'bb_v', 'ba_p', 'ba_v']
     df = df.drop(columns=[c for c in cols_to_drop if c in df.columns], errors='ignore')
@@ -201,7 +249,10 @@ def calculate_l2_advanced_features(df: pd.DataFrame) -> pd.DataFrame:
         'WAP_Top_5', 'WAP_Top_10', 'Multi_Level_Imbalance_Top5', 'Multi_Level_Imbalance_Top10',
         'Depth_Ratio', 'Ask_Wall_Distance', 'Bid_Wall_Distance', 'Order_Book_Skewness',
         'Level_1_Imbalance', 'Imbalance_Momentum', 'Order_Flow_Imbalance', 'OFI_Acceleration',
-        'CVD_Proxy', 'CVD_Acceleration', 'Realized_Micro_Volatility', 'Tick_Test_Roll'
+        'CVD_Proxy', 'CVD_Acceleration', 'Realized_Micro_Volatility', 'Tick_Test_Roll',
+        'obi_delta', 'microprice_deviation', 'quote_stuffing_ratio', 'depth_variance',
+        'slippage_proxy', 'spread_reversion_rate', 'smart_money_divergence', 'bid_ask_absorption',
+        'liquidity_replenishment_rate', 'bbo_flicker_rate', 'order_flow_toxicity', 'hidden_volume_proxy'
     ]
     
     # Add any existing standard columns if available
@@ -230,6 +281,18 @@ def calculate_l2_advanced_features(df: pd.DataFrame) -> pd.DataFrame:
         'CVD_Acceleration': 'CVD Acceleration',
         'Realized_Micro_Volatility': 'Realized Micro-Volatility',
         'Tick_Test_Roll': 'Tick Test Roll (Auto-correlation)',
+        'obi_delta': 'OBI Delta',
+        'microprice_deviation': 'Microprice Deviation',
+        'quote_stuffing_ratio': 'Quote Stuffing Ratio',
+        'depth_variance': 'Order Book Depth Variance',
+        'slippage_proxy': 'Slippage Proxy',
+        'spread_reversion_rate': 'Spread Reversion Rate',
+        'smart_money_divergence': 'Smart Money Divergence',
+        'bid_ask_absorption': 'Bid/Ask Absorption Rate',
+        'liquidity_replenishment_rate': 'Liquidity Replenishment Rate',
+        'bbo_flicker_rate': 'BBO Flicker Rate',
+        'order_flow_toxicity': 'Order Flow Toxicity',
+        'hidden_volume_proxy': 'Hidden Volume Proxy',
         'obi': 'Order Book Imbalance (OBI)',
         'spread': 'Quoted Spread',
         'microprice': 'Micro-Price'

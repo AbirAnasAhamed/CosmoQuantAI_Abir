@@ -271,6 +271,30 @@ def calculate_plp_features(df: pd.DataFrame, selected_features: list) -> pd.Data
     if 'margin_variance_premium' in selected_features:
         df['margin_variance_premium'] = price_std_20 - price_std_20.rolling(50).mean()
 
+    # ── 7 New Advanced Institutional Metrics (PLP) ──
+    if 'spoofing_flag' in selected_features:
+        df['spoofing_flag'] = np.where((spread.diff() < 0) & (obi.diff().abs() > 0.3) & (returns.abs() < 1e-5), 1.0, 0.0)
+        
+    if 'layering_density' in selected_features:
+        df['layering_density'] = obi.rolling(10).mean() * (1 - returns.abs().rolling(10).mean())
+        
+    if 'liquidity_mirage' in selected_features:
+        df['liquidity_mirage'] = obi.rolling(10, min_periods=1).var().fillna(0) / (vol_std_20 + 1e-9)
+        
+    if 'wash_trading_prob' in selected_features:
+        df['wash_trading_prob'] = np.where((qty > vol_mean_20 * 3) & (close.diff(5).abs() < 1e-5), 1.0, 0.0)
+        
+    if 'stop_hunting_prob' in selected_features:
+        df['stop_hunting_prob'] = (returns.abs() / (spread + 1e-9)) * (qty / (vol_mean_20 + 1e-9))
+        
+    if 'hft_front_running' in selected_features:
+        df['hft_front_running'] = (obi.shift(1) * returns).clip(lower=0) * (qty / (vol_mean_20 + 1e-9))
+        
+    if 'momentum_ignition' in selected_features:
+        consecutive = (np.sign(returns) == np.sign(returns.shift(1))) & (np.sign(returns) == np.sign(returns.shift(2))) & (returns != 0)
+        vol_accel = qty > qty.shift(1)
+        df['momentum_ignition'] = np.where(consecutive & vol_accel, 1.0, 0.0)
+
     # Clean up NaNs
     plp_df = df[selected_features].replace([np.inf, -np.inf], np.nan).fillna(0)
     

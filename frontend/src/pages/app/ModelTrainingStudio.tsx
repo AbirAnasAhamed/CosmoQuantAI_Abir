@@ -247,7 +247,6 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
         }
     ];
     const TIMEFRAMES = ['1s', '5s', '1m', '5m', '15m', '1h', '4h', '1d'];
-
     const ALL_L2_FEATURES = [
         { internal: "Effective_Spread", name: "Effective Spread" },
         { internal: "Spread_ROC", name: "Spread ROC" },
@@ -270,7 +269,19 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
         { internal: "Tick_Test_Roll", name: "Tick Test Roll (Auto-correlation)" },
         { internal: "obi", name: "Order Book Imbalance (OBI)" },
         { internal: "spread", name: "Quoted Spread" },
-        { internal: "microprice", name: "Micro-Price" }
+        { internal: "microprice", name: "Micro-Price" },
+        { internal: "obi_delta", name: "OBI Delta ✨ (NEW)", desc: "Rate of change of Order Book Imbalance" },
+        { internal: "microprice_deviation", name: "Microprice Deviation ✨ (NEW)", desc: "Deviation of volume-weighted microprice from midprice" },
+        { internal: "quote_stuffing_ratio", name: "Quote Stuffing Ratio ✨ (NEW)", desc: "Proxy for spam (rapid placement vs execution)" },
+        { internal: "depth_variance", name: "Order Book Depth Variance ✨ (NEW)", desc: "Rolling variance of bid/ask depth at top levels" },
+        { internal: "slippage_proxy", name: "Slippage Proxy ✨ (NEW)", desc: "Estimated cost of a simulated 10 units market order" },
+        { internal: "spread_reversion_rate", name: "Spread Reversion Rate ✨ (NEW)", desc: "Speed at which a widened spread contracts" },
+        { internal: "smart_money_divergence", name: "Smart Money Divergence ✨ (NEW)", desc: "Divergence between price momentum and depth momentum" },
+        { internal: "bid_ask_absorption", name: "Bid/Ask Absorption Rate ✨ (NEW)", desc: "Rate at which limit orders are absorbing aggressive market flow" },
+        { internal: "liquidity_replenishment_rate", name: "Liquidity Replenishment Rate ✨ (NEW)", desc: "Time-proxy for liquidity refilling after level clearance" },
+        { internal: "bbo_flicker_rate", name: "BBO Flicker Rate ✨ (NEW)", desc: "Volatility of the top-of-book levels" },
+        { internal: "order_flow_toxicity", name: "Order Flow Toxicity (VPIN) ✨ (NEW)", desc: "Probability of Informed Trading based on depth" },
+        { internal: "hidden_volume_proxy", name: "Hidden Volume Proxy ✨ (NEW)", desc: "Detection of abnormally low slippage despite large volume" }
     ];
 
     const ALL_TRADE_FEATURES = [

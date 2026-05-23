@@ -100,6 +100,22 @@ export const PLP_MODULES = [
             { id: 'leverage_decay_factor', name: 'Leverage Decay Factor' },
             { id: 'margin_variance_premium', name: 'Margin Variance Premium' }
         ]
+    },
+    {
+        id: 'market_manipulation',
+        name: 'Market Manipulation & HFT Proxies',
+        desc: 'Advanced detection of spoofing, layering, and wash trading.',
+        icon: Search,
+        color: 'cyan',
+        features: [
+            { id: 'spoofing_flag', name: 'Spoofing Detection Flag ✨ (NEW)' },
+            { id: 'layering_density', name: 'Layering Density ✨ (NEW)' },
+            { id: 'liquidity_mirage', name: 'Liquidity Mirage Index ✨ (NEW)' },
+            { id: 'wash_trading_prob', name: 'Wash Trading Probability ✨ (NEW)' },
+            { id: 'stop_hunting_prob', name: 'Stop-Hunting Probability ✨ (NEW)' },
+            { id: 'hft_front_running', name: 'HFT Front-Running Proxy ✨ (NEW)' },
+            { id: 'momentum_ignition', name: 'Momentum Ignition ✨ (NEW)' }
+        ]
     }
 ];
 
@@ -204,7 +220,7 @@ const PredatoryLiquidityPipeline: React.FC<PredatoryLiquidityPipelineProps> = ({
 
                 <div className="flex items-center gap-3 mb-5 px-3 py-2 bg-rose-950/30 border border-rose-500/10 rounded-xl">
                     <div className="text-xs font-bold bg-rose-500/20 text-rose-400 px-3 py-1 rounded-full border border-rose-500/30">
-                        {selectedFeatures.length} / 50 Features Selected
+                        {selectedFeatures.length} / {PLP_MODULES.reduce((acc, mod) => acc + mod.features.length, 0)} Features Selected
                     </div>
                     <p className="text-[10px] text-slate-500 font-medium">
                         (Open Interest & Funding Rate variables are mandatory for accurate prediction)
@@ -220,9 +236,9 @@ const PredatoryLiquidityPipeline: React.FC<PredatoryLiquidityPipelineProps> = ({
                         const isAllSelected = selectedInModule.length === moduleFeatureIds.length;
 
                         // Dynamic color classes based on module.color
-                        const borderColors: Record<string, string> = { rose: 'border-rose-500/30', orange: 'border-orange-500/30', red: 'border-red-500/30', purple: 'border-purple-500/30', pink: 'border-pink-500/30' };
-                        const bgColors: Record<string, string> = { rose: 'bg-rose-500/10', orange: 'bg-orange-500/10', red: 'bg-red-500/10', purple: 'bg-purple-500/10', pink: 'bg-pink-500/10' };
-                        const textColors: Record<string, string> = { rose: 'text-rose-400', orange: 'text-orange-400', red: 'text-red-400', purple: 'text-purple-400', pink: 'text-pink-400' };
+                        const borderColors: Record<string, string> = { rose: 'border-rose-500/30', orange: 'border-orange-500/30', red: 'border-red-500/30', purple: 'border-purple-500/30', pink: 'border-pink-500/30', cyan: 'border-cyan-500/30' };
+                        const bgColors: Record<string, string> = { rose: 'bg-rose-500/10', orange: 'bg-orange-500/10', red: 'bg-red-500/10', purple: 'bg-purple-500/10', pink: 'bg-pink-500/10', cyan: 'bg-cyan-500/10' };
+                        const textColors: Record<string, string> = { rose: 'text-rose-400', orange: 'text-orange-400', red: 'text-red-400', purple: 'text-purple-400', pink: 'text-pink-400', cyan: 'text-cyan-400' };
 
                         return (
                             <div key={module.id} className={`rounded-2xl border transition-all duration-300 overflow-hidden ${isExpanded ? `${borderColors[module.color]} ${bgColors[module.color]}` : 'border-white/5 bg-black/40 hover:border-white/10'}`}>

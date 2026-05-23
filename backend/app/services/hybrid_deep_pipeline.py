@@ -334,6 +334,9 @@ _KNOWN_L2_FEATURES = {
     'Level_1_Imbalance', 'Imbalance_Momentum', 'Order_Flow_Imbalance', 'OFI_Acceleration',
     'CVD_Proxy', 'CVD_Acceleration', 'Realized_Micro_Volatility', 'Tick_Test_Roll',
     'obi', 'spread', 'microprice',
+    'obi_delta', 'microprice_deviation', 'quote_stuffing_ratio', 'depth_variance',
+    'slippage_proxy', 'spread_reversion_rate', 'smart_money_divergence', 'bid_ask_absorption',
+    'liquidity_replenishment_rate', 'bbo_flicker_rate', 'order_flow_toxicity', 'hidden_volume_proxy',
 }
 
 _KNOWN_TRADE_FEATURES = {
