@@ -30,94 +30,25 @@ logger = logging.getLogger(__name__)
 
 def calculate_trade_tick_features(df: pd.DataFrame, selected_features: list) -> pd.DataFrame:
     """
-    Calculates up to 12 advanced trade tick features from aggTrade data.
-
-    Input df must contain: price (float), qty (float), is_buyer_maker (bool).
-    L2 columns (obi, spread, microprice, etc.) may also be present from merge.
-
-    Only calculates features that are in `selected_features` (fully modular).
-    Intermediate columns are cleaned up before returning.
+    Calculates advanced trade tick features from aggTrade data.
+    Delegates to the modular trade_feature_engineering service.
     """
     if df.empty:
         return df
 
-    df = df.copy()
-    df['price'] = pd.to_numeric(df['price'], errors='coerce').fillna(0.0)
-    df['qty']   = pd.to_numeric(df['qty'],   errors='coerce').fillna(0.0)
-
-    # Direction: aggTrade `is_buyer_maker=True` means the buyer was the market maker
-    # → the aggressor was a seller → direction = -1
-    df['_dir'] = df['is_buyer_maker'].apply(lambda x: -1 if x else 1)
-    df['_sv']  = df['qty'] * df['_dir']
-
-    # ── Feature 1: CVD (Real, from aggTrade) ─────────────────────────────────
-    if 'cvd' in selected_features:
-        df['cvd'] = df['_sv'].cumsum()
-
-    # ── Feature 2: Buy Volume ─────────────────────────────────────────────────
-    if 'buy_volume' in selected_features:
-        df['buy_volume'] = df['qty'].where(df['_dir'] == 1, 0.0)
-
-    # ── Feature 3: Sell Volume ────────────────────────────────────────────────
-    if 'sell_volume' in selected_features:
-        df['sell_volume'] = df['qty'].where(df['_dir'] == -1, 0.0)
-
-    # ── Feature 4: Trade Count ────────────────────────────────────────────────
-    if 'trade_count' in selected_features:
-        df['trade_count'] = 1  # rolling sum applied externally during training
-
-    # ── Feature 5: Aggressor Ratio (rolling 10-tick buy rate) ─────────────────
-    if 'aggressor_ratio' in selected_features:
-        df['aggressor_ratio'] = (df['_dir'] == 1).astype(float) \
-            .rolling(window=10, min_periods=1).mean()
-
-    # ── Feature 6: Large Trade Flag (dynamic 2σ threshold) ────────────────────
-    if 'large_trade_flag' in selected_features:
-        qty_mean = df['qty'].mean()
-        qty_std  = df['qty'].std()
-        threshold = qty_mean + 2 * qty_std if qty_std > 0 else qty_mean * 3
-        df['large_trade_flag'] = (df['qty'] > threshold).astype(float)
-
-    # ── Feature 7: VWAP Deviation ─────────────────────────────────────────────
-    if 'vwap_deviation' in selected_features:
-        cum_pv   = (df['price'] * df['qty']).cumsum()
-        cum_v    = df['qty'].cumsum()
-        vwap     = cum_pv / (cum_v + 1e-9)
-        df['vwap_deviation'] = (df['price'] - vwap) / (vwap + 1e-9)
-
-    # ── Feature 8: Trade Imbalance Ratio (rolling 20-tick) ────────────────────
-    if 'trade_imbalance_ratio' in selected_features:
-        roll_buy  = df['qty'].where(df['_dir'] == 1, 0.0) \
-            .rolling(window=20, min_periods=1).sum()
-        roll_sell = df['qty'].where(df['_dir'] == -1, 0.0) \
-            .rolling(window=20, min_periods=1).sum()
-        total = roll_buy + roll_sell
-        df['trade_imbalance_ratio'] = (roll_buy - roll_sell) / (total + 1e-9)
-
-    # ── Feature 9: Tick Speed (milliseconds between consecutive trades) ────────
-    if 'tick_speed' in selected_features:
-        df['tick_speed'] = (
-            df.index.to_series().diff().dt.total_seconds().fillna(0) * 1000
-        )
-
-    # ── Feature 10: Price Impact per Unit Volume ──────────────────────────────
-    if 'price_impact' in selected_features:
-        price_change = df['price'].diff().abs().fillna(0)
-        df['price_impact'] = price_change / (df['qty'] + 1e-9)
-
-    # ── Feature 11: Rolling CVD (5 ticks) ─────────────────────────────────────
-    if 'rolling_cvd_5' in selected_features:
-        df['rolling_cvd_5'] = df['_sv'].rolling(window=5, min_periods=1).sum()
-
-    # ── Feature 12: Rolling CVD (20 ticks) ────────────────────────────────────
-    if 'rolling_cvd_20' in selected_features:
-        df['rolling_cvd_20'] = df['_sv'].rolling(window=20, min_periods=1).sum()
-
-    # Cleanup intermediate columns
-    df.drop(columns=['_dir', '_sv'], inplace=True, errors='ignore')
-    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    from app.services.trade_feature_engineering import calculate_advanced_trade_features
     
-    # Fill 0 only for engineered features to allow proper dropping of un-merged L2 rows later
+    # Rename qty to amount for the shared module if it exists
+    if 'qty' in df.columns and 'amount' not in df.columns:
+        df['amount'] = df['qty']
+        
+    # The shared module expects 'price', 'amount', 'side' (or 'is_buyer_maker')
+    if 'is_buyer_maker' in df.columns and 'side' not in df.columns:
+        df['side'] = df['is_buyer_maker'].apply(lambda x: 'sell' if x else 'buy')
+
+    df = calculate_advanced_trade_features(df, requested_features=selected_features)
+    
+    # Ensure selected features are 0-filled instead of NaN to prevent dropping L2 rows
     for col in selected_features:
         if col in df.columns:
             df[col] = df[col].fillna(0)
@@ -406,9 +337,12 @@ _KNOWN_L2_FEATURES = {
 }
 
 _KNOWN_TRADE_FEATURES = {
-    'cvd', 'buy_volume', 'sell_volume', 'trade_count', 'aggressor_ratio',
-    'large_trade_flag', 'vwap_deviation', 'trade_imbalance_ratio',
-    'tick_speed', 'price_impact', 'rolling_cvd_5', 'rolling_cvd_20',
+    'rolling_vol_imbalance', 'trade_velocity', 'vwap_deviation', 'consecutive_runs',
+    'aggressor_ratio', 'avg_trade_size', 'whale_trade_freq', 'retail_participation_ratio',
+    'trade_size_variance', 'iceberg_proxy_count', 'up_down_tick_ratio', 'micro_volatility',
+    'amihud_illiquidity', 'tick_speed', 'tick_acceleration', 'zero_tick_ratio', 'realized_variance',
+    'kyles_lambda', 'autocorr_signs', 'entropy_of_signs', 'roll_measure_spread', 'vpin_proxy',
+    'cvd', 'buy_volume', 'sell_volume', 'trade_count',
 }
 
 _EXCLUDE_COLS = {

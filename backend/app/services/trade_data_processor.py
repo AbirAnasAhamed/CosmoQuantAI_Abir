@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import pandas_ta as ta
+from app.services.trade_feature_engineering import calculate_advanced_trade_features
 
 def process_historical_trades(file_path: str = None, df_raw: pd.DataFrame = None, bar_type: str = "time", bar_size: str = "1m", volume_threshold: float = 10.0, apply_indicators: list = None, add_log_func=print) -> pd.DataFrame:
     """
@@ -38,6 +39,13 @@ def process_historical_trades(file_path: str = None, df_raw: pd.DataFrame = None
     df['signed_volume'] = df['amount'] * df['trade_dir']
     df['trade_count'] = 1
     
+    # --- CALCULATE ADVANCED TICK FEATURES ---
+    add_log_func(f"Calculating institutional-grade advanced tick features...")
+    df = calculate_advanced_trade_features(df, requested_features=apply_indicators)
+    
+    # List of advanced feature columns to aggregate (using 'last' value for the bar)
+    adv_cols = [c for c in df.columns if c not in ['datetime', 'timestamp', 'price', 'amount', 'side', 'trade_dir', 'signed_volume', 'trade_count', 'price_change', 'cum_vol', 'bar_id']]
+    
     add_log_func(f"Loaded {len(df)} raw trades. Generating {bar_type.upper()} bars...")
     
     if bar_type == "time":
@@ -63,6 +71,10 @@ def process_historical_trades(file_path: str = None, df_raw: pd.DataFrame = None
         
         bars['cvd'] = (bars['buy_volume'] - bars['sell_volume']).cumsum()
         bars['trade_count'] = df['trade_count'].resample(pandas_tf).sum()
+        
+        # Aggregate advanced tick features (taking the last value of the tick window inside the bar)
+        for col in adv_cols:
+            bars[col] = df[col].resample(pandas_tf).last().ffill()
         
         # FFill missing candles
         bars['close'] = bars['close'].ffill()
@@ -90,6 +102,10 @@ def process_historical_trades(file_path: str = None, df_raw: pd.DataFrame = None
         bars['cvd'] = bars['net_volume'].cumsum()
         bars['buy_volume'] = (bars['volume'] + bars['net_volume']) / 2
         bars['sell_volume'] = (bars['volume'] - bars['net_volume']) / 2
+        
+        # Aggregate advanced tick features (taking the last value of the tick window inside the bar)
+        adv_agg = df.groupby('bar_id')[adv_cols].last()
+        bars = bars.join(adv_agg)
     else:
         raise ValueError("bar_type must be either 'time' or 'volume'")
         

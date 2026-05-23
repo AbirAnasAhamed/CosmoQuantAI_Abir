@@ -723,7 +723,8 @@ def train_model_task(job_id: str, db: Session):
             available_trade_feats = [f for f in trade_features_config if f in df.columns]
             
             indicator_cols = [col for col in df.columns if col not in ['Target', 'Open', 'High', 'Low', 'Close', 'Volume', 'cvd', 'buy_volume', 'sell_volume', 'trade_count', 'datetime', 'timestamp']]
-            features = available_trade_feats + indicator_cols
+            features = list(dict.fromkeys(available_trade_feats + indicator_cols))
+
             
             if not features:
                 features = ['Close']
