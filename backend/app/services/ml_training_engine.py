@@ -377,6 +377,21 @@ def train_model_task(job_id: str, db: Session):
         if job.status == models.TrainingStatus.FAILED and job.error_message and "cancelled" in job.error_message.lower():
             raise Exception("Training cancelled by user.")
 
+    import threading
+    import time
+    
+    stop_heartbeat = threading.Event()
+    def heartbeat_worker():
+        start_time = time.time()
+        while not stop_heartbeat.is_set():
+            elapsed = int(time.time() - start_time)
+            prog = getattr(job, 'progress', 0.0)
+            print(f"[CELERY-HEARTBEAT] ⏳ Job {job_id} is running... Elapsed: {elapsed}s | Progress: {prog:.1f}%")
+            stop_heartbeat.wait(10)
+            
+    heartbeat_thread = threading.Thread(target=heartbeat_worker, daemon=True)
+    heartbeat_thread.start()
+
     try:
         check_cancelled()
         job.status = models.TrainingStatus.RUNNING
@@ -843,7 +858,7 @@ def train_model_task(job_id: str, db: Session):
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     
-                alt_df = loop.run_until_complete(fetcher.build_alternative_features(df.index, job.symbol))
+                alt_df = loop.run_until_complete(fetcher.build_alternative_features(df.index, job.symbol, alt_features))
                 for f in alt_features:
                     if f in alt_df.columns:
                         df[f] = alt_df[f].values
@@ -2186,4 +2201,5 @@ def train_model_task(job_id: str, db: Session):
             print(f"Telegram failure notification failed: {notif_ex}")
             
     finally:
+        stop_heartbeat.set()
         db.commit()

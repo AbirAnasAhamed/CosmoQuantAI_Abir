@@ -212,7 +212,7 @@ class AlternativeDataFetcher:
     # ─────────────────────────────────────────────────────────────────────────
     # Master builder — concurrent fetch + robust alignment
     # ─────────────────────────────────────────────────────────────────────────
-    async def build_alternative_features(self, df_index: pd.DatetimeIndex, symbol: str) -> pd.DataFrame:
+    async def build_alternative_features(self, df_index: pd.DatetimeIndex, symbol: str, selected_features: List[str] = None) -> pd.DataFrame:
         """
         Fetch all alternative data and align it to the main DataFrame index.
 
@@ -246,19 +246,27 @@ class AlternativeDataFetcher:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
+        # ── Filter tasks based on selected_features ───────────────
+        if selected_features is None:
+            selected_features = ["fng_value", "commit_count", "search_interest", "exchange_net_flow", "onchain_liquidity", "macro_cpi_surprise", "macro_nfp_surprise", "macro_rate_sentiment"]
+
+        async def _empty_async(): return None
+        
+        tasks = []
+        tasks.append(self.fetch_fear_and_greed(limit=days_needed) if "fng_value" in selected_features else _empty_async())
+        tasks.append(self.fetch_github_activity(repo=repo, days=days_needed) if "commit_count" in selected_features else _empty_async())
+        tasks.append(self.fetch_exchange_flow() if "exchange_net_flow" in selected_features else _empty_async())
+        tasks.append(self.fetch_onchain_liquidity(symbol=symbol) if "onchain_liquidity" in selected_features else _empty_async())
+        
+        has_macro = any(f in selected_features for f in ["macro_cpi_surprise", "macro_nfp_surprise", "macro_rate_sentiment"])
+        tasks.append(self.fetch_macro_intelligence() if has_macro else _empty_async())
+
         # ── Run all async fetches concurrently ────────────────────
-        results = await asyncio.gather(
-            self.fetch_fear_and_greed(limit=days_needed),
-            self.fetch_github_activity(repo=repo, days=days_needed),
-            self.fetch_exchange_flow(),
-            self.fetch_onchain_liquidity(symbol=symbol),
-            self.fetch_macro_intelligence(),
-            return_exceptions=True,
-        )
+        results = await asyncio.gather(*tasks, return_exceptions=True)
         fng_df, gh_df, exchange_flow_df, liquidity_df, macro_df = results
 
         def safe_df(result, fallback: dict) -> pd.DataFrame:
-            return pd.DataFrame(fallback) if isinstance(result, Exception) or result is None else result
+            return pd.DataFrame(fallback) if isinstance(result, Exception) or result is None or (isinstance(result, pd.DataFrame) and result.empty and fallback) else result
 
         fng_df           = safe_df(fng_df,           {})
         gh_df            = safe_df(gh_df,             {})
@@ -269,9 +277,12 @@ class AlternativeDataFetcher:
                                                         "macro_rate_sentiment": [0.0]})
 
         # Google Trends is sync
-        try:
-            gt_df = await loop.run_in_executor(None, self.fetch_google_trends, keyword, "today 3-m")
-        except Exception:
+        if "search_interest" in selected_features:
+            try:
+                gt_df = await loop.run_in_executor(None, self.fetch_google_trends, keyword, "today 3-m")
+            except Exception:
+                gt_df = pd.DataFrame()
+        else:
             gt_df = pd.DataFrame()
 
         # ── Build 30-day daily lookup table (tz-naive, date-normalized) ──

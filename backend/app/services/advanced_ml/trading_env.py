@@ -144,6 +144,8 @@ class AdvancedTradingEnv(gym.Env):
         if target_position != 0:
             # Entry price adjusted for slippage
             self.entry_price = price * (1 + self.slippage * target_position)
+            if self.entry_price <= 0:
+                self.entry_price = 1e-8
             # Entry fee
             fee = self.net_worth * self.commission
             self.net_worth -= fee

@@ -116,7 +116,11 @@ def calculate_trade_tick_features(df: pd.DataFrame, selected_features: list) -> 
     # Cleanup intermediate columns
     df.drop(columns=['_dir', '_sv'], inplace=True, errors='ignore')
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
-    df.fillna(0, inplace=True)
+    
+    # Fill 0 only for engineered features to allow proper dropping of un-merged L2 rows later
+    for col in selected_features:
+        if col in df.columns:
+            df[col] = df[col].fillna(0)
 
     return df
 
@@ -516,12 +520,12 @@ def build_hybrid_deep_dataset(job, db: Session, config: dict, add_log) -> tuple:
             add_log(f"[HybridDeep] ⚠️ PLP feature generation failed (non-fatal): {e}")
 
     # ── Step 5: Target Variable ────────────────────────────────────────────────
-    # Use microprice > price fallback for Close
+    # Use price fallback for Close
     if 'Close' not in df.columns:
-        if 'microprice' in df.columns:
-            df['Close'] = df['microprice']
-        elif 'price' in df.columns:
+        if 'price' in df.columns:
             df['Close'] = df['price']
+        elif 'microprice' in df.columns:
+            df['Close'] = df['microprice']
         else:
             raise Exception("[HybridDeep] Cannot find Close price for target.")
 
