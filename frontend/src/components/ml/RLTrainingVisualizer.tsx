@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BrainCircuit, Play, Pause, FastForward, SkipBack, X, Activity, DollarSign, Target, Settings, Database, Server, Clock, GitCommit } from 'lucide-react';
 import ReactFlow, { Background, Controls, Edge, Node, MarkerType } from 'reactflow';
@@ -225,13 +226,13 @@ export const RLTrainingVisualizer: React.FC<RLTrainingVisualizerProps> = ({
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <AnimatePresence>
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
+                className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
             >
                 <div className="w-full h-full max-w-[1600px] max-h-[900px] flex flex-col bg-slate-900 border border-white/10 rounded-3xl overflow-hidden shadow-2xl relative">
                     
@@ -396,7 +397,8 @@ export const RLTrainingVisualizer: React.FC<RLTrainingVisualizerProps> = ({
                     </div>
                 </div>
             </motion.div>
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 };
 

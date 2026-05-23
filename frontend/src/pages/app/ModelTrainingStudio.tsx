@@ -405,8 +405,8 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
             });
             setCurrentJob(job);
 
-            // Auto-open visualizer for live scraping, hybrid, hybrid_deep, or RL training
-            if (isDeepTraining || dataSource === 'hybrid' || dataSource === 'l2_orderbook' || dataSource === 'hybrid_deep' || algorithm === 'PPO-RL' || algorithm === 'SAC-RL') {
+            // Auto-open visualizer for live scraping, hybrid, hybrid_deep, but not for RL training
+            if (algorithm !== 'PPO-RL' && algorithm !== 'SAC-RL' && (isDeepTraining || dataSource === 'hybrid' || dataSource === 'l2_orderbook' || dataSource === 'hybrid_deep')) {
                 setShowVisualizer(true);
             }
         } catch (error) {
