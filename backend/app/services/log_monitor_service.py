@@ -203,6 +203,9 @@ IGNORE_PATTERNS = [
     re.compile(r'upstream:.*:8000/ws', re.IGNORECASE),                          # WS proxy destination
     re.compile(r'while connecting to upstream.*8000', re.IGNORECASE),
     re.compile(r'\[error\].*connect\(\) failed', re.IGNORECASE),               # Nginx [error] level prefix
+    re.compile(r'recv\(\) failed \(104', re.IGNORECASE),                        # Nginx ECONNRESET code (WebSocket drop)
+    re.compile(r'Connection reset by peer.*proxying upgraded connection', re.IGNORECASE), # WebSocket proxy drop
+    re.compile(r'\[error\].*recv\(\) failed', re.IGNORECASE),                  # Nginx [error] level prefix for recv
 ]
 
 # Patterns that look like errors but should be downgraded to WARNING
