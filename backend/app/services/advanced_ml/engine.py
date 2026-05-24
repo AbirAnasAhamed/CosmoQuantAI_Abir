@@ -470,7 +470,8 @@ class AdvancedMLEngine:
                             "task_id": job.id,
                             "status": "processing",
                             "progress": int((self.num_timesteps / total_timesteps) * 100),
-                            "data": payload
+                            "data": payload,
+                            "features": features
                         }
                         try:
                             redis_client.publish("task_updates", json.dumps(message))

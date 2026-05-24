@@ -133,7 +133,8 @@ async def subscribe_to_task_updates():
                         task_id=data.get("task_id"),
                         status=data.get("status"),
                         progress=data.get("progress"),
-                        data=data.get("data")
+                        data=data.get("data"),
+                        features=data.get("features", [])
                     )
                 except Exception as e:
                     print(f"Task Update Forward Error: {e}")
