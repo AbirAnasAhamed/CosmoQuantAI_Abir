@@ -1225,7 +1225,6 @@ def train_model_task(job_id: str, db: Session):
                 if is_fine_tune:
                     if os.path.exists(_prev_path):
                         try:
-                            import joblib
                             model = joblib.load(_prev_path)
                             add_log(f"✅ Fine-Tuning Random Forest from {_prev_path}")
                         except Exception as _ft_e:
