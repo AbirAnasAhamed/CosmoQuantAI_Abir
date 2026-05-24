@@ -2169,6 +2169,40 @@ def train_model_task(job_id: str, db: Session):
 
 
     except Exception as e:
+        if "cancelled" in str(e).lower() and "user" in str(e).lower():
+            print(f"[train_model_task] Job {job_id} was cancelled by user. Stopping cleanly.")
+            add_log("🛑 Training process has been stopped by user.")
+            try:
+                from app.services.notification import NotificationService
+                import asyncio
+                rows_scraped = 0
+                for log_entry in (job.logs or []):
+                    if "[Scraper] Collected" in log_entry:
+                        try:
+                            rows_scraped = int(log_entry.split("Collected ")[1].split(" /")[0])
+                        except Exception:
+                            pass
+                msg = (
+                    f"🛑 <b>ট্রেনিং বন্ধ করা হয়েছে!</b>\n"
+                    f"━━━━━━━━━━━━━━━━━━\n"
+                    f"📦 <b>পেয়ার/সিম্বল:</b> {job.symbol} ({job.timeframe})\n"
+                    f"🧠 <b>অ্যালগরিদম:</b> {job.algorithm}\n"
+                    f"📊 <b>সংগ্রহিত ডেটা:</b> {rows_scraped} rows\n"
+                    f"━━━━━━━━━━━━━━━━━━\n"
+                    f"ℹ️ ব্যবহারকারী ম্যানুয়ালি ট্রেনিং বাতিল করেছেন।"
+                )
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(
+                    NotificationService.send_message(db, job.user_id, msg, parse_mode="HTML")
+                )
+                loop.close()
+            except Exception as notif_ex:
+                print(f"Telegram cancel notification failed: {notif_ex}")
+            job.status = models.TrainingStatus.FAILED
+            db.commit()
+            return
+
         job.status = models.TrainingStatus.FAILED
         add_log(f"ERROR: {e}")
         import traceback
