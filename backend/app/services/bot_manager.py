@@ -64,21 +64,21 @@ class BotManager:
                     del self.active_bots[bot_id]
                 return {"status": "error", "message": "Bot not found"}
 
+            config = {
+                "exchange": bot.exchange or "binance",
+                "symbol": bot.market,
+                "is_paper_trading": bot.is_paper_trading,
+                "timeframe": bot.timeframe,
+            }
+            if bot.config:
+                config.update(bot.config)
+
             if bot.strategy == "wall_hunter":
                 from app.strategies.wall_hunter_bot import WallHunterBot
                 from app.strategies.wall_hunter_futures import WallHunterFuturesStrategy
                 from app.services.ccxt_service import ccxt_service
                 from app.models import ApiKey
                 
-                config = {
-                    "exchange": bot.exchange or "binance",
-                    "symbol": bot.market,
-                    "is_paper_trading": bot.is_paper_trading,
-                    "timeframe": bot.timeframe,
-                }
-                if bot.config:
-                    config.update(bot.config)
-                    
                 trading_mode = config.get('trading_mode', 'spot')
                 
                 if trading_mode == 'futures':
