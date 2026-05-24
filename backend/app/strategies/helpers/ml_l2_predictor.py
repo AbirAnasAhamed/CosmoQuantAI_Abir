@@ -211,18 +211,24 @@ class MLL2Predictor:
                     obi, spread, microprice, ofi_acceleration, imbalance_momentum,
                     depth_ratio, cvd_proxy, multi_level_imb_top5
                 ]
-                if hasattr(self.model, 'n_features_in_'):
-                    expected_features = self.model.n_features_in_
-                    if expected_features > len(features_list):
-                        if not self._feature_mismatch_logged:
-                            logger.warning(
-                                f"MLL2Predictor: Model expects {expected_features} features, but L2 provides "
-                                f"{len(features_list)}. Padding with zeros. "
-                            )
-                            self._feature_mismatch_logged = True
-                        features_list.extend([0.0] * (expected_features - len(features_list)))
-                    elif expected_features < len(features_list):
-                        features_list = features_list[:expected_features]
+
+            # Dynamic padding to handle missing features or different model requirements (e.g. PPO-RL)
+            expected_features = len(features_list)
+            if hasattr(self.model, 'n_features_in_'):
+                expected_features = self.model.n_features_in_
+            elif hasattr(self.model, 'observation_space'):
+                expected_features = self.model.observation_space.shape[0]
+
+            if expected_features > len(features_list):
+                if not self._feature_mismatch_logged:
+                    logger.warning(
+                        f"MLL2Predictor: Model expects {expected_features} features, but L2 provides "
+                        f"{len(features_list)}. Padding with zeros. "
+                    )
+                    self._feature_mismatch_logged = True
+                features_list.extend([0.0] * (expected_features - len(features_list)))
+            elif expected_features < len(features_list):
+                features_list = features_list[:expected_features]
                         
             features = np.array(features_list).reshape(1, -1)
 
