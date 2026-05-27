@@ -51,7 +51,7 @@ def start_training_job(
     
     # trigger celery background task
     from app.tasks import celery_train_model_task
-    celery_train_model_task.delay(job_id)
+    celery_train_model_task.apply_async(args=[job_id], task_id=job_id)
     
     return job
 
@@ -110,6 +110,13 @@ def cancel_training_job(
     import datetime
     logs.append(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] 🛑 Training cancelled by user.")
     job.logs = logs
+
+    # Terminate the underlying Celery task to stop background execution
+    from app.celery_app import celery_app
+    try:
+        celery_app.control.revoke(job_id, terminate=True, signal='SIGTERM')
+    except Exception as e:
+        print(f"Failed to revoke celery task {job_id}: {e}")
 
     db.commit()
     db.refresh(job)

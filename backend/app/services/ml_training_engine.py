@@ -228,7 +228,7 @@ async def _async_live_scraper(symbol: str, target_rows: int, db: Session, job: m
                             raise TrainingCancelledException("Training cancelled by user during live scraping.")
                         
                     if scraped_count % log_interval == 0:
-                        pct = min(100.0, (scraped_count / target_rows) * 10.0)
+                        pct = min(100.0, (scraped_count / target_rows) * 100.0)
                         job.progress = pct
                         db.commit()
                         add_log_func(f"[Scraper] Collected {scraped_count} / {target_rows} rows...")
@@ -337,7 +337,7 @@ async def _async_live_trade_scraper(symbol: str, target_rows: int, db: Session, 
                             
                     if scraped_count % log_interval == 0:
                         pct_scraped = min(100.0, (scraped_count / target_rows) * 100.0)
-                        job.progress = min(14.0, (scraped_count / target_rows) * 14.0)  # keep progress in 0-14% range during scrape
+                        job.progress = pct_scraped
                         db.commit()
                         add_log_func(f"[Trade Scraper] ⬇️  {scraped_count:,} / {target_rows:,} trades collected ({pct_scraped:.1f}%)...")
                         
@@ -433,12 +433,12 @@ def train_model_task(job_id: str, db: Session):
             # ── NEW: Dual WebSocket L2 + aggTrade pipeline ──────────────────
             from app.services.hybrid_deep_pipeline import build_hybrid_deep_dataset
             df, features = build_hybrid_deep_dataset(job, db, config, add_log)
-            job.progress = 15.0
+            job.progress = 100.0
 
         elif dataset_type == "hybrid":
             from app.services.hybrid_pipeline import build_hybrid_dataset
             df, features = build_hybrid_dataset(job, db, config, add_log)
-            job.progress = 15.0
+            job.progress = 100.0
             
         elif dataset_type == "l2_orderbook":
             resample_l2 = config.get("resample_l2", True)
@@ -464,7 +464,7 @@ def train_model_task(job_id: str, db: Session):
                 else:
                     add_log(f"Fetched {len(df)} ticks of raw High-Frequency L2 data.")
             
-            job.progress = 15.0
+            job.progress = 100.0
             
             # Use L2 specific features chosen by user, default to basics
             features = config.get("l2_features", ["obi", "spread", "microprice"])
@@ -613,7 +613,7 @@ def train_model_task(job_id: str, db: Session):
                             df = df_retry
                             break
                 
-            job.progress = 15.0
+            job.progress = 100.0
             
             # Modular Feature Engineering for Trades
             indicators = config.get("indicators", ["RSI", "MACD"])
@@ -736,7 +736,7 @@ def train_model_task(job_id: str, db: Session):
             add_log(f"Fetching historical OHLCV data for {job.symbol} from {exchange_name.upper()}...")
             df = fetch_data(job.symbol, job.timeframe, period=ohlcv_period, exchange_name=exchange_name)
             add_log(f"Fetched {len(df)} rows of market data.")
-            job.progress = 15.0
+            job.progress = 100.0
             
             # 2. Modular Feature Engineering
             indicators = config.get("indicators", ["RSI", "MACD"])
@@ -873,10 +873,12 @@ def train_model_task(job_id: str, db: Session):
                     loop.run_until_complete(fetcher.close())
                 except: pass
                 
-        job.progress = 30.0
         check_cancelled()
         
         # 3. Prepare Data
+        job.progress = 0.0
+        db.commit()
+        add_log("Data download complete. Main training starting from 0%...")
         add_log("Preparing and scaling data...")
         from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
         import pandas as pd
@@ -975,7 +977,7 @@ def train_model_task(job_id: str, db: Session):
             dataset_path = None
         # -------------------------------------
         
-        job.progress = 40.0
+        job.progress = 10.0
 
         # ── Walk-Forward Cross-Validation (ALL model types) ──────────────────
         # Runs BEFORE training. Results stored in cv_result for later save.
@@ -1403,7 +1405,7 @@ def train_model_task(job_id: str, db: Session):
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
                 optimizer.step()
                 
-                pct = 40.0 + (40.0 * (epoch+1)/epochs)
+                pct = 10.0 + (70.0 * (epoch+1)/epochs)
                 job.progress = pct
                 
                 if (epoch+1) % max(1, epochs//5) == 0 or epoch == 0:
