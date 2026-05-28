@@ -441,8 +441,13 @@ class AdvancedMLEngine:
                 self.last_stream_time = time.time()
 
             def _on_step(self) -> bool:
-                # 1. Cancel Check
+                # 1. Cancel Check and Progress Update
                 if self.num_timesteps % self.check_interval == 0:
+                    # Update database progress to exactly match the raw RL progress (0 to 100%)
+                    current_progress = (self.num_timesteps / total_timesteps) * 100
+                    job.progress = current_progress
+                    db.commit()
+                    
                     db.refresh(job)
                     if job.status == models.TrainingStatus.FAILED and job.error_message and "cancelled" in job.error_message.lower():
                         raise Exception("Training cancelled by user.")
