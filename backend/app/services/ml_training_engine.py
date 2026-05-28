@@ -429,6 +429,22 @@ def train_model_task(job_id: str, db: Session):
         ft_label = f"🔄 Fine-Tune from: {_prev_path}" if is_fine_tune else "🆕 Fresh Training (no prior checkpoint)"
         add_log(ft_label)
         
+        is_cross_algorithm_transfer = config.get("is_cross_algorithm_transfer", False)
+        if is_cross_algorithm_transfer and _prev_path and os.path.exists(_prev_path):
+            from app.services.ml_transfer_learning import CrossAlgorithmTransfer
+            add_log(f"🔄 Cross-Algorithm Transfer Activated: Extracting knowledge to target: {job.algorithm}")
+            success, config, temp_mapped_path = CrossAlgorithmTransfer.initialize(_prev_path, job.algorithm, config)
+            if success:
+                add_log("✅ Institutional Grade Knowledge Transfer setup successful!")
+                _prev_path = temp_mapped_path
+                # Keep is_fine_tune = False for non-RL, so it doesn't crash loading incompatible weights directly.
+                # For RL, we pass it down, and the engine handles it.
+                if job.algorithm not in ["PPO-RL", "SAC-RL"]:
+                    is_fine_tune = False
+            else:
+                add_log("⚠️ Transfer failed or unsupported pair. Falling back to fresh training.")
+                is_fine_tune = False
+        
         if dataset_type == "hybrid_deep":
             # ── NEW: Dual WebSocket L2 + aggTrade pipeline ──────────────────
             from app.services.hybrid_deep_pipeline import build_hybrid_deep_dataset

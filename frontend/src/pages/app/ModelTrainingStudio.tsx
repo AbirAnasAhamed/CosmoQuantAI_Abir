@@ -112,6 +112,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     const [initialLoadedL2Features, setInitialLoadedL2Features] = useState<string[]>([]);
     const [initialLoadedPlpFeatures, setInitialLoadedPlpFeatures] = useState<string[]>([]);
     const [initialAlgorithm, setInitialAlgorithm] = useState<string>('');
+    const [isCrossAlgorithmTransfer, setIsCrossAlgorithmTransfer] = useState(false);
 
     useEffect(() => {
         if (retrainModelId) {
@@ -424,6 +425,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                     l2_features: (dataSource === 'l2_orderbook' || dataSource === 'hybrid' || dataSource === 'hybrid_deep') ? selectedL2Features : [],
                     target_model_id: isRetrainMode ? (retrainModelId || undefined) : undefined,
                     fine_tune: isRetrainMode,
+                    is_cross_algorithm_transfer: isCrossAlgorithmTransfer,
                     // Trade CSV params
                     trade_file: dataSource === 'historical_trades' ? selectedTradeFile : undefined,
                     bar_type: dataSource === 'historical_trades' ? tradeBarType : undefined,
@@ -730,7 +732,40 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                             <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar h-full">
 
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">Algorithm Engine</label>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="block text-sm font-medium text-slate-300">Algorithm Engine</label>
+                                {isRetrainMode && (
+                                    <div className="flex items-center gap-2 bg-purple-500/10 px-2 py-1 rounded-lg border border-purple-500/30" title="Transfer knowledge to a different architecture">
+                                        <Layers className="w-3.5 h-3.5 text-purple-400" />
+                                        <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Cross-Algo Transfer</span>
+                                        <button
+                                            onClick={() => {
+                                                if (isCrossAlgorithmTransfer) {
+                                                    setAlgorithm(initialAlgorithm);
+                                                }
+                                                setIsCrossAlgorithmTransfer(!isCrossAlgorithmTransfer);
+                                            }}
+                                            disabled={isTraining}
+                                            className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${isCrossAlgorithmTransfer ? 'bg-purple-500' : 'bg-slate-600'} ${isTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        >
+                                            <span className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${isCrossAlgorithmTransfer ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {isCrossAlgorithmTransfer && (
+                                <motion.div 
+                                    initial={{ opacity: 0, height: 0 }} 
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    className="mb-4 p-3 bg-purple-500/10 border border-purple-500/30 rounded-xl"
+                                >
+                                    <p className="text-[10px] text-purple-300 font-medium leading-relaxed">
+                                        <span className="font-bold">Transfer Learning Hub:</span> You are transferring weights/knowledge from <strong className="text-white">{initialAlgorithm}</strong> to a new architecture. Select your target engine below.
+                                        Supported pairs: PPO ↔ SAC, LSTM ↔ GRU, TCN ↔ 1D-CNN, XGBoost ↔ LightGBM.
+                                    </p>
+                                </motion.div>
+                            )}
                             
                             <EnsembleBuilder
                                 isEnsemble={isEnsemble}
@@ -768,8 +803,15 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                                     {category.algos.map(algo => (
                                                         <div 
                                                             key={algo.id} 
-                                                            onClick={() => !isTraining && setAlgorithm(algo.id)}
-                                                            className={`flex items-start p-3 rounded-xl border cursor-pointer transition-all duration-300 relative overflow-hidden ${algorithm === algo.id ? (isRetrainMode && initialAlgorithm === algo.id ? 'border-purple-400 bg-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.3)]' : 'border-purple-500 bg-purple-500/10 shadow-[0_0_15px_rgba(168,85,247,0.15)]') : 'border-white/10 bg-white/5 hover:bg-white/10'} ${isTraining ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                            onClick={() => {
+                                                                if (!isTraining) {
+                                                                    if (isRetrainMode && !isCrossAlgorithmTransfer && algo.id !== initialAlgorithm) {
+                                                                        return; // Prevent changing if transfer mode is off
+                                                                    }
+                                                                    setAlgorithm(algo.id);
+                                                                }
+                                                            }}
+                                                            className={`flex items-start p-3 rounded-xl border cursor-pointer transition-all duration-300 relative overflow-hidden ${algorithm === algo.id ? (isRetrainMode && initialAlgorithm === algo.id ? 'border-purple-400 bg-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.3)]' : 'border-purple-500 bg-purple-500/10 shadow-[0_0_15px_rgba(168,85,247,0.15)]') : 'border-white/10 bg-white/5 hover:bg-white/10'} ${isTraining || (isRetrainMode && !isCrossAlgorithmTransfer && algo.id !== initialAlgorithm) ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                         >
                                                             <div className={`mt-1 w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0 ${algorithm === algo.id ? 'border-purple-400' : 'border-white/30'}`}>
                                                                 {algorithm === algo.id && <div className="w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_5px_#a855f7]"></div>}

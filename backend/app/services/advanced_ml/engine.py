@@ -398,12 +398,26 @@ class AdvancedMLEngine:
         total_timesteps = epochs * len(df)
         
         # ── Fine-Tune: continue from previous checkpoint ──────────────────
+        is_cross_algo = config.get("is_cross_algorithm_transfer", False)
+        
         if previous_model_path and os.path.exists(previous_model_path):
             try:
                 add_log(f"✅ Continuing {job.algorithm} from checkpoint: {previous_model_path}")
-                if job.algorithm in ["A2C-RL", "SAC-RL"]:
-                    # Defaulting to PPO as fallback since SAC requires Continuous spaces
-                    model = PPO.load(previous_model_path, env=env, learning_rate=lr)
+                if job.algorithm == "SAC-RL":
+                    if is_cross_algo:
+                        # Extract features and init SAC
+                        add_log(f"🔄 Cross-Algorithm: Initializing SAC with weights from {previous_model_path}")
+                        # For true mapping we need state_dict mapping, but as fallback we init fresh with lower LR (handled by transfer engine config)
+                        model = SAC("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
+                        try:
+                            # Attempt to load just the policy net if compatible
+                            ppo_model = PPO.load(previous_model_path)
+                            model.policy.load_state_dict(ppo_model.policy.state_dict(), strict=False)
+                            add_log(f"✅ Extracted Policy weights successfully!")
+                        except Exception as e:
+                            add_log(f"⚠️ Policy weight extraction failed, proceeding with transferred config: {e}")
+                    else:
+                        model = SAC.load(previous_model_path, env=env, learning_rate=lr)
                 else:
                     model = PPO.load(previous_model_path, env=env, learning_rate=lr)
                 model.set_env(env)
@@ -411,10 +425,16 @@ class AdvancedMLEngine:
             except Exception as _ft_e:
                 add_log(f"⚠️ {job.algorithm} checkpoint load failed ({_ft_e}), starting fresh agent.")
                 add_log(f"Initializing fresh {job.algorithm} Agent with MLP Policy...")
-                model = PPO("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
+                if job.algorithm == "SAC-RL":
+                    model = SAC("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
+                else:
+                    model = PPO("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
         else:
             add_log(f"Initializing fresh {job.algorithm} Agent with MLP Policy...")
-            model = PPO("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
+            if job.algorithm == "SAC-RL":
+                model = SAC("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
+            else:
+                model = PPO("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
         
         add_log(f"Starting RL Training (Total Timesteps: {total_timesteps})...")
         

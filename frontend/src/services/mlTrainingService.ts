@@ -45,6 +45,7 @@ export interface TrainingConfig {
         sequence_length?: number; // ✅ New
         target_model_id?: string;
         fine_tune?: boolean;
+        is_cross_algorithm_transfer?: boolean;
         trade_file?: string;
         bar_type?: string;
         bar_size?: string;
