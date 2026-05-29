@@ -2065,7 +2065,9 @@ def train_model_task(job_id: str, db: Session):
 
         # Update explainability in the version record now that cv_result is ready
         if cv_result:
-            db_version.explainability = final_explainability
+            db_version.explainability = dict(final_explainability) if isinstance(final_explainability, dict) else final_explainability
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(db_version, "explainability")
             db.flush()
 
         # ── Fix 3: Post-Training Backtest ─────────────────────────────────────
@@ -2094,13 +2096,23 @@ def train_model_task(job_id: str, db: Session):
                     # Merge backtest result into explainability
                     current_explain = db_version.explainability or {}
                     current_explain["backtest_result"] = backtest_result
-                    db_version.explainability = current_explain
+                    db_version.explainability = dict(current_explain)
+                    from sqlalchemy.orm.attributes import flag_modified
+                    flag_modified(db_version, "explainability")
                     db.flush()
             else:
                 add_log("[Post-Backtest] RL agent metrics were already calculated during training. Skipping static backtest.")
 
         except Exception as _bt_ex:
             add_log(f"⚠️ Post-training backtest failed (non-critical): {_bt_ex}")
+
+        # ── Fix 4: Re-save metadata with explainability data included ─────────
+        try:
+            metadata_payload["explainability"] = db_version.explainability
+            with open(metadata_path, "w") as f:
+                json.dump(metadata_payload, f)
+        except Exception as e:
+            add_log(f"⚠️ Failed to update metadata.json with explainability: {e}")
 
         job.progress = 100.0
         job.status = models.TrainingStatus.COMPLETED
