@@ -492,6 +492,28 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
         }
     };
 
+    const handleDeleteTradeFile = async () => {
+        if (!selectedTradeFile) return;
+        if (!window.confirm(`Are you sure you want to delete ${selectedTradeFile}? This cannot be undone.`)) return;
+        
+        try {
+            const res = await apiClient.delete(`/backtest/trade-files/${selectedTradeFile}`);
+            if (res.data.success) {
+                const updatedFiles = tradeFiles.filter(f => f !== selectedTradeFile);
+                setTradeFiles(updatedFiles);
+                if (updatedFiles.length > 0) {
+                    setSelectedTradeFile(updatedFiles[0]);
+                } else {
+                    setSelectedTradeFile('');
+                }
+                alert(res.data.message || "File deleted successfully");
+            }
+        } catch (error: any) {
+            console.error("Failed to delete trade file", error);
+            alert("Failed to delete file: " + (error.response?.data?.detail || error.message));
+        }
+    };
+
     const handleSuggestFeatures = async () => {
         try {
             setIsSuggesting(true);
@@ -1052,7 +1074,18 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                     {/* CSV File Selector — only when NOT live scraping */}
                                     {!isDeepTraining && (
                                         <div className="p-4 bg-amber-500/10 rounded-xl border border-amber-500/20 shadow-inner">
-                                            <label className="block text-sm font-medium text-slate-300 mb-1">Select Downloaded Trade Data</label>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="block text-sm font-medium text-slate-300">Select Downloaded Trade Data</label>
+                                                <button
+                                                    onClick={handleDeleteTradeFile}
+                                                    disabled={isTraining || !selectedTradeFile}
+                                                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded transition-all hover:bg-red-500/20 disabled:opacity-50"
+                                                    title="Delete selected file"
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                    Delete
+                                                </button>
+                                            </div>
                                             <select 
                                                 value={selectedTradeFile} 
                                                 onChange={(e) => setSelectedTradeFile(e.target.value)}

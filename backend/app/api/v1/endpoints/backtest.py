@@ -237,6 +237,23 @@ def list_trade_files():
     files = [f for f in os.listdir(target_dir) if f.startswith("trades_") and f.endswith(".csv")]
     return files
 
+@router.delete("/trade-files/{filename}")
+def delete_trade_file(filename: str):
+    target_dir = DATA_FEED_DIR
+    file_path = os.path.join(target_dir, filename)
+    
+    if not filename.endswith(".csv") or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+        
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+            return {"success": True, "message": f"File {filename} deleted successfully"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    else:
+        raise HTTPException(status_code=404, detail="File not found")
+
 @router.post("/convert-data")
 async def run_data_conversion(request: schemas.ConversionRequest):
     try:

@@ -647,7 +647,12 @@ def download_trades_task(self, exchange_id, symbol, start_date, end_date=None):
                     try:
                         if since >= end_ts: break
                         exchange.timeout = 10000 
-                        trades = exchange.fetch_trades(symbol, since, limit=1000)
+                        
+                        fetch_params = {}
+                        if exchange_id == 'mexc' and since:
+                            fetch_params['until'] = min(since + 3600 * 1000, end_ts)
+                            
+                        trades = exchange.fetch_trades(symbol, since, limit=1000, params=fetch_params)
                         
                         if self.request.id and redis_client.exists(f"abort_task:{self.request.id}"):
                              return {"status": "Revoked", "message": "Stopped by user"}
