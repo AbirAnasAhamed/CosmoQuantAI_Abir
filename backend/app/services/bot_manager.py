@@ -108,6 +108,29 @@ class BotManager:
                     return {"status": "error", "message": "Bot was stopped before startup could complete."}
                     
                 self.active_bots[bot_id] = bot_instance
+            elif bot.strategy == "cascading_bb":
+                from app.strategies.cascading_bb import CascadingBBBot
+                from app.models import ApiKey
+                
+                bot_instance = CascadingBBBot(bot.id, config, local_db, owner_id=bot.owner_id)
+                logger.info(f"Starting Cascading BB Strategy for {bot.market}")
+
+                bot_instance.bot = bot # keep reference
+                
+                api_key_record = None
+                if not bot.is_paper_trading and bot.api_key_id:
+                    api_key_record = local_db.query(ApiKey).filter_by(id=bot.api_key_id).first()
+                    
+                if hasattr(bot_instance, 'start') and callable(getattr(bot_instance, 'start')):
+                    await bot_instance.start(api_key_record)
+                
+                if bot_id not in self.active_bots or self.active_bots[bot_id] != "STARTING":
+                    logger.warning(f"⚠️ Aborting startup for Bot {bot_id}: Lock removed.")
+                    if hasattr(bot_instance, 'stop') and callable(getattr(bot_instance, 'stop')):
+                        await bot_instance.stop()
+                    return {"status": "error", "message": "Bot was stopped before startup could complete."}
+                    
+                self.active_bots[bot_id] = bot_instance
             else:
                 # 1. Create Instance
                 bot_instance = AsyncBotInstance(bot, local_db)

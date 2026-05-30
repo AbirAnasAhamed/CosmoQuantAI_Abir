@@ -414,12 +414,26 @@ def train_model_task(job_id: str, db: Session):
         _prev_path = config.get("previous_model_path")
         _target_model_id = config.get("target_model_id")
         
+        source_algo = None
+        
         if _target_model_id and not _prev_path:
             target_model = db.query(models.CustomMLModel).filter(models.CustomMLModel.id == _target_model_id).first()
-            if target_model and target_model.active_version_id:
-                version = db.query(models.ModelVersion).filter(models.ModelVersion.id == target_model.active_version_id).first()
-                if version:
-                    _prev_path = version.file_path
+            if target_model:
+                source_algo = target_model.model_type
+                if target_model.active_version_id:
+                    version = db.query(models.ModelVersion).filter(models.ModelVersion.id == target_model.active_version_id).first()
+                    if version:
+                        _prev_path = version.file_path
+
+        # Attempt to find source algorithm from path if not found yet
+        if _prev_path and not source_algo:
+            import re
+            match = re.search(r'(train_\d+)', str(_prev_path))
+            if match:
+                prev_job_id = match.group(1)
+                prev_job = db.query(models.ModelTrainingJob).filter(models.ModelTrainingJob.id == prev_job_id).first()
+                if prev_job:
+                    source_algo = prev_job.algorithm
 
         is_fine_tune = (
             bool(config.get("fine_tune", False)) and
@@ -431,6 +445,10 @@ def train_model_task(job_id: str, db: Session):
         
         is_cross_algorithm_transfer = config.get("is_cross_algorithm_transfer", False)
         if is_cross_algorithm_transfer and _prev_path and os.path.exists(_prev_path):
+            if source_algo:
+                config["source_algorithm"] = source_algo
+                add_log(f"🔍 Detected source algorithm: {source_algo} for cross-algorithm transfer.")
+                
             from app.services.ml_transfer_learning import CrossAlgorithmTransfer
             add_log(f"🔄 Cross-Algorithm Transfer Activated: Extracting knowledge to target: {job.algorithm}")
             success, config, temp_mapped_path = CrossAlgorithmTransfer.initialize(_prev_path, job.algorithm, config)
@@ -1931,6 +1949,16 @@ def train_model_task(job_id: str, db: Session):
         is_auto_retrain = config.get("is_auto_retrain", False)
         retrain_interval_hours = config.get("retrain_interval_hours", 6)
         
+        is_cross_algo = config.get("is_cross_algorithm_transfer", False)
+        source_algo = config.get("source_algorithm")
+        
+        if is_cross_algo and source_algo:
+            final_model_type = f"{source_algo} --> {job.algorithm}"
+        else:
+            final_model_type = "Ensemble" if is_ensemble else job.algorithm
+            
+        final_auto_name = f"{job.symbol} Ensemble Auto" if is_ensemble else f"{job.symbol} {job.algorithm} Auto"
+
         if target_model_id:
             # We are auto-retraining an existing model
             db_model = db.query(models.CustomMLModel).filter(models.CustomMLModel.id == target_model_id).first()
@@ -1959,15 +1987,13 @@ def train_model_task(job_id: str, db: Session):
             db.flush()
             
             db_model.active_version_id = version_id
+            # Also update model type in case it's a cross-algo transfer
+            db_model.model_type = final_model_type
             registry_id = target_model_id
         else:
             # We are creating a new model from scratch
             custom_model_name = config.get("model_name", "").strip()
-            
             registry_id = f"model_{timestamp}"
-            
-            final_model_type = "Ensemble" if is_ensemble else job.algorithm
-            final_auto_name = f"{job.symbol} Ensemble Auto" if is_ensemble else f"{job.symbol} {job.algorithm} Auto"
 
             db_model = models.CustomMLModel(
                 id=registry_id,

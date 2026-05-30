@@ -5,6 +5,7 @@ import importlib
 import inspect
 import pkgutil
 from .base_strategy import BaseStrategy
+from .cascading_bb import CascadingBBBot
 
 # -----------------------------------------------------------
 # 1. GENERIC STRATEGY TEMPLATES (The Factory Engines)

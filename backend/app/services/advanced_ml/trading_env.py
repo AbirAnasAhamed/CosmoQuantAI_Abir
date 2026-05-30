@@ -85,7 +85,9 @@ class AdvancedTradingEnv(gym.Env):
     def _get_observation(self):
         # Returns current features as a flat vector
         # Future enhancement: Return sequence for Transformer
-        return self.df.loc[self.current_step, self.feature_cols].values.astype(np.float32)
+        obs = self.df.loc[self.current_step, self.feature_cols].values.astype(np.float32)
+        # Prevent any NaNs or Infs from crashing the RL agent
+        return np.nan_to_num(obs, nan=0.0, posinf=10.0, neginf=-10.0)
 
     def _get_info(self):
         return {
@@ -212,15 +214,15 @@ class AdvancedTradingEnv(gym.Env):
             
             self.net_worth *= (1 + step_return)
             
-            if self.net_worth <= 0:
+            if self.net_worth <= 0 or np.isnan(self.net_worth) or np.isinf(self.net_worth):
                 self.net_worth = 1e-6
 
     def _calculate_reward(self, prev_net_worth):
-        if prev_net_worth <= 0:
+        if prev_net_worth <= 0 or np.isnan(prev_net_worth) or np.isinf(prev_net_worth):
             prev_net_worth = 1e-6
             
         ratio = self.net_worth / prev_net_worth
-        if ratio <= 0:
+        if ratio <= 0 or np.isnan(ratio) or np.isinf(ratio):
             ratio = 1e-6
             
         if self.reward_type == 'log_returns':

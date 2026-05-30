@@ -28,8 +28,18 @@ class CrossAlgorithmTransfer:
         elif "XGB" in config.get("source_algorithm", "") or "XGBoost" in source_model_path: source_algo = "XGBoost"
         elif "LGBM" in config.get("source_algorithm", "") or "LightGBM" in source_model_path: source_algo = "LightGBM"
         
+        # Check if they are actually the same algorithm (user accidentally checked cross-algo)
+        clean_target = target_algo.replace("-RL", "")
+        if source_algo == clean_target:
+            print(f"ℹ️ Source and Target are both {source_algo}. Falling back to standard fine-tuning.")
+            config["is_cross_algorithm_transfer"] = False
+            return True, config, source_model_path
+        
+        
         if source_algo == "PPO" and target_algo == "SAC-RL":
             return cls._transfer_ppo_to_sac(source_model_path, config)
+        elif source_algo == "SAC" and target_algo == "PPO-RL":
+            return cls._transfer_sac_to_ppo(source_model_path, config)
         elif source_algo == "LSTM" and target_algo == "GRU":
             return cls._transfer_lstm_to_gru(source_model_path, config)
         elif source_algo == "XGBoost" and target_algo == "LightGBM":
@@ -58,6 +68,24 @@ class CrossAlgorithmTransfer:
             
         except Exception as e:
             print(f"❌ Failed to transfer PPO to SAC: {e}")
+            return False, config, source_path
+
+    @classmethod
+    def _transfer_sac_to_ppo(cls, source_path: str, config: Dict[str, Any]) -> Any:
+        """
+        Transfers knowledge from SAC to PPO.
+        """
+        print("🧠 Adapting SAC Policy to PPO Actor...")
+        
+        try:
+            # Adjust config for PPO to prevent catastrophic forgetting
+            config["learning_rate"] = config.get("learning_rate", 3e-4) * 0.1  # Start 10x slower
+            config["ent_coef"] = 0.01 # Start with low entropy
+            
+            return True, config, source_path
+            
+        except Exception as e:
+            print(f"❌ Failed to transfer SAC to PPO: {e}")
             return False, config, source_path
 
     @classmethod

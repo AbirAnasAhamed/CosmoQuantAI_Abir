@@ -75,7 +75,9 @@ class AdvancedDataHandler:
         from sklearn.preprocessing import StandardScaler
         if len(features) > 0:
             scaler = StandardScaler()
-            res_df[features] = scaler.fit_transform(res_df[features].values)
+            scaled_vals = scaler.fit_transform(res_df[features].values)
+            scaled_vals = np.nan_to_num(scaled_vals, nan=0.0, posinf=10.0, neginf=-10.0)
+            res_df[features] = scaled_vals
             
         res_df['Raw_Close'] = df['Close'].copy()
         return res_df

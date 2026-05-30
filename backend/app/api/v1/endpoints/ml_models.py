@@ -395,7 +395,7 @@ def get_model_config(
             "model_name": db_model.name,
             "symbol": job.symbol,
             "timeframe": job.timeframe,
-            "algorithm": job.algorithm,
+            "algorithm": db_model.model_type,
             "config": job_config
         }
 
@@ -413,7 +413,7 @@ def get_model_config(
                     "model_name": meta.get("model_name") or meta.get("name") or db_model.name,
                     "symbol": meta.get("symbol") or meta.get("target_asset") or meta.get("pair") or "N/A",
                     "timeframe": meta.get("timeframe") or meta.get("interval") or "N/A",
-                    "algorithm": meta.get("algorithm") or meta.get("model_type") or meta.get("arch") or db_model.model_type,
+                    "algorithm": db_model.model_type or meta.get("algorithm") or meta.get("model_type") or meta.get("arch"),
                     "config": {
                         # Flexible epoch/steps lookup for all model types:
                         # - Neural nets (LSTM, GRU, CNN, Transformer): epochs

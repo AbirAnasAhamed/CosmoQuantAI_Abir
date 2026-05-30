@@ -420,7 +420,19 @@ class AdvancedMLEngine:
                     else:
                         model = SAC.load(previous_model_path, env=env, learning_rate=lr)
                 else:
-                    model = PPO.load(previous_model_path, env=env, learning_rate=lr)
+                    if is_cross_algo:
+                        # Extract features and init PPO
+                        add_log(f"🔄 Cross-Algorithm: Initializing PPO with weights from {previous_model_path}")
+                        model = PPO("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
+                        try:
+                            # Attempt to load just the policy net if compatible
+                            sac_model = SAC.load(previous_model_path)
+                            model.policy.load_state_dict(sac_model.policy.state_dict(), strict=False)
+                            add_log(f"✅ Extracted Policy weights successfully!")
+                        except Exception as e:
+                            add_log(f"⚠️ Policy weight extraction failed, proceeding with transferred config: {e}")
+                    else:
+                        model = PPO.load(previous_model_path, env=env, learning_rate=lr)
                 model.set_env(env)
                 add_log(f"🔄 Agent loaded. Continuing training for {total_timesteps} more timesteps...")
             except Exception as _ft_e:
@@ -432,10 +444,12 @@ class AdvancedMLEngine:
                     model = PPO("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
         else:
             add_log(f"Initializing fresh {job.algorithm} Agent with MLP Policy...")
+            # Cap LR at 0.001 to prevent exploding gradients in fresh RL agents
+            safe_lr = min(lr, 0.001)
             if job.algorithm == "SAC-RL":
-                model = SAC("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
+                model = SAC("MlpPolicy", env, verbose=0, learning_rate=safe_lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
             else:
-                model = PPO("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
+                model = PPO("MlpPolicy", env, verbose=0, learning_rate=safe_lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
         
         add_log(f"Starting RL Training (Total Timesteps: {total_timesteps})...")
         

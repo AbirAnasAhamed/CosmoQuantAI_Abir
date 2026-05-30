@@ -26,6 +26,10 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
 
     const [form, setForm] = useState({
         botName: '',
+        selectedStrategy: 'wall_hunter',
+        breakPercentage: 0.5,
+        cascadingTpMode: 'dynamic',
+        bandTolerance: 0.1,
         symbol: symbol,
         exchange: exchange,
         isPaper: true,
@@ -287,6 +291,10 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                         setForm(prev => ({
                             ...prev,
                             botName: activeWallHunter.name || '',
+                            selectedStrategy: activeWallHunter.strategy || 'wall_hunter',
+                            breakPercentage: c.break_percentage || 0.5,
+                            cascadingTpMode: c.cascading_tp_mode || 'dynamic',
+                            bandTolerance: c.band_tolerance || 0.1,
                             exchange: activeWallHunter.exchange,
                             isPaper: activeWallHunter.is_paper_trading,
                             apiKeyId: activeWallHunter.api_key_id || '',
@@ -601,18 +609,20 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
             return;
         }
 
-        if (!form.enableWallTrigger && !form.enableLiqTrigger && !form.enableMlFilter) {
-            if (!form.enableUtBot && !form.enableDualEngine && !form.enableSupertrendBot && !form.enableWickSr) {
-                setErrorMsg("Please enable at least one Entry Trigger (Orderbook Wall, Liquidation, ML Filter, Dual Engine, UT Bot, Supertrend, or Wick S/R).");
-                return;
-            }
-            if (form.enableUtBot && !form.enableUtEntryTrigger && !form.enableDualEngine && !form.enableSupertrendBot) {
-                setErrorMsg("UT Bot Alerts is ON, but 'Entry Trigger' sub-option is OFF. Please enable it to use UT Bot as a trigger.");
-                return;
-            }
-            if (form.enableSupertrendBot && !form.enableSupertrendEntryTrigger && !form.enableDualEngine && !form.enableUtBot) {
-                setErrorMsg("Supertrend is ON, but 'Entry Trigger' is OFF. Please enable it to use Supertrend as a trigger.");
-                return;
+        if (form.selectedStrategy !== 'cascading_bb') {
+            if (!form.enableWallTrigger && !form.enableLiqTrigger && !form.enableMlFilter) {
+                if (!form.enableUtBot && !form.enableDualEngine && !form.enableSupertrendBot && !form.enableWickSr) {
+                    setErrorMsg("Please enable at least one Entry Trigger (Orderbook Wall, Liquidation, ML Filter, Dual Engine, UT Bot, Supertrend, or Wick S/R).");
+                    return;
+                }
+                if (form.enableUtBot && !form.enableUtEntryTrigger && !form.enableDualEngine && !form.enableSupertrendBot) {
+                    setErrorMsg("UT Bot Alerts is ON, but 'Entry Trigger' sub-option is OFF. Please enable it to use UT Bot as a trigger.");
+                    return;
+                }
+                if (form.enableSupertrendBot && !form.enableSupertrendEntryTrigger && !form.enableDualEngine && !form.enableUtBot) {
+                    setErrorMsg("Supertrend is ON, but 'Entry Trigger' is OFF. Please enable it to use Supertrend as a trigger.");
+                    return;
+                }
             }
         }
 
@@ -626,7 +636,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                 description: `Orderbook & Liquidation Scalping Hunter (${tradingMode.toUpperCase()})`,
                 exchange: form.exchange,
                 market: form.symbol,
-                strategy: "wall_hunter",
+                strategy: form.selectedStrategy,
                 timeframe: "1m",
                 trade_value: form.amount,
                 trade_unit: "QUOTE",
@@ -635,6 +645,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                 config: {
                     trading_mode: tradingMode, // Spot vs Futures Isolation Flag
                     strategy_mode: strategyMode, // Accumulation mode
+                    break_percentage: form.breakPercentage,
+                    cascading_tp_mode: form.cascadingTpMode,
+                    band_tolerance: form.bandTolerance,
                     
                     // Proxy Orderbook Routing (Cross-Exchange Support)
                     enable_proxy_wall: form.enableProxyWall,
@@ -991,6 +1004,55 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                         maxLength={50}
                                     />
                                 </div>
+                            </div>
+                            <div className="flex gap-4">
+                                <div className={`space-y-1 ${form.selectedStrategy === 'cascading_bb' ? 'w-[30%]' : 'w-1/2'}`}>
+                                    <label className="text-[10px] text-gray-500 font-bold uppercase">Trading Strategy</label>
+                                    <select 
+                                        className="w-full bg-white/5 p-2 rounded-xl text-white outline-none text-sm border border-transparent focus:border-brand-primary" 
+                                        value={form.selectedStrategy} 
+                                        onChange={(e) => handleFormChange('selectedStrategy', e.target.value)}
+                                    >
+                                        <option className="bg-[#000000] text-white" value="wall_hunter">L2 Scalping (WallHunter)</option>
+                                        <option className="bg-[#000000] text-white" value="cascading_bb">Cascading Multi-TF BB</option>
+                                    </select>
+                                </div>
+                                {form.selectedStrategy === 'cascading_bb' && (
+                                    <>
+                                        <div className="space-y-1 w-[20%]">
+                                            <label className="text-[10px] text-gray-500 font-bold uppercase whitespace-nowrap">Break (%)</label>
+                                            <input 
+                                                type="number"
+                                                step="0.1"
+                                                className="w-full bg-white/5 p-2 rounded-xl text-yellow-500 outline-none border border-transparent focus:border-brand-primary text-sm font-mono" 
+                                                value={form.breakPercentage} 
+                                                onChange={(e) => handleFormChange('breakPercentage', parseFloat(e.target.value) || 0)}
+                                            />
+                                        </div>
+                                        <div className="space-y-1 w-[20%]">
+                                            <label className="text-[10px] text-gray-500 font-bold uppercase whitespace-nowrap">Tolerance</label>
+                                            <input 
+                                                type="number"
+                                                step="0.05"
+                                                className="w-full bg-white/5 p-2 rounded-xl text-yellow-500 outline-none border border-transparent focus:border-brand-primary text-sm font-mono" 
+                                                value={form.bandTolerance} 
+                                                onChange={(e) => handleFormChange('bandTolerance', parseFloat(e.target.value) || 0)}
+                                            />
+                                        </div>
+                                        <div className="space-y-1 w-[30%]">
+                                            <label className="text-[10px] text-gray-500 font-bold uppercase whitespace-nowrap">TP Mode</label>
+                                            <select 
+                                                className="w-full bg-white/5 p-2 rounded-xl text-white outline-none text-sm border border-transparent focus:border-brand-primary" 
+                                                value={form.cascadingTpMode} 
+                                                onChange={(e) => handleFormChange('cascadingTpMode', e.target.value)}
+                                            >
+                                                <option className="bg-[#000000] text-white" value="dynamic">Dynamic BB</option>
+                                                <option className="bg-[#000000] text-white" value="middle">Middle Band</option>
+                                                <option className="bg-[#000000] text-white" value="fixed">Fixed Spread</option>
+                                            </select>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                             <div className="flex gap-4">
                                 <div className="space-y-1 w-1/3">
