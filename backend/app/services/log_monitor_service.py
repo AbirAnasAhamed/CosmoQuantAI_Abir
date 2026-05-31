@@ -232,6 +232,8 @@ WARNING_OVERRIDE_PATTERNS = [
     re.compile(r'Temporary failure in name resolution', re.IGNORECASE),
     re.compile(r'Name or service not known', re.IGNORECASE),
     re.compile(r'Connection reset by peer', re.IGNORECASE),
+    # ── WebSocket transient connection errors ─────────────────────────────
+    re.compile(r'\[Errno 111\] Connect call failed', re.IGNORECASE),
 ]
 
 # Container names to monitor (must match docker-compose container_name)
