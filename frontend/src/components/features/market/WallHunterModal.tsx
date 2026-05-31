@@ -20,7 +20,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
     
     // --- NEW: Trading Mode State ---
     const [tradingMode, setTradingMode] = useState<'spot' | 'futures'>('spot');
-    const [strategyMode, setStrategyMode] = useState<'long' | 'short'>('long');
+    const [strategyMode, setStrategyMode] = useState<'long' | 'short' | 'auto'>('long');
     const [availableExchanges, setAvailableExchanges] = useState<string[]>([]);
     const [showAdvancedTSL, setShowAdvancedTSL] = useState(false);
 
@@ -1054,6 +1054,19 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                     </>
                                 )}
                             </div>
+                            
+                            {form.selectedStrategy === 'cascading_bb' && tradingMode === 'futures' && (
+                                <div className="flex gap-4 animate-fadeIn">
+                                    <div className="space-y-1 w-full">
+                                        <label className="text-[10px] text-brand-primary font-bold uppercase">Accumulation Mode</label>
+                                        <div className="flex bg-black/40 rounded-lg p-1 border border-white/10">
+                                            <button onClick={() => setStrategyMode('long')} className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded transition-all ${strategyMode === 'long' ? 'bg-brand-primary text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}>Long Only</button>
+                                            <button onClick={() => setStrategyMode('short')} className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded transition-all flex items-center justify-center gap-1 ${strategyMode === 'short' ? 'bg-red-600 text-white shadow-[0_0_10px_rgba(220,38,38,0.3)]' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}>Short Only</button>
+                                            <button onClick={() => setStrategyMode('auto')} className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded transition-all flex items-center justify-center gap-1 ${strategyMode === 'auto' ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(147,51,234,0.3)]' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}>Auto (Ping-Pong)</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             <div className="flex gap-4">
                                 <div className="space-y-1 w-1/3">
                                     <label className="text-[10px] text-gray-500 font-bold uppercase">Asset</label>
@@ -1183,25 +1196,27 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 <button onClick={() => handleFormChange('marginMode', 'isolated')} className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded ${form.marginMode === 'isolated' ? 'bg-orange-500 text-white' : 'text-gray-500'}`}>Isolated</button>
                                             </div>
                                         </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] text-gray-400 font-bold uppercase">Position Direction</label>
-                                            <select 
-                                                className="w-full bg-black/40 border border-white/10 p-2.5 rounded-lg text-white outline-none text-sm" 
-                                                value={form.positionDirection} 
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    handleFormChange('positionDirection', val);
-                                                    if (val === 'auto') handleFormChange('enableObImbalance', true);
-                                                }}
-                                            >
-                                                <option className="bg-[#000000]" value="auto">Auto (Heatmap Based)</option>
-                                                <option className="bg-[#000000] text-green-400" value="long">Long Only</option>
-                                                <option className="bg-[#000000] text-red-400" value="short">Short Only</option>
-                                            </select>
-                                        </div>
+                                        {form.selectedStrategy !== 'cascading_bb' && (
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] text-gray-400 font-bold uppercase">Position Direction</label>
+                                                <select 
+                                                    className="w-full bg-black/40 border border-white/10 p-2.5 rounded-lg text-white outline-none text-sm" 
+                                                    value={form.positionDirection} 
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        handleFormChange('positionDirection', val);
+                                                        if (val === 'auto') handleFormChange('enableObImbalance', true);
+                                                    }}
+                                                >
+                                                    <option className="bg-[#000000]" value="auto">Auto (Heatmap Based)</option>
+                                                    <option className="bg-[#000000] text-green-400" value="long">Long Only</option>
+                                                    <option className="bg-[#000000] text-red-400" value="short">Short Only</option>
+                                                </select>
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {form.positionDirection === 'auto' && (
+                                    {form.selectedStrategy !== 'cascading_bb' && form.positionDirection === 'auto' && (
                                         <div className="animate-fadeIn bg-black/40 border border-orange-500/30 p-3 rounded-xl">
                                             <div className="flex justify-between items-center mb-1">
                                                 <label className="text-[10px] font-bold text-orange-400 uppercase tracking-tighter">Heatmap Imbalance Ratio</label>
