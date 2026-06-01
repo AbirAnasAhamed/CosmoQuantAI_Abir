@@ -398,6 +398,9 @@ class AdvancedMLEngine:
         env = DummyVecEnv([make_env])
         total_timesteps = epochs * len(df)
         
+        # Cap LR at 0.001 to prevent exploding gradients in fresh and fine-tuned RL agents
+        safe_lr = min(lr, 0.001)
+        
         # ── Fine-Tune: continue from previous checkpoint ──────────────────
         is_cross_algo = config.get("is_cross_algorithm_transfer", False)
         
@@ -409,43 +412,65 @@ class AdvancedMLEngine:
                         # Extract features and init SAC
                         add_log(f"🔄 Cross-Algorithm: Initializing SAC with weights from {previous_model_path}")
                         # For true mapping we need state_dict mapping, but as fallback we init fresh with lower LR (handled by transfer engine config)
-                        model = SAC("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
+                        model = SAC("MlpPolicy", env, verbose=0, learning_rate=safe_lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
                         try:
-                            # Attempt to load just the policy net if compatible
+                            # Attempt to safely load matching policy layers (excluding output layers which cause NaNs)
                             ppo_model = PPO.load(previous_model_path)
-                            model.policy.load_state_dict(ppo_model.policy.state_dict(), strict=False)
-                            add_log(f"✅ Extracted Policy weights successfully!")
+                            ppo_dict = ppo_model.policy.state_dict()
+                            sac_dict = model.policy.state_dict()
+                            
+                            filtered_dict = {
+                                k: v for k, v in ppo_dict.items() 
+                                if k in sac_dict 
+                                and v.shape == sac_dict[k].shape 
+                                and "action" not in k.lower() 
+                                and "mu" not in k.lower() 
+                                and "log_std" not in k.lower()
+                            }
+                            sac_dict.update(filtered_dict)
+                            model.policy.load_state_dict(sac_dict)
+                            add_log(f"✅ Extracted Policy weights successfully (Shared Layers Only)!")
                         except Exception as e:
                             add_log(f"⚠️ Policy weight extraction failed, proceeding with transferred config: {e}")
                     else:
-                        model = SAC.load(previous_model_path, env=env, learning_rate=lr)
+                        model = SAC.load(previous_model_path, env=env, learning_rate=safe_lr)
                 else:
                     if is_cross_algo:
                         # Extract features and init PPO
                         add_log(f"🔄 Cross-Algorithm: Initializing PPO with weights from {previous_model_path}")
-                        model = PPO("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
+                        model = PPO("MlpPolicy", env, verbose=0, learning_rate=safe_lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
                         try:
-                            # Attempt to load just the policy net if compatible
+                            # Attempt to safely load matching policy layers
                             sac_model = SAC.load(previous_model_path)
-                            model.policy.load_state_dict(sac_model.policy.state_dict(), strict=False)
-                            add_log(f"✅ Extracted Policy weights successfully!")
+                            sac_dict = sac_model.policy.state_dict()
+                            ppo_dict = model.policy.state_dict()
+                            
+                            filtered_dict = {
+                                k: v for k, v in sac_dict.items() 
+                                if k in ppo_dict 
+                                and v.shape == ppo_dict[k].shape 
+                                and "action" not in k.lower() 
+                                and "mu" not in k.lower() 
+                                and "log_std" not in k.lower()
+                            }
+                            ppo_dict.update(filtered_dict)
+                            model.policy.load_state_dict(ppo_dict)
+                            add_log(f"✅ Extracted Policy weights successfully (Shared Layers Only)!")
                         except Exception as e:
                             add_log(f"⚠️ Policy weight extraction failed, proceeding with transferred config: {e}")
                     else:
-                        model = PPO.load(previous_model_path, env=env, learning_rate=lr)
+                        model = PPO.load(previous_model_path, env=env, learning_rate=safe_lr)
                 model.set_env(env)
                 add_log(f"🔄 Agent loaded. Continuing training for {total_timesteps} more timesteps...")
             except Exception as _ft_e:
                 add_log(f"⚠️ {job.algorithm} checkpoint load failed ({_ft_e}), starting fresh agent.")
                 add_log(f"Initializing fresh {job.algorithm} Agent with MLP Policy...")
                 if job.algorithm == "SAC-RL":
-                    model = SAC("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
+                    model = SAC("MlpPolicy", env, verbose=0, learning_rate=safe_lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
                 else:
-                    model = PPO("MlpPolicy", env, verbose=0, learning_rate=lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
+                    model = PPO("MlpPolicy", env, verbose=0, learning_rate=safe_lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
         else:
             add_log(f"Initializing fresh {job.algorithm} Agent with MLP Policy...")
-            # Cap LR at 0.001 to prevent exploding gradients in fresh RL agents
-            safe_lr = min(lr, 0.001)
             if job.algorithm == "SAC-RL":
                 model = SAC("MlpPolicy", env, verbose=0, learning_rate=safe_lr, tensorboard_log=f"./logs/{job.algorithm.lower()}_trading/")
             else:

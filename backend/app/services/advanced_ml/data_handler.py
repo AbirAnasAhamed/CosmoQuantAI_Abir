@@ -71,12 +71,13 @@ class AdvancedDataHandler:
         res_df.fillna(0, inplace=True)
         
         # Normalize features for RL Neural Network (MlpPolicy)
-        # We must NOT scale 'Close' as it's used for actual PnL calculation
         from sklearn.preprocessing import StandardScaler
         if len(features) > 0:
             scaler = StandardScaler()
             scaled_vals = scaler.fit_transform(res_df[features].values)
-            scaled_vals = np.nan_to_num(scaled_vals, nan=0.0, posinf=10.0, neginf=-10.0)
+            scaled_vals = np.nan_to_num(scaled_vals, nan=0.0)
+            # Strict clip to prevent extreme outliers from blowing up SAC gradients
+            scaled_vals = np.clip(scaled_vals, -10.0, 10.0)
             res_df[features] = scaled_vals
             
         res_df['Raw_Close'] = df['Close'].copy()
