@@ -250,3 +250,61 @@ class AutoEncoder(nn.Module):
         decoded = self.decoder(encoded)
         return decoded
 
+
+# -- Liquid Neural Network (LNN - CfC Approximation) -------------------------
+
+class LiquidNN(nn.Module):
+    def __init__(self, input_dim, hidden_dim=64, output_dim=1):
+        super(LiquidNN, self).__init__()
+        self.hidden_dim = hidden_dim
+        self.state_transform = nn.Linear(hidden_dim, hidden_dim)
+        self.input_transform = nn.Linear(input_dim, hidden_dim)
+        self.time_constant_net = nn.Sequential(
+            nn.Linear(input_dim + hidden_dim, hidden_dim),
+            nn.Sigmoid()
+        )
+        self.output_layer = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x):
+        batch_size, seq_len, _ = x.size()
+        h = torch.zeros(batch_size, self.hidden_dim, device=x.device)
+        for t in range(seq_len):
+            x_t = x[:, t, :]
+            combined = torch.cat([x_t, h], dim=1)
+            tau = self.time_constant_net(combined)
+            state_in = torch.tanh(self.input_transform(x_t) + self.state_transform(h))
+            h = (1 - tau) * h + tau * state_in
+        return self.output_layer(h)
+
+# -- Decision Transformer (Offline RL) ---------------------------------------
+
+class DecisionTransformer(nn.Module):
+    def __init__(self, state_dim, act_dim, hidden_size=128, max_length=20, max_ep_len=4096):
+        super(DecisionTransformer, self).__init__()
+        self.state_dim = state_dim
+        self.act_dim = act_dim
+        self.max_length = max_length
+        self.hidden_size = hidden_size
+        self.embed_timestep = nn.Embedding(max_ep_len, hidden_size)
+        self.embed_return = nn.Linear(1, hidden_size)
+        self.embed_state = nn.Linear(state_dim, hidden_size)
+        self.embed_action = nn.Linear(act_dim, hidden_size)
+        self.embed_ln = nn.LayerNorm(hidden_size)
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=hidden_size, nhead=4, dim_feedforward=4*hidden_size, dropout=0.1, batch_first=True
+        )
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=3)
+        self.predict_action = nn.Sequential(nn.Linear(hidden_size, act_dim), nn.Tanh())
+
+    def forward(self, states, actions, returns_to_go, timesteps):
+        batch_size, seq_length = states.shape[0], states.shape[1]
+        state_emb = self.embed_state(states) + self.embed_timestep(timesteps)
+        action_emb = self.embed_action(actions) + self.embed_timestep(timesteps)
+        return_emb = self.embed_return(returns_to_go) + self.embed_timestep(timesteps)
+        stacked = torch.stack((return_emb, state_emb, action_emb), dim=1).permute(0, 2, 1, 3).reshape(batch_size, 3*seq_length, self.hidden_size)
+        stacked = self.embed_ln(stacked)
+        mask = nn.Transformer.generate_square_subsequent_mask(3*seq_length).to(states.device)
+        x = self.transformer(stacked, mask=mask)
+        x = x.reshape(batch_size, seq_length, 3, self.hidden_size).permute(0, 2, 1, 3)
+        return self.predict_action(x[:, 1])
+

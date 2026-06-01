@@ -97,3 +97,8 @@ tensorboard
 pytrends
 prometheus-client
 optuna
+
+d3rlpy
+imitation
+ncps
+sb3-contrib

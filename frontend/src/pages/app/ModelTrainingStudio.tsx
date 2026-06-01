@@ -232,11 +232,38 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
             ] 
         },
         { 
-            name: "Autonomous Agents", 
-            desc: "Self-learning environments (Reward-based)", 
+            name: "RL: Active Trading Agents", 
+            desc: "Standard self-learning environments (Live/Simulated Trading)", 
             algos: [
                 { id: 'PPO-RL', type: 'Reinforcement Learning', desc: 'Proximal Policy Optimization' },
-                { id: 'SAC-RL', type: 'Reinforcement Learning', desc: 'Soft Actor-Critic for continuous action' }
+                { id: 'SAC-RL', type: 'Reinforcement Learning', desc: 'Soft Actor-Critic for continuous action' },
+                { id: 'A2C-RL', type: 'Reinforcement Learning', desc: 'Advantage Actor-Critic (Fast Baseline)' },
+                { id: 'DDPG-RL', type: 'Reinforcement Learning', desc: 'Deep Deterministic Policy Gradient' },
+                { id: 'TD3-RL', type: 'Reinforcement Learning', desc: 'Twin Delayed DDPG (Stable Continuous)' },
+                { id: 'DQN-RL', type: 'Reinforcement Learning', desc: 'Dueling Double DQN (Discrete actions)' }
+            ] 
+        },
+        { 
+            name: "RL: Risk-Aware (Distributional)", 
+            desc: "Models that learn the distribution of returns to minimize risk", 
+            algos: [
+                { id: 'QR-DQN', type: 'Distributional RL', desc: 'Quantile Regression DQN (Risk-Aware)' }
+            ] 
+        },
+        { 
+            name: "RL: Offline & Imitation", 
+            desc: "Learn from historical or expert trader demonstrations", 
+            algos: [
+                { id: 'CQL', type: 'Offline RL', desc: 'Conservative Q-Learning (Learn from history)' },
+                { id: 'GAIL', type: 'Imitation Learning', desc: 'Generative Adversarial Imitation Learning' }
+            ] 
+        },
+        { 
+            name: "Next-Gen Architectures", 
+            desc: "Cutting-edge dynamic neural models", 
+            algos: [
+                { id: 'Decision-Transformer', type: 'Offline RL', desc: 'Action generation based on target ROI' },
+                { id: 'Liquid-NN', type: 'Continuous RNN', desc: 'Dynamically adapts weights during live trading' }
             ] 
         },
         { 

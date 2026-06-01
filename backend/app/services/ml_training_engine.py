@@ -1844,6 +1844,23 @@ def train_model_task(job_id: str, db: Session):
                 add_log(f"❌ Advanced {job.algorithm} Error: {e}")
                 raise e
 
+        elif job.algorithm in ["A2C-RL", "DDPG-RL", "DQN-RL", "TD3-RL", "QR-DQN", "CQL", "GAIL", "Decision-Transformer", "Liquid-NN"]:
+            add_log(f"🚀 Routing to Extended RL Engine: {job.algorithm}...")
+            try:
+                from app.services.advanced_ml.extended_rl_engine import ExtendedRLEngine
+                model, model_path, metrics = ExtendedRLEngine.train_extended_rl(
+                    job, df, features, db, add_log,
+                    previous_model_path=_prev_path if is_fine_tune else None
+                )
+                final_latency = 10.0
+                final_accuracy = metrics.get("win_rate", 0) / 100.0
+                final_f1 = metrics.get("sharpe_ratio", 0)
+                final_explainability = metrics
+                add_log(f"✅ Extended {job.algorithm} Training complete.")
+            except Exception as e:
+                add_log(f"❌ Extended {job.algorithm} Error: {e}")
+                raise e
+
         else:
             raise ValueError(f"Unsupported algorithm: {job.algorithm}")
             
