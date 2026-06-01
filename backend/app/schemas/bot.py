@@ -24,6 +24,13 @@ class StrategyConfig(BaseModel):
     vpvr_enabled: Optional[bool] = False
     vpvr_tolerance: Optional[float] = 0.2
     
+    # --- Cascading Multi-TF BB ---
+    break_percentage: Optional[float] = 0.5
+    cascading_tp_mode: Optional[str] = "dynamic"
+    band_tolerance: Optional[float] = 0.1
+    bb_length: Optional[int] = 20
+    bb_std: Optional[float] = 2.0
+    
     # --- ATR Dynamic Stop-Loss ---
     atr_sl_enabled: Optional[bool] = False
     atr_period: Optional[int] = 14

@@ -96,6 +96,11 @@ class CascadingBBBot:
         # Initialize Exchange
         exchange_class = getattr(ccxt, self.exchange_id)
         exchange_params = {'enableRateLimit': True}
+        
+        trading_mode = self.config.get("trading_mode", "spot")
+        if trading_mode == "futures":
+            exchange_params['options'] = {'defaultType': 'future'}
+            
         if api_key_record and not self.is_paper_trading:
             from app.core.security import decrypt_key
             exchange_params.update({
@@ -110,7 +115,11 @@ class CascadingBBBot:
         
         # Initialize WebSocket Exchange
         ws_exchange_class = getattr(ccxt_pro, self.exchange_id)
-        self._ws_exchange = ws_exchange_class({'enableRateLimit': False})
+        ws_params = {'enableRateLimit': False}
+        if trading_mode == "futures":
+            ws_params['options'] = {'defaultType': 'future'}
+            
+        self._ws_exchange = ws_exchange_class(ws_params)
         
         self._task = asyncio.create_task(self._run_loop())
 
@@ -284,6 +293,7 @@ class CascadingBBBot:
                         self.current_tf_index += 1
                         next_tf = self.timeframes[self.current_tf_index]
                         self.logger.info(f"🔄 Cascading to next timeframe: {next_tf}")
+                        self.cached_bb_data = None # Force fetch new timeframe BB
                     else:
                         self.logger.warning(f"⚠️ Reached max timeframe {current_tf}. Cannot cascade further.")
                     
