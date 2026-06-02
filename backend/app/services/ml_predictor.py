@@ -224,9 +224,7 @@ def predict(model_id: str, symbol_override: Optional[str], db: Session, sequence
     if not available_features:
         raise ValueError(f"None of the training features found in live data. Expected: {features[:5]}")
 
-    df.dropna(subset=available_features, inplace=True)
-    if df.empty:
-        raise RuntimeError("All rows dropped after dropna on features.")
+    df[available_features] = df[available_features].ffill().fillna(0)
 
     current_price = float(df['Close'].iloc[-1]) if 'Close' in df.columns else float(df['close'].iloc[-1])
 
@@ -341,7 +339,7 @@ def _fetch_live_ohlcv(symbol: str, timeframe: str) -> Optional[pd.DataFrame]:
         else:
             exchange = ccxt.binance({'enableRateLimit': True})
 
-        ohlcv = exchange.fetch_ohlcv(symbol, tf, limit=100)
+        ohlcv = exchange.fetch_ohlcv(symbol, tf, limit=1000)
         if not ohlcv:
             return None
         df = pd.DataFrame(ohlcv, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])

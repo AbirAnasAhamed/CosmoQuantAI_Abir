@@ -482,7 +482,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
             setCurrentJob(job);
 
             // Auto-open visualizer for live scraping, hybrid, hybrid_deep, but not for RL training
-            if (algorithm !== 'PPO-RL' && algorithm !== 'SAC-RL' && (isDeepTraining || dataSource === 'hybrid' || dataSource === 'l2_orderbook' || dataSource === 'hybrid_deep')) {
+            if (!algorithm.includes('-RL') && (isDeepTraining || dataSource === 'hybrid' || dataSource === 'l2_orderbook' || dataSource === 'hybrid_deep')) {
                 setShowVisualizer(true);
             }
         } catch (error) {
@@ -2155,7 +2155,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
             </div>
 
             {/* Visualizer Floating Modal */}
-            {algorithm === 'PPO-RL' || algorithm === 'SAC-RL' ? (
+            {algorithm.includes('-RL') ? (
                 <RLTrainingVisualizer
                     isOpen={showVisualizer}
                     onClose={() => setShowVisualizer(false)}

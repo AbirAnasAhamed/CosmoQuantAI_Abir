@@ -1362,7 +1362,7 @@ const ActiveTrainingJobsSection: React.FC<{ jobs: any[], onCancel: (id: string) 
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    {['PPO-RL', 'SAC-RL'].includes(job.algorithm) && onVisualize && (
+                                    {job.algorithm.includes('-RL') && onVisualize && (
                                         <button
                                             onClick={() => onVisualize(job)}
                                             className="px-3 py-1.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-lg text-xs font-bold hover:bg-cyan-500/20 hover:text-cyan-300 transition-colors flex-shrink-0"

@@ -1856,6 +1856,7 @@ def train_model_task(job_id: str, db: Session):
                 final_accuracy = metrics.get("win_rate", 0) / 100.0
                 final_f1 = metrics.get("sharpe_ratio", 0)
                 final_explainability = metrics
+                add_log(f"[METRICS] {json.dumps(metrics)}")
                 add_log(f"✅ Extended {job.algorithm} Training complete.")
             except Exception as e:
                 add_log(f"❌ Extended {job.algorithm} Error: {e}")

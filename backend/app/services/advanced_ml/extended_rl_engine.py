@@ -412,16 +412,67 @@ class ExtendedRLEngine:
         elif job.algorithm == "TD3-RL":
             model = TD3("MlpPolicy", env, verbose=0, learning_rate=safe_lr)
 
+        try:
+            redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+        except Exception as e:
+            add_log(f"⚠️ Failed to connect to Redis for live RL streaming: {e}")
+            redis_client = None
+
         class LiveStreamingCallback(BaseCallback):
-            def __init__(self):
+            def __init__(self, check_interval=1000, stream_interval=10):
                 super().__init__(verbose=0)
-            def _on_step(self):
-                if self.num_timesteps % 1000 == 0:
-                    job.progress = (self.num_timesteps / total_timesteps) * 100
+                self.check_interval = check_interval
+                self.stream_interval = stream_interval
+                self.last_streamed_step = 0
+                self.last_stream_time = time.time()
+
+            def _on_step(self) -> bool:
+                # 1. Cancel Check and Progress Update
+                if self.num_timesteps % self.check_interval == 0:
+                    current_progress = (self.num_timesteps / total_timesteps) * 100
+                    job.progress = current_progress
                     db.commit()
+                    db.refresh(job)
+                    if job.status == models.TrainingStatus.FAILED and job.error_message and "cancelled" in job.error_message.lower():
+                        raise Exception("Training cancelled by user.")
+                
+                # 2. Stream Data to Frontend
+                now = time.time()
+                if redis_client and (now - self.last_stream_time >= 1.0):
+                    env_instance = self.training_env.envs[0]
+                    unwrapped_env = getattr(env_instance, 'unwrapped', env_instance)
+                    if hasattr(unwrapped_env, 'net_worth'):
+                        payload = {
+                            "step": unwrapped_env.current_step,
+                            "net_worth": unwrapped_env.net_worth,
+                            "position": unwrapped_env.position,
+                            "balance": getattr(unwrapped_env, 'balance', 0),
+                            "action": self.locals.get("actions", [0])[0].item() if "actions" in self.locals else 0,
+                            "reward": self.locals.get("rewards", [0.0])[0].item() if "rewards" in self.locals else 0.0,
+                            "price": unwrapped_env.df.loc[unwrapped_env.current_step, 'Close'] if unwrapped_env.current_step < len(unwrapped_env.df) else 0.0,
+                        }
+                        
+                        message = {
+                            "task_type": "RL_TRAINING_STEP",
+                            "task_id": job.id,
+                            "status": "processing",
+                            "progress": int((self.num_timesteps / total_timesteps) * 100),
+                            "data": payload,
+                            "features": features
+                        }
+                        try:
+                            redis_client.publish("task_updates", json.dumps(message))
+                            self.last_streamed_step = self.num_timesteps
+                            self.last_stream_time = now
+                        except Exception:
+                            pass
                 return True
 
-        model.learn(total_timesteps=total_timesteps, callback=LiveStreamingCallback())
+        callback = LiveStreamingCallback(
+            check_interval=max(100, total_timesteps // 20),
+            stream_interval=max(1, total_timesteps // 1000)
+        )
+        model.learn(total_timesteps=total_timesteps, callback=callback)
         
         model_filename = f"model_{job.id}.zip"
         model_dir = os.path.join("uploads", "models", f"job_{job.id}")

@@ -80,5 +80,6 @@ class AdvancedDataHandler:
             scaled_vals = np.clip(scaled_vals, -10.0, 10.0)
             res_df[features] = scaled_vals
             
+        res_df = res_df.copy()
         res_df['Raw_Close'] = df['Close'].copy()
         return res_df
