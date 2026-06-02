@@ -37,6 +37,35 @@ class ExtendedRLEngine:
     PHASE_2_ALGOS = ["QR-DQN", "CQL", "GAIL", "Decision-Transformer", "Liquid-NN"]
 
     @staticmethod
+    def _calculate_env_metrics(env_instance, initial_balance):
+        rl_metrics = {"total_return_pct": 0.0, "win_rate": 0.0, "sharpe_ratio": 0.0, "trades_count": 0, "net_profit": 0.0}
+        if hasattr(env_instance, 'equity_history') and len(env_instance.equity_history) > 1:
+            equity = np.array(env_instance.equity_history)
+            returns = np.diff(equity) / equity[:-1]
+            total_return = (equity[-1] - initial_balance) / initial_balance * 100
+            sharpe = (np.mean(returns) / (np.std(returns) + 1e-9)) * np.sqrt(252 * 24 * 60)
+            
+            trades = env_instance.trade_history
+            pnl_trades = [t['pnl'] for t in trades if 'pnl' in t]
+            
+            if getattr(env_instance, 'position', 0) != 0:
+                unrealized_pnl = env_instance.net_worth - getattr(env_instance, 'entry_net_worth', initial_balance)
+                pnl_trades.append(unrealized_pnl)
+                
+            win_rate = (len([p for p in pnl_trades if p > 0]) / len(pnl_trades)) * 100 if pnl_trades else 0
+            open_trades = len([t for t in trades if t['type'].startswith('open')])
+            trades_count = open_trades if open_trades > 0 else len(pnl_trades)
+            
+            rl_metrics = {
+                "total_return_pct": float(total_return),
+                "win_rate": float(win_rate),
+                "sharpe_ratio": float(sharpe),
+                "trades_count": int(trades_count),
+                "net_profit": float(equity[-1] - initial_balance)
+            }
+        return rl_metrics
+
+    @staticmethod
     def train_extended_rl(job, df, features, db, add_log, previous_model_path=None):
         algo = job.algorithm
 
@@ -230,7 +259,9 @@ class ExtendedRLEngine:
                     # Create a dummy trajectory assuming a buy-and-hold strategy
                     for step in range(len(env_df) - 1):
                         obs.append(state)
-                        action = [1.0] # continuous buy
+                        # Add slight noise so d3rlpy correctly infers a CONTINUOUS action space
+                        # (If it's exactly 1.0 every time, it infers DISCRETE and crashes CQL)
+                        action = [1.0 - np.random.uniform(0, 0.1)]
                         actions.append(action)
                         next_state, reward, done, _, _ = temp_env.step(action)
                         rewards.append(reward)
@@ -262,7 +293,24 @@ class ExtendedRLEngine:
                     os.makedirs(os.path.dirname(model_path), exist_ok=True)
                     model.save_model(model_path)
                     
-                    return model, model_path, {"status": "CQL_OFFLINE_COMPLETE"}
+                    add_log("Running L2 Evaluation Backtest to calculate metrics...")
+                    eval_env = make_env()
+                    obs, _ = eval_env.reset()
+                    done = False
+                    while not done:
+                        action_batch = model.predict(np.array([obs], dtype=np.float32))
+                        action = action_batch[0]
+                        step_result = eval_env.step(action)
+                        if len(step_result) == 5:
+                            obs, reward, done, truncated, info = step_result
+                            done = done or truncated
+                        else:
+                            obs, reward, done, info = step_result
+                            
+                    rl_metrics = ExtendedRLEngine._calculate_env_metrics(eval_env, initial_balance)
+                    rl_metrics["status"] = "CQL_OFFLINE_COMPLETE"
+                    
+                    return model, model_path, rl_metrics
                 
                 except ImportError:
                     raise ImportError("d3rlpy is required for CQL. Please install it.")
@@ -312,7 +360,23 @@ class ExtendedRLEngine:
                     os.makedirs(os.path.dirname(model_path), exist_ok=True)
                     learner.save(model_path)
                     
-                    return learner, model_path, {"status": "GAIL_ADVERSARIAL_COMPLETE"}
+                    add_log("Running L2 Evaluation Backtest to calculate metrics...")
+                    eval_env = make_env()
+                    obs, _ = eval_env.reset()
+                    done = False
+                    while not done:
+                        action, _ = learner.predict(obs, deterministic=True)
+                        step_result = eval_env.step(action)
+                        if len(step_result) == 5:
+                            obs, reward, done, truncated, info = step_result
+                            done = done or truncated
+                        else:
+                            obs, reward, done, info = step_result
+                            
+                    rl_metrics = ExtendedRLEngine._calculate_env_metrics(eval_env, initial_balance)
+                    rl_metrics["status"] = "GAIL_ADVERSARIAL_COMPLETE"
+                    
+                    return learner, model_path, rl_metrics
                 
                 except ImportError:
                     raise ImportError("imitation library is required for GAIL. Please install it.")
