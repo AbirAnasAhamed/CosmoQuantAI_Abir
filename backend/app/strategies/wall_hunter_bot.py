@@ -3117,7 +3117,7 @@ class WallHunterBot:
                     if self.is_paper_trading:
                         res = limit_sl_res
                 else:
-                    self.logger.warning("SL Limit Maker order rejected by exchange! Will auto-retry on next tick.")
+                    self.logger.debug("SL Limit Maker order rejected by exchange! Will auto-retry on next tick.")
                     
             elif sl_exec_type == 'soft_limit':
                 self.logger.info(f"🛡️ Executing SL with Soft Limit Maker at {current_price}")

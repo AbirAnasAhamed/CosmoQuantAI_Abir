@@ -216,7 +216,15 @@ async def _async_live_scraper(symbol: str, target_rows: int, db: Session, job: m
                 retry_count = 0 # reset on successful connect
                 
                 while scraped_count < target_rows:
-                    msg = await asyncio.wait_for(ws.recv(), timeout=15)
+                    try:
+                        msg = await asyncio.wait_for(ws.recv(), timeout=15)
+                    except asyncio.TimeoutError:
+                        db.refresh(job)
+                        if job.status == models.TrainingStatus.FAILED and job.error_message and "cancelled" in job.error_message.lower():
+                            add_log_func("🛑 Scraper stopped by user cancellation.")
+                            raise TrainingCancelledException("Training cancelled by user during live scraping.")
+                        continue
+                    
                     msg_data = json.loads(msg)
                     
                     bids = msg_data.get('bids', [])
@@ -371,7 +379,15 @@ async def _async_live_trade_scraper(symbol: str, target_rows: int, db: Session, 
                 retry_count = 0
                 
                 while scraped_count < target_rows:
-                    msg = await asyncio.wait_for(ws.recv(), timeout=15)
+                    try:
+                        msg = await asyncio.wait_for(ws.recv(), timeout=15)
+                    except asyncio.TimeoutError:
+                        db.refresh(job)
+                        if job.status == models.TrainingStatus.FAILED and job.error_message and "cancelled" in job.error_message.lower():
+                            add_log_func("🛑 Scraper stopped by user cancellation.")
+                            raise TrainingCancelledException("Training cancelled by user during live scraping.")
+                        continue
+                    
                     msg_data = json.loads(msg)
                     
                     if msg_data.get('e') != 'trade':
@@ -565,17 +581,30 @@ def train_model_task(job_id: str, db: Session):
             # Use L2 specific features chosen by user, default to basics
             features = config.get("l2_features", ["obi", "spread", "microprice"])
             available_feats = [f for f in features if f in df.columns]
-            if not available_feats:
-                available_feats = ["Close"]
-            features = available_feats
+            
+            # Remove non-stationary absolute price features to prevent overfitting
+            forbidden_feats = ["Close", "Open", "High", "Low", "microprice", "timestamp", "datetime", "CVD_Proxy", "vwap", "VWAP"]
+            features = [f for f in available_feats if f not in forbidden_feats]
+            
+            if not features:
+                features = [col for col in df.columns if col not in forbidden_feats and col != 'Target']
+                
             add_log(f"Using {len(features)} L2 features for training.")
             
+            horizon = config.get("prediction_horizon", 5)
+            if not config.get("resample_l2", True):
+                horizon = max(horizon, 100) # Minimum 100 ticks for raw L2
+                
             prediction_target = config.get("prediction_target", "classification")
             if prediction_target == "classification":
-                future_max = df['Close'].rolling(window=5).max().shift(-5)
-                df['Target'] = (future_max > df['Close']).astype(int)
+                # Calculate future return 'horizon' steps ahead
+                future_return = df['Close'].shift(-horizon) - df['Close']
+                # Target is 1 if positive return, 0 if negative or zero
+                df['Target'] = (future_return > 0).astype(float)
+                # Mask NaNs so they get dropped during cleaning
+                df.loc[future_return.isna(), 'Target'] = np.nan
             else:
-                df['Target'] = df['Close'].shift(-5)
+                df['Target'] = df['Close'].shift(-horizon)
                 
             # ── Predatory Liquidity Pipeline (PLP) Features ──────────────────────
             sel_plp = config.get("plp_features", [])
@@ -800,8 +829,12 @@ def train_model_task(job_id: str, db: Session):
                 
             prediction_target = config.get("prediction_target", "classification")
             if prediction_target == "classification":
-                future_max = df['Close'].rolling(window=5).max().shift(-5)
-                df['Target'] = (future_max > df['Close']).astype(int)
+                # Calculate future return 5 steps ahead
+                future_return = df['Close'].shift(-5) - df['Close']
+                # Target is 1 if positive return, 0 if negative or zero
+                df['Target'] = (future_return > 0).astype(float)
+                # Mask NaNs so they get dropped during cleaning
+                df.loc[future_return.isna(), 'Target'] = np.nan
             else:
                 df['Target'] = df['Close'].shift(-5)
                 
@@ -941,12 +974,17 @@ def train_model_task(job_id: str, db: Session):
                     
             add_log(f"Successfully calculated {len(successful_indicators)} features.")
                 
+            horizon = config.get("prediction_horizon", 5)
             prediction_target = config.get("prediction_target", "classification")
             if prediction_target == "classification":
-                future_max = df['Close'].rolling(window=5).max().shift(-5)
-                df['Target'] = (future_max > df['Close']).astype(int)
+                # Calculate future return 'horizon' steps ahead
+                future_return = df['Close'].shift(-horizon) - df['Close']
+                # Target is 1 if positive return, 0 if negative or zero
+                df['Target'] = (future_return > 0).astype(float)
+                # Mask NaNs so they get dropped during cleaning
+                df.loc[future_return.isna(), 'Target'] = np.nan
             else:
-                df['Target'] = df['Close'].shift(-5)
+                df['Target'] = df['Close'].shift(-horizon)
                 
             from app.services.ml_utils import apply_data_cleaning
             df = apply_data_cleaning(df, config, add_log)
@@ -1004,6 +1042,18 @@ def train_model_task(job_id: str, db: Session):
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
         df.dropna(inplace=True)
         
+        # ── GLOBAL FEATURE CLEANER ──
+        # Ensure no non-stationary or raw price columns leak into ANY dataset type (Hybrid, L2, OHLCV, etc.)
+        global_forbidden = ["Close", "Open", "High", "Low", "microprice", "timestamp", "datetime", "CVD_Proxy", "vwap", "VWAP"]
+        original_feature_count = len(features)
+        features = [f for f in features if f not in global_forbidden and f in df.columns]
+        if len(features) < original_feature_count:
+            add_log(f"🛡️ Global Feature Cleaner: Removed {original_feature_count - len(features)} non-stationary/leaky features.")
+            
+        if not features:
+            add_log("⚠️ All features were removed! Falling back to 'obi' or first available numerical column.")
+            features = ["obi"] if "obi" in df.columns else [df.select_dtypes(include=[np.number]).columns[0]]
+        
         prediction_target = config.get("prediction_target", "classification")
         if prediction_target == "classification" and df['Target'].nunique() == 1:
             add_log("⚠️ Target variable has only one class (no variance). Artificially adding an opposite label to prevent model crash.")
@@ -1055,6 +1105,25 @@ def train_model_task(job_id: str, db: Session):
         X_train, X_test = X_scaled[:split], X_scaled[split:]
         y_train, y_test = y_scaled[:split], y_scaled[split:]
         
+        # ── Walk-Forward Cross-Validation (ALL model types) ──────────────────
+        # Runs BEFORE SMOTE to prevent data leakage. Results stored in cv_result for later save.
+        cv_result = {}
+        try:
+            from app.services.ml_walk_forward_cv import run_walk_forward_cv
+            cv_result = run_walk_forward_cv(
+                algorithm=job.algorithm,
+                X_train=X_train,
+                y_train=y_train,
+                features=features,
+                prediction_target=prediction_target_early,
+                epochs=int(config.get("epochs", 10)),
+                learning_rate=float(config.get("learning_rate", 0.1)),
+                max_depth=int(config.get("max_depth", 6)),
+                add_log=add_log
+            )
+        except Exception as _cv_ex:
+            add_log(f"⚠️ Walk-Forward CV failed (non-critical): {_cv_ex}")
+
         # FIX: Ensure y_train has at least 3 samples of each class for Stacking CV (cv=3)
         if prediction_target_early == "classification":
             y_train_flat = y_train.ravel()
@@ -1113,24 +1182,6 @@ def train_model_task(job_id: str, db: Session):
         # -------------------------------------
         
         job.progress = 10.0
-
-        # ── Walk-Forward Cross-Validation (ALL model types) ──────────────────
-        # Runs BEFORE training. Results stored in cv_result for later save.
-        cv_result = {}
-        try:
-            cv_result = run_walk_forward_cv(
-                algorithm=job.algorithm,
-                X_train=X_train,
-                y_train=y_train,
-                features=features,
-                prediction_target=prediction_target_early,
-                epochs=int(config.get("epochs", 10)),
-                learning_rate=float(config.get("learning_rate", 0.1)),
-                max_depth=int(config.get("max_depth", 6)),
-                add_log=add_log
-            )
-        except Exception as _cv_ex:
-            add_log(f"⚠️ Walk-Forward CV failed (non-critical): {_cv_ex}")
         
         model_filename = f"model_{job.id}.pkl"
         model_dir = os.path.join("uploads", "models", f"job_{job.id}")

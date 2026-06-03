@@ -83,7 +83,7 @@ hmmlearn
 yfinance
 docker>=7.0.0  # Docker SDK for log monitoring
 edge-tts
-scikit-learn
+scikit-learn==1.5.2
 xgboost
 joblib
 lightgbm

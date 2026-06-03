@@ -234,10 +234,21 @@ def build_hybrid_dataset(job, db: Session, config: dict, add_log) -> tuple[pd.Da
         except Exception as e:
             add_log(f"[HYBRID] ⚠️ PLP feature generation failed (non-fatal): {e}")
 
+    # Ensure we use high-frequency price for target to avoid step-function 0s
+    target_price_col = 'microprice' if 'microprice' in df.columns else 'Close'
+
     if prediction_target == "classification":
-        df['Target'] = (df['Close'].shift(-5) > df['Close']).astype(int)
+        horizon = config.get("prediction_horizon", 5)
+        if not config.get("resample_l2", True):
+            horizon = max(horizon, 100) # Minimum 100 ticks for raw L2
+        future_return = df[target_price_col].shift(-horizon) - df[target_price_col]
+        df['Target'] = (future_return > 0).astype(int)
+        df.loc[future_return.isna(), 'Target'] = np.nan
     else:
-        df['Target'] = df['Close'].shift(-5)
+        horizon = config.get("prediction_horizon", 5)
+        if not config.get("resample_l2", True):
+            horizon = max(horizon, 100)
+        df['Target'] = df[target_price_col].shift(-horizon)
         
     df.dropna(inplace=True)
 
@@ -252,7 +263,7 @@ def build_hybrid_dataset(job, db: Session, config: dict, add_log) -> tuple[pd.Da
 
     # 5. Define Feature Sets
     l2_selected = config.get("l2_features", ["obi", "spread", "microprice"])
-    exclude_cols = ['Target', 'Open', 'High', 'Low', 'Close', 'Volume', 'Adj Close']
+    exclude_cols = ['Target', 'Open', 'High', 'Low', 'Close', 'Volume', 'Adj Close', 'microprice', 'timestamp', 'datetime', 'CVD_Proxy', 'vwap', 'VWAP']
     
     KNOWN_L2_FEATURES = {
         'Effective_Spread', 'Spread_ROC', 'Mid_Price_Acceleration', 'Spread_Asymmetry',

@@ -2278,7 +2278,7 @@ class WallHunterFuturesStrategy:
                         if self.is_paper_trading:
                             res = limit_sl_res
                     else:
-                        logger.warning("SL Limit Maker order rejected by exchange! Will auto-retry on next tick.")
+                        logger.debug("SL Limit Maker order rejected by exchange! Will auto-retry on next tick.")
                 elif sl_exec_type == 'soft_limit':
                     logger.info(f"🛡️ Executing Futures SL with Soft Limit Maker at {current_price}")
                     limit_sl_res = await self.engine.execute_trade(exit_side, sell_amount_raw, current_price, order_type="limit", params={'reduceOnly': True, 'postOnly': True})

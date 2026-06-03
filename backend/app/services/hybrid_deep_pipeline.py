@@ -161,7 +161,11 @@ async def _async_hybrid_deep_scraper(
                 ) as ws:
                     retry = 0
                     while not stop_event.is_set():
-                        raw  = await asyncio.wait_for(ws.recv(), timeout=15)
+                        try:
+                            raw  = await asyncio.wait_for(ws.recv(), timeout=15)
+                        except asyncio.TimeoutError:
+                            continue
+                        
                         data = json.loads(raw)
                         bids = data.get('bids', [])
                         asks = data.get('asks', [])
@@ -205,7 +209,20 @@ async def _async_hybrid_deep_scraper(
                 ) as ws:
                     retry = 0
                     while not stop_event.is_set() and trade_count < target_rows:
-                        raw  = await asyncio.wait_for(ws.recv(), timeout=15)
+                        try:
+                            raw  = await asyncio.wait_for(ws.recv(), timeout=15)
+                        except asyncio.TimeoutError:
+                            db.refresh(job)
+                            if (job.status == _models.TrainingStatus.FAILED and
+                                    job.error_message and
+                                    "cancelled" in job.error_message.lower()):
+                                add_log_func("🛑 HybridDeep stopped by cancellation.")
+                                stop_event.set()
+                                raise TrainingCancelledException(
+                                    "Cancelled during hybrid deep scraping."
+                                )
+                            continue
+                            
                         data = json.loads(raw)
                         if data.get('e') != 'aggTrade':
                             continue
@@ -350,7 +367,7 @@ _KNOWN_TRADE_FEATURES = {
 
 _EXCLUDE_COLS = {
     'Target', 'Open', 'High', 'Low', 'Close', 'Volume', 'price',
-    'qty', 'is_buyer_maker', 'Adj Close',
+    'qty', 'is_buyer_maker', 'Adj Close', 'microprice', 'timestamp', 'datetime', 'CVD_Proxy', 'vwap', 'VWAP'
 }
 
 
@@ -470,12 +487,13 @@ def build_hybrid_deep_dataset(job, db: Session, config: dict, add_log) -> tuple:
             raise Exception("[HybridDeep] Cannot find Close price for target.")
 
     # High frequency data needs a larger shift to capture price movement
-    future_shift = config.get("prediction_shift", 100)
+    future_shift = config.get("prediction_horizon", 5)
+    future_shift = max(future_shift, 100) # Minimum 100 ticks for deep tick data
 
     if pred_target == "classification":
-        # Look ahead 'future_shift' ticks to see if price hits a higher high (solves 0% Trades imbalance)
-        future_max = df['Close'].rolling(window=future_shift).max().shift(-future_shift)
-        df['Target'] = (future_max > df['Close']).astype(int)
+        future_return = df['Close'].shift(-future_shift) - df['Close']
+        df['Target'] = (future_return > 0).astype(int)
+        df.loc[future_return.isna(), 'Target'] = np.nan
     else:
         df['Target'] = df['Close'].shift(-future_shift)
 

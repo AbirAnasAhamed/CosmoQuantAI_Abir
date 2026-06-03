@@ -1256,8 +1256,23 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                                 </h3>
                                                 <p className="text-xs text-slate-400 mt-1">Select highly-predictive features extracted from tick data.</p>
                                             </div>
-                                            <div className="text-xs font-bold bg-amber-500/10 text-amber-400 px-3 py-1 rounded-full border border-amber-500/20">
-                                                {selectedTradeFeatures.length} / {ALL_TRADE_FEATURES.length} Selected
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        if (selectedTradeFeatures.length === ALL_TRADE_FEATURES.length) {
+                                                            setSelectedTradeFeatures([]);
+                                                        } else {
+                                                            setSelectedTradeFeatures(ALL_TRADE_FEATURES.map(f => f.internal));
+                                                        }
+                                                    }}
+                                                    disabled={isTraining}
+                                                    className="text-xs font-bold bg-amber-500/10 text-amber-400 px-3 py-1 rounded-lg border border-amber-500/20 hover:bg-amber-500/20 transition-all"
+                                                >
+                                                    {selectedTradeFeatures.length === ALL_TRADE_FEATURES.length ? 'Deselect All' : 'Select All'}
+                                                </button>
+                                                <div className="text-xs font-bold bg-amber-500/10 text-amber-400 px-3 py-1 rounded-full border border-amber-500/20">
+                                                    {selectedTradeFeatures.length} / {ALL_TRADE_FEATURES.length} Selected
+                                                </div>
                                             </div>
                                         </div>
 
@@ -1391,8 +1406,23 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                                 </h3>
                                                 <p className="text-xs text-slate-400 mt-1">Real aggTrade features — not L2 proxies.</p>
                                             </div>
-                                            <div className="text-xs font-bold bg-rose-500/10 text-rose-400 px-3 py-1 rounded-full border border-rose-500/20">
-                                                {selectedHybridDeepTradeFeatures.length} / {ALL_HYBRID_DEEP_TRADE_FEATURES.length}
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        if (selectedHybridDeepTradeFeatures.length === ALL_HYBRID_DEEP_TRADE_FEATURES.length) {
+                                                            setSelectedHybridDeepTradeFeatures([]);
+                                                        } else {
+                                                            setSelectedHybridDeepTradeFeatures(ALL_HYBRID_DEEP_TRADE_FEATURES.map(f => f.internal));
+                                                        }
+                                                    }}
+                                                    disabled={isTraining}
+                                                    className="text-xs font-bold bg-rose-500/10 text-rose-400 px-3 py-1 rounded-lg border border-rose-500/20 hover:bg-rose-500/20 transition-all"
+                                                >
+                                                    {selectedHybridDeepTradeFeatures.length === ALL_HYBRID_DEEP_TRADE_FEATURES.length ? 'Deselect All' : 'Select All'}
+                                                </button>
+                                                <div className="text-xs font-bold bg-rose-500/10 text-rose-400 px-3 py-1 rounded-full border border-rose-500/20">
+                                                    {selectedHybridDeepTradeFeatures.length} / {ALL_HYBRID_DEEP_TRADE_FEATURES.length}
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-1 gap-2 max-h-[260px] overflow-y-auto pr-1 custom-scrollbar">
@@ -1429,9 +1459,24 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                                 </h4>
                                                 <p className="text-xs text-slate-400 mt-0.5">Forward-filled from nearest L2 snapshot onto each tick.</p>
                                             </div>
-                                            <span className="text-xs font-bold bg-indigo-500/10 text-indigo-400 px-2 py-1 rounded-full border border-indigo-500/20">
-                                                {selectedL2Features.length} / {ALL_L2_FEATURES.length}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        if (selectedL2Features.length === ALL_L2_FEATURES.length) {
+                                                            setSelectedL2Features([]);
+                                                        } else {
+                                                            setSelectedL2Features(ALL_L2_FEATURES.map(f => f.internal));
+                                                        }
+                                                    }}
+                                                    disabled={isTraining}
+                                                    className="text-xs font-bold bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-lg border border-indigo-500/20 hover:bg-indigo-500/20 transition-all"
+                                                >
+                                                    {selectedL2Features.length === ALL_L2_FEATURES.length ? 'Deselect All' : 'Select All'}
+                                                </button>
+                                                <span className="text-xs font-bold bg-indigo-500/10 text-indigo-400 px-2 py-1 rounded-full border border-indigo-500/20">
+                                                    {selectedL2Features.length} / {ALL_L2_FEATURES.length}
+                                                </span>
+                                            </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
                                             {ALL_L2_FEATURES.map((feat) => {
@@ -1728,8 +1773,24 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                                     initial={{ opacity: 0, height: 0 }} 
                                                     animate={{ opacity: 1, height: 'auto' }} 
                                                     exit={{ opacity: 0, height: 0 }}
-                                                    className="mt-3 grid grid-cols-2 gap-2 overflow-hidden"
+                                                    className="mt-3 overflow-hidden"
                                                 >
+                                                    <div className="flex justify-end mb-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                if (selectedL2Features.length === ALL_L2_FEATURES.length) {
+                                                                    setSelectedL2Features([]);
+                                                                } else {
+                                                                    setSelectedL2Features(ALL_L2_FEATURES.map(f => f.internal));
+                                                                }
+                                                            }}
+                                                            disabled={isTraining}
+                                                            className="text-[10px] font-bold bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-lg border border-indigo-500/20 hover:bg-indigo-500/20 transition-all"
+                                                        >
+                                                            {selectedL2Features.length === ALL_L2_FEATURES.length ? 'Deselect All' : 'Select All'}
+                                                        </button>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2">
                                                     {ALL_L2_FEATURES.map((feat, idx) => (
                                                         <div 
                                                             key={idx} 
@@ -1747,6 +1808,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                                             </span>
                                                         </div>
                                                     ))}
+                                                    </div>
                                                 </motion.div>
                                             )}
                                         </AnimatePresence>
@@ -1828,8 +1890,24 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                     <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-3">
                                         <Activity className="w-4 h-4 text-cyan-400" /> Feature Engineering Studio
                                     </label>
-                                    <span className="text-xs font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-md border border-cyan-500/20">
-                                        {selectedIndicators.length} Selected
+                                    <span className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => {
+                                                const allInds = INDICATOR_CATEGORIES.flatMap(c => c.indicators);
+                                                if (selectedIndicators.length === allInds.length) {
+                                                    setSelectedIndicators([]);
+                                                } else {
+                                                    setSelectedIndicators(allInds);
+                                                }
+                                            }}
+                                            disabled={isTraining}
+                                            className="text-xs font-bold bg-cyan-500/10 text-cyan-400 px-3 py-1 rounded-lg border border-cyan-500/20 hover:bg-cyan-500/20 transition-all"
+                                        >
+                                            {selectedIndicators.length === INDICATOR_CATEGORIES.flatMap(c => c.indicators).length ? 'Deselect All' : 'Select All'}
+                                        </button>
+                                        <span className="text-xs font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-md border border-cyan-500/20">
+                                            {selectedIndicators.length} Selected
+                                        </span>
                                     </span>
                                 </div>
 

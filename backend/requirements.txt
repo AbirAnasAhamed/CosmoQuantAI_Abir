@@ -705,7 +705,7 @@ safetensors==0.7.0
     # via transformers
 sb3-contrib==2.8.0
     # via -r requirements.in
-scikit-learn==1.8.0
+scikit-learn==1.5.2
     # via
     #   -r requirements.in
     #   hmmlearn
@@ -954,4 +954,4 @@ yfinance==1.4.1
     #   quantstats
 zopfli==0.4.2
     # via fonttools
-imbalanced-learn==0.12.3
+imbalanced-learn==0.13.0

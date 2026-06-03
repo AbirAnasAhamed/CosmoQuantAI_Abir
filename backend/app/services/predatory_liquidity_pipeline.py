@@ -155,8 +155,9 @@ def calculate_plp_features(df: pd.DataFrame, selected_features: list) -> pd.Data
 
     if 'stop_hunt_probability' in selected_features:
         # Wick breaking recent low/high and immediately reversing
+        # Use shift(1) instead of shift(-1) to avoid look-ahead bias
         df['stop_hunt_probability'] = np.where(
-            (returns.abs() > price_std_20 * 1.5) & (returns * returns.shift(-1) < 0), 1.0, 0.0
+            (returns.shift(1).abs() > price_std_20.shift(1) * 1.5) & (returns.shift(1) * returns < 0), 1.0, 0.0
         ).astype(float)
 
     if 'liquidity_sweep_velocity' in selected_features:
@@ -208,7 +209,8 @@ def calculate_plp_features(df: pd.DataFrame, selected_features: list) -> pd.Data
         df['order_block_mitigation_speed'] = (qty / (vol_mean_20 + 1e-9)).rolling(3).sum()
 
     if 'time_weighted_vampire_flow' in selected_features:
-        df['time_weighted_vampire_flow'] = obi * np.exp(-np.arange(len(obi))[::-1] / 100)
+        # Use a rolling EWMA instead of global index to prevent row position leakage
+        df['time_weighted_vampire_flow'] = obi.ewm(span=100, min_periods=1).mean()
 
     if 'bms_confirmation_strength' in selected_features:
         # Break of Market Structure

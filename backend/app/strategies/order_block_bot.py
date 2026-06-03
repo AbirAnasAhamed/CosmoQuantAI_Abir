@@ -374,12 +374,20 @@ class OrderBlockExecutionEngine:
                     )
                     return retry_order
                 except Exception as retry_e:
-                    self.logger.error(
-                        f"[REAL] Maker retry also failed for {side} {amount} {self.pair}: {retry_e}"
-                    )
+                    retry_err_str = str(retry_e)
+                    if "-5022" in retry_err_str or "-2021" in retry_err_str or "-2022" in retry_err_str:
+                        self.logger.debug(f"[REAL] Maker retry failed (Expected/Ignored) for {side} {amount} {self.pair}: {retry_e}")
+                    else:
+                        self.logger.error(
+                            f"[REAL] Maker retry also failed for {side} {amount} {self.pair}: {retry_e}"
+                        )
                     return None
             # ─────────────────────────────────────────────────────────────────────
-            self.logger.error(f"[REAL] Order execution failed for {side} {amount} {self.pair} at {price}: {e}")
+            err_str_lower = err_str.lower()
+            if "-2021" in err_str_lower or "-5022" in err_str_lower or "-2022" in err_str_lower:
+                self.logger.debug(f"[REAL] Order execution failed (Expected/Ignored) for {side} {amount} {self.pair} at {price}: {e}")
+            else:
+                self.logger.error(f"[REAL] Order execution failed for {side} {amount} {self.pair} at {price}: {e}")
             return None
 
     async def cancel_order(self, order_id: str) -> bool:
