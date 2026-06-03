@@ -109,6 +109,9 @@ NOISE_WARNING_PATTERNS = [
 
 # Lines to IGNORE (avoid spam from known-harmless patterns)
 IGNORE_PATTERNS = [
+    # ── Benign Exchange Errors (Race conditions during exit) ──────────────────
+    re.compile(r'ReduceOnly Order is rejected', re.IGNORECASE),
+    re.compile(r'SL Limit Maker order rejected', re.IGNORECASE),
     re.compile(r'GET /api/v1/health', re.IGNORECASE),
     re.compile(r'200 OK'),
     re.compile(r'INFO:'),
