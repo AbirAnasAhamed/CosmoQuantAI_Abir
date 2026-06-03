@@ -1008,14 +1008,20 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             <div className="flex gap-4">
                                 <div className={`space-y-1 ${form.selectedStrategy === 'cascading_bb' ? 'w-[30%]' : 'w-1/2'}`}>
                                     <label className="text-[10px] text-gray-500 font-bold uppercase">Trading Strategy</label>
-                                    <select 
-                                        className="w-full bg-white/5 p-2 rounded-xl text-white outline-none text-sm border border-transparent focus:border-brand-primary" 
-                                        value={form.selectedStrategy} 
-                                        onChange={(e) => handleFormChange('selectedStrategy', e.target.value)}
-                                    >
-                                        <option className="bg-[#000000] text-white" value="wall_hunter">L2 Scalping (WallHunter)</option>
-                                        <option className="bg-[#000000] text-white" value="cascading_bb">Cascading Multi-TF BB</option>
-                                    </select>
+                                    <div className="flex bg-black/40 rounded-xl p-1 border border-white/10 h-[36px]">
+                                        <button 
+                                            onClick={() => handleFormChange('selectedStrategy', 'wall_hunter')} 
+                                            className={`flex-1 h-full text-[10px] font-bold uppercase rounded-lg transition-all ${form.selectedStrategy === 'wall_hunter' ? 'bg-brand-primary text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+                                        >
+                                            L2 Scalping
+                                        </button>
+                                        <button 
+                                            onClick={() => handleFormChange('selectedStrategy', 'cascading_bb')} 
+                                            className={`flex-1 h-full text-[10px] font-bold uppercase rounded-lg transition-all ${form.selectedStrategy === 'cascading_bb' ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(147,51,234,0.3)]' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+                                        >
+                                            Cascading BB
+                                        </button>
+                                    </div>
                                 </div>
                                 {form.selectedStrategy === 'cascading_bb' && (
                                     <>
