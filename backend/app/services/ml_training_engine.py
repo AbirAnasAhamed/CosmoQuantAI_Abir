@@ -78,7 +78,7 @@ def fetch_l2_data(symbol: str, db: Session, lookback_hours: int = 6, timeframe: 
             
     return df
 
-def fetch_data(symbol: str, timeframe: str, period: str = None, exchange_name: str = 'binance') -> pd.DataFrame:
+def fetch_data(symbol: str, timeframe: str, start_date: str = None, end_date: str = None, exchange_name: str = 'binance', progress_callback=None, log_callback=None) -> pd.DataFrame:
     # Most common CCXT timeframes
     tf_map = {
         "1s": "1s", "1m": "1m", "3m": "3m", "5m": "5m", 
@@ -97,20 +97,82 @@ def fetch_data(symbol: str, timeframe: str, period: str = None, exchange_name: s
         exchange = ccxt.binance({'enableRateLimit': True})
         
     try:
-        # Fetch up to 1500 candles to ensure enough data for indicators
-        ohlcv = exchange.fetch_ohlcv(symbol, tf, limit=1500)
+        since = None
+        until = None
+        if start_date:
+            since = int(pd.to_datetime(start_date).timestamp() * 1000)
+        if end_date:
+            until = int(pd.to_datetime(end_date).timestamp() * 1000)
+            if len(end_date) <= 10:
+                until += 86399999 # end of day
+
+        all_ohlcv = []
+        
+        def fetch_paginated(sym):
+            data = []
+            current_since = since
+            total_time = (until - since) if (until and since and until > since) else None
+            last_log_time = 0
+            
+            while True:
+                ohlcv = exchange.fetch_ohlcv(sym, tf, since=current_since, limit=1000)
+                if not ohlcv:
+                    break
+                
+                if data and ohlcv[0][0] <= data[-1][0]:
+                    new_data = [x for x in ohlcv if x[0] > data[-1][0]]
+                    if not new_data:
+                        break
+                    data.extend(new_data)
+                else:
+                    data.extend(ohlcv)
+                
+                last_ts = data[-1][0]
+                
+                # Update progress
+                if progress_callback and total_time:
+                    fetched_fraction = max(0.0, min((last_ts - since) / total_time, 1.0))
+                    # Allocate progress between 5.0% and 20.0% for data fetching
+                    progress_callback(5.0 + (fetched_fraction * 15.0))
+                
+                # Update logs periodically (throttle to not spam the UI)
+                import time
+                current_time = time.time()
+                if log_callback and (current_time - last_log_time > 2.0):
+                    last_date_str = pd.to_datetime(last_ts, unit='ms').strftime('%Y-%m-%d %H:%M')
+                    log_callback(f"Fetched historical data up to {last_date_str}...")
+                    last_log_time = current_time
+                
+                if until and last_ts >= until:
+                    break
+                
+                current_since = last_ts + 1
+                time.sleep(exchange.rateLimit / 1000.0 if exchange.rateLimit else 0.1)
+                
+            if until:
+                data = [x for x in data if x[0] <= until]
+            return data
+
+        if since:
+            all_ohlcv = fetch_paginated(symbol)
+        else:
+            all_ohlcv = exchange.fetch_ohlcv(symbol, tf, limit=1500)
+            
     except Exception as e:
         # Fallback to spot if futures fails, or try parsing symbol
         try:
             spot_symbol = symbol.split(':')[0]
-            ohlcv = exchange.fetch_ohlcv(spot_symbol, tf, limit=1500)
+            if since:
+                all_ohlcv = fetch_paginated(spot_symbol)
+            else:
+                all_ohlcv = exchange.fetch_ohlcv(spot_symbol, tf, limit=1500)
         except Exception as fallback_e:
             raise Exception(f"Failed to fetch data for {symbol} via CCXT: {e}")
             
-    if not ohlcv:
+    if not all_ohlcv:
         raise Exception(f"No data found for symbol {symbol} on {exchange_name}.")
         
-    df = pd.DataFrame(ohlcv, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
+    df = pd.DataFrame(all_ohlcv, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
     df.set_index('timestamp', inplace=True)
     
@@ -765,12 +827,32 @@ def train_model_task(job_id: str, db: Session):
             
 
         else:
-            ohlcv_period = config.get("ohlcv_period")
+            ohlcv_start_date = config.get("ohlcv_start_date")
+            ohlcv_end_date = config.get("ohlcv_end_date")
             exchange_name = config.get("exchange", "binance")
             add_log(f"Fetching historical OHLCV data for {job.symbol} from {exchange_name.upper()}...")
-            df = fetch_data(job.symbol, job.timeframe, period=ohlcv_period, exchange_name=exchange_name)
+            if ohlcv_start_date or ohlcv_end_date:
+                add_log(f"Date range: {ohlcv_start_date} to {ohlcv_end_date}")
+            
+            def update_progress(pct):
+                job.progress = pct
+                db.commit()
+                
+            def log_progress(msg):
+                add_log(msg)
+                
+            df = fetch_data(
+                job.symbol, 
+                job.timeframe, 
+                start_date=ohlcv_start_date, 
+                end_date=ohlcv_end_date, 
+                exchange_name=exchange_name,
+                progress_callback=update_progress,
+                log_callback=log_progress
+            )
             add_log(f"Fetched {len(df)} rows of market data.")
-            job.progress = 100.0
+            job.progress = 20.0
+            db.commit()
             
             # 2. Modular Feature Engineering
             indicators = config.get("indicators", ["RSI", "MACD"])

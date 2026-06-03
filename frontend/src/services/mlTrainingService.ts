@@ -26,7 +26,8 @@ export interface TrainingConfig {
         is_auto_retrain?: boolean;
         retrain_interval_hours?: number;
         data_lookback_hours?: number;
-        ohlcv_period?: string;
+        ohlcv_start_date?: string;
+        ohlcv_end_date?: string;
         resample_l2?: boolean;
         prediction_target?: string;
         missing_data_strategy?: string;

@@ -1948,7 +1948,9 @@ class WallHunterBot:
                             if getattr(self, 'ml_predictor', None):
                                 is_ai_valid = self.ml_predictor.predict(orderbook, mid_price, side)
                                 if not is_ai_valid:
-                                    self.logger.info(f"🚫 [AI Filter] Instant Snipe at {price} rejected! L2 Model predicts adverse movement.")
+                                    if current_time - getattr(self, '_last_ai_log_time', 0) > 10.0:
+                                        self.logger.info(f"🚫 [AI Filter] Instant Snipe at {price} rejected! L2 Model predicts adverse movement.")
+                                        self._last_ai_log_time = current_time
                                     continue
                                 else:
                                     self.logger.info(f"🤖 [AI Filter] Model confirmed {side.upper()} order flow!")
@@ -2130,7 +2132,9 @@ class WallHunterBot:
                                 if getattr(self, 'ml_predictor', None):
                                     is_ai_valid = self.ml_predictor.predict(orderbook, mid_price, side)
                                     if not is_ai_valid:
-                                        self.logger.info(f"🚫 [AI Filter] Confirmed Snipe at {price} rejected! L2 Model predicts adverse movement.")
+                                        if current_time - getattr(self, '_last_ai_log_time', 0) > 10.0:
+                                            self.logger.info(f"🚫 [AI Filter] Confirmed Snipe at {price} rejected! L2 Model predicts adverse movement.")
+                                            self._last_ai_log_time = current_time
                                         continue
                                     else:
                                         self.logger.info(f"🤖 [AI Filter] Model confirmed {side.upper()} order flow!")

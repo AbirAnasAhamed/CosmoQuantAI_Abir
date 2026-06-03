@@ -30,7 +30,12 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     const [isAutoRetrain, setIsAutoRetrain] = useState(false);
     const [retrainInterval, setRetrainInterval] = useState(6);
     const [dataLookback, setDataLookback] = useState(6);
-    const [ohlcvPeriod, setOhlcvPeriod] = useState('2y');
+    const [ohlcvStartDate, setOhlcvStartDate] = useState(() => {
+        const d = new Date();
+        d.setFullYear(d.getFullYear() - 1);
+        return d.toISOString().split('T')[0];
+    });
+    const [ohlcvEndDate, setOhlcvEndDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [isResampleL2, setIsResampleL2] = useState(true);
     
     // Deep Training States
@@ -431,7 +436,8 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                     is_auto_retrain: isAutoRetrain,
                     retrain_interval_hours: isAutoRetrain ? retrainInterval : undefined,
                     data_lookback_hours: dataLookback,
-                    ohlcv_period: (dataSource === 'ohlcv' || dataSource === 'hybrid') ? ohlcvPeriod : undefined,
+                    ohlcv_start_date: (dataSource === 'ohlcv' || dataSource === 'hybrid') ? ohlcvStartDate : undefined,
+                    ohlcv_end_date: (dataSource === 'ohlcv' || dataSource === 'hybrid') ? ohlcvEndDate : undefined,
                     resample_l2: (dataSource === 'l2_orderbook' || dataSource === 'hybrid') ? isResampleL2 : undefined,
                     prediction_target: predictionTarget,
                     missing_data_strategy: missingDataStrategy,
@@ -676,7 +682,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                             isTraining={isTraining}
                         />
 
-                        {(dataSource === 'ohlcv' || dataSource === 'hybrid' || (dataSource === 'l2_orderbook' && isResampleL2)) && (
+                        {(dataSource === 'ohlcv' || dataSource === 'hybrid') && (
                             <div>
                                 <label className="block text-sm font-medium text-slate-300 mb-1">Candle Interval</label>
                                 <div className="grid grid-cols-5 gap-2">
@@ -686,6 +692,27 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                         disabled={isTraining}
                                         onClick={() => setTimeframe(tf)}
                                         className={`py-2 rounded-xl text-sm font-bold transition-all duration-300 ${timeframe === tf ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-400/50 shadow-[0_0_15px_rgba(34,211,238,0.3)]' : 'bg-white/5 text-slate-400 hover:bg-white/10 border border-white/5 hover:text-white hover:border-white/20'}`}
+                                    >
+                                        {tf}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        )}
+
+                        {dataSource === 'l2_orderbook' && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-1">Snapshot Interval (Sampling Rate)</label>
+                                <div className="grid grid-cols-5 gap-2">
+                                {['100ms', '500ms', '1s', '5s', 'Tick'].map(tf => (
+                                    <button
+                                        key={tf}
+                                        disabled={isTraining}
+                                        onClick={() => {
+                                            setTimeframe(tf);
+                                            setIsResampleL2(tf !== 'Tick');
+                                        }}
+                                        className={`py-2 rounded-xl text-sm font-bold transition-all duration-300 ${timeframe === tf ? 'bg-purple-500/20 text-purple-400 border border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'bg-white/5 text-slate-400 hover:bg-white/10 border border-white/5 hover:text-white hover:border-white/20'}`}
                                     >
                                         {tf}
                                     </button>
@@ -1767,33 +1794,31 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
 
                         {(dataSource === 'ohlcv' || dataSource === 'hybrid') && (
                                 <div className="mb-4">
-                                    <label className="block text-sm font-medium text-slate-300 mb-1">Historical Period (OHLCV)</label>
-                                    <select 
-                                        value={ohlcvPeriod}
-                                        onChange={(e) => setOhlcvPeriod(e.target.value)}
-                                        disabled={isTraining}
-                                        className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 outline-none transition-all disabled:opacity-50"
-                                    >
-                                        {timeframe === '1d' ? (
-                                            <>
-                                                <option className="bg-gray-900 text-white" value="1mo">1 Month</option>
-                                                <option className="bg-gray-900 text-white" value="3mo">3 Months</option>
-                                                <option className="bg-gray-900 text-white" value="6mo">6 Months</option>
-                                                <option className="bg-gray-900 text-white" value="1y">1 Year</option>
-                                                <option className="bg-gray-900 text-white" value="2y">2 Years</option>
-                                                <option className="bg-gray-900 text-white" value="5y">5 Years</option>
-                                                <option className="bg-gray-900 text-white" value="max">Max Available</option>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <option className="bg-gray-900 text-white" value="1d">1 Day</option>
-                                                <option className="bg-gray-900 text-white" value="5d">5 Days</option>
-                                                <option className="bg-gray-900 text-white" value="1mo">1 Month</option>
-                                                <option className="bg-gray-900 text-white" value="60d">60 Days (Max for Intraday)</option>
-                                            </>
-                                        )}
-                                    </select>
-                                    <p className="text-xs text-slate-500 mt-1.5 ml-1 font-medium">Total history to download from Yahoo Finance.</p>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">Historical Period (Date Range)</label>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex-1">
+                                            <input 
+                                                type="date" 
+                                                value={ohlcvStartDate}
+                                                onChange={(e) => setOhlcvStartDate(e.target.value)}
+                                                disabled={isTraining}
+                                                className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 outline-none transition-all disabled:opacity-50 [color-scheme:dark]"
+                                            />
+                                            <div className="text-[10px] text-slate-500 mt-1 ml-1 uppercase font-bold">Start Date</div>
+                                        </div>
+                                        <div className="text-slate-500 font-bold">-</div>
+                                        <div className="flex-1">
+                                            <input 
+                                                type="date" 
+                                                value={ohlcvEndDate}
+                                                onChange={(e) => setOhlcvEndDate(e.target.value)}
+                                                disabled={isTraining}
+                                                className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 outline-none transition-all disabled:opacity-50 [color-scheme:dark]"
+                                            />
+                                            <div className="text-[10px] text-slate-500 mt-1 ml-1 uppercase font-bold">End Date</div>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-2 ml-1 font-medium">Data will be fetched from the exchange via CCXT with pagination.</p>
                                 </div>
                         )}
 

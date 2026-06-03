@@ -25,7 +25,8 @@ def run_debug():
     config = {
         "is_deep_training": True,
         "target_rows": 1000,
-        "ohlcv_period": "1d",
+        "ohlcv_start_date": "2024-01-01",
+        "ohlcv_end_date": "2024-01-05",
         "exchange": "binance",
         "prediction_target": "classification",
         "plp_features": ["abs_long_liq_pool"],
@@ -45,7 +46,7 @@ def run_debug():
     try:
         from app.services.ml_training_engine import fetch_data
         print("Fetching OHLCV data...")
-        df_ohlcv = fetch_data(job.symbol, job.timeframe, period=config.get("ohlcv_period"), exchange_name=config.get("exchange"))
+        df_ohlcv = fetch_data(job.symbol, job.timeframe, start_date=config.get("ohlcv_start_date"), end_date=config.get("ohlcv_end_date"), exchange_name=config.get("exchange"))
         print(f"OHLCV shape after fetch: {df_ohlcv.shape}")
         
         from app.services.hybrid_pipeline import apply_technical_indicators
@@ -60,7 +61,7 @@ def run_debug():
         if len(df_ohlcv) == 0:
             print("CULPRIT FOUND: OHLCV dropna resulted in 0 rows!")
             # Let's find which column caused it
-            df_ohlcv = fetch_data(job.symbol, job.timeframe, period=config.get("ohlcv_period"), exchange_name=config.get("exchange"))
+            df_ohlcv = fetch_data(job.symbol, job.timeframe, start_date=config.get("ohlcv_start_date"), end_date=config.get("ohlcv_end_date"), exchange_name=config.get("exchange"))
             apply_technical_indicators(df_ohlcv, config["indicators"], dummy_log)
             null_counts = df_ohlcv.isnull().sum()
             print("Null counts per column:")

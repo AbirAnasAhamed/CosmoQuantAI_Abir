@@ -37,6 +37,7 @@ class MLL2Predictor:
         self._cumulative_ofi = 0.0
         self._ofi_prev = 0.0
         self._prev_level1_imb = 0.5
+        self._last_log_time = 0.0
 
     def _load_model(self):
         if not self.ai_model_id:
@@ -258,7 +259,10 @@ class MLL2Predictor:
             else:
                 is_bullish = (pred > current_price)
 
-            logger.info(f"🤖 MLL2Predictor: Target={target_side.upper()}, Bullish={is_bullish}, Pred={pred:.4f}")
+            import time
+            if time.time() - self._last_log_time > 10.0:
+                logger.info(f"🤖 MLL2Predictor: Target={target_side.upper()}, Bullish={is_bullish}, Pred={pred:.4f}")
+                self._last_log_time = time.time()
 
             normalized_side = target_side.lower()
             is_long = normalized_side in ("long", "buy")

@@ -109,10 +109,29 @@ def build_hybrid_dataset(job, db: Session, config: dict, add_log) -> tuple[pd.Da
     timeframe = job.timeframe
     
     # 1. Fetch OHLCV Data
-    ohlcv_period = config.get("ohlcv_period", "1mo")
+    ohlcv_start_date = config.get("ohlcv_start_date")
+    ohlcv_end_date = config.get("ohlcv_end_date")
     exchange_name = config.get("exchange", "binance")
     add_log(f"[HYBRID] Fetching historical OHLCV data for {symbol} from {exchange_name.upper()}...")
-    df_ohlcv = fetch_data(symbol, timeframe, period=ohlcv_period, exchange_name=exchange_name)
+    if ohlcv_start_date or ohlcv_end_date:
+        add_log(f"[HYBRID] Date range: {ohlcv_start_date} to {ohlcv_end_date}")
+        
+    def update_progress(pct):
+        job.progress = pct
+        db.commit()
+        
+    def log_progress(msg):
+        add_log(f"[HYBRID] {msg}")
+        
+    df_ohlcv = fetch_data(
+        symbol, 
+        timeframe, 
+        start_date=ohlcv_start_date, 
+        end_date=ohlcv_end_date, 
+        exchange_name=exchange_name,
+        progress_callback=update_progress,
+        log_callback=log_progress
+    )
     add_log(f"[HYBRID] Fetched {len(df_ohlcv)} rows of OHLCV market data.")
     
     # Apply indicators to OHLCV

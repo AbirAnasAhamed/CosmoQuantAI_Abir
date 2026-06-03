@@ -1423,7 +1423,10 @@ class WallHunterFuturesStrategy:
                                 is_ai_valid = self.ml_predictor.predict(orderbook, mid_price, target_side)
                                 if not is_ai_valid:
                                     if should_log_alert:
-                                        self.logger.info(f"🚫 [AI Filter] Snipe at {best_wall['price']} rejected! L2 Model predicts adverse movement.")
+                                        import time
+                                        if time.time() - getattr(self, '_last_ai_log_time', 0) > 10.0:
+                                            self.logger.info(f"🚫 [AI Filter] Snipe at {best_wall['price']} rejected! L2 Model predicts adverse movement.")
+                                            self._last_ai_log_time = time.time()
                                     continue
                                 else:
                                     self.logger.info(f"🤖 [AI Filter] Model confirmed {target_side.upper()} order flow!")
