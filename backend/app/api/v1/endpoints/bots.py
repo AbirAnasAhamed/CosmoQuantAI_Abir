@@ -535,6 +535,16 @@ async def websocket_bot_status(
         return
 
     redis = websocket.app.state.redis
+    
+    # ✅ Send initial state immediately if available
+    cache_key = f"bot_status_cache:{bot_id}"
+    initial_state = await redis.get(cache_key)
+    if initial_state:
+        if isinstance(initial_state, bytes):
+            await websocket.send_text(initial_state.decode("utf-8"))
+        else:
+            await websocket.send_text(initial_state)
+
     pubsub = redis.pubsub()
     channel_name = f"bot_status:{bot_id}"
     await pubsub.subscribe(channel_name)

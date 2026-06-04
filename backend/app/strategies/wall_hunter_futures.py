@@ -2806,7 +2806,9 @@ class WallHunterFuturesStrategy:
                 "absorption_delta": float(f"{self.absorption_tracker.get_current_delta():.2f}"),
                 "is_absorbing": self.absorption_tracker.is_absorption_detected('buy') or self.absorption_tracker.is_absorption_detected('sell')
             }
-            self.redis.publish(f"bot_status:{self.bot_id}", json.dumps(status_payload))
+            payload_str = json.dumps(status_payload)
+            self.redis.publish(f"bot_status:{self.bot_id}", payload_str)
+            self.redis.set(f"bot_status_cache:{self.bot_id}", payload_str)
         except Exception:
             pass
 

@@ -18,7 +18,7 @@ import DEXExecutionWidget from '@/components/features/bots/DEXExecutionWidget';
 
 const BotLab: React.FC = () => {
     const [isCreating, setIsCreating] = useState(false);
-    const { globalSymbol } = useMarketStore();
+    const { globalSymbol, setGlobalSymbol, setGlobalExchange } = useMarketStore();
     const { setActiveWallHunterId } = useBotStore();
     const [isVisualBuilderOpen, setIsVisualBuilderOpen] = useState(false);
     const [bots, setBots] = useState<ActiveBot[]>([]);
@@ -183,10 +183,17 @@ const BotLab: React.FC = () => {
             await botService.controlBot(id, action);
             if (action === 'start') {
                 setActiveWallHunterId(Number(id));
+                // Sync the global chart symbol/exchange so the user sees the right chart in Order Flow Heatmap
+                if (bot.market) {
+                    setGlobalSymbol(bot.market);
+                }
+                if (bot.exchange) {
+                    setGlobalExchange(bot.exchange);
+                }
             } else if (action === 'stop') {
-                // Optionally we can clear it if they stop the active bot
+                // Clear active bot if it was stopped
                 const currentActive = useBotStore.getState().activeWallHunterId;
-                if (currentActive === Number(id)) {
+                if (Number(currentActive) === Number(id)) {
                     setActiveWallHunterId(null);
                 }
             }
