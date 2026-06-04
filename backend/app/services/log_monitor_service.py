@@ -219,6 +219,11 @@ IGNORE_PATTERNS = [
 # Patterns that look like errors but should be downgraded to WARNING
 # These are transient network events that do NOT require human intervention.
 WARNING_OVERRIDE_PATTERNS = [
+    # ── Benign Trading Logic Failures (Fallback automatically handled) ──
+    re.compile(r'postOnly placement failed', re.IGNORECASE),
+    re.compile(r'Exit order execution failed', re.IGNORECASE),
+    re.compile(r'Futures Hunter Loop Error.*NoneType', re.IGNORECASE),
+
     re.compile(r'Streamer failed to load markets', re.IGNORECASE),
     re.compile(r'Failed to load markets for.*during initialization', re.IGNORECASE),
     re.compile(r'\[vite\].*proxy error', re.IGNORECASE),
