@@ -673,13 +673,13 @@ class AdvancedMLEngine:
                     # Extract latest step info
                     if hasattr(unwrapped_env, 'net_worth'):
                         payload = {
-                            "step": unwrapped_env.current_step,
-                            "net_worth": unwrapped_env.net_worth,
-                            "position": unwrapped_env.position,
-                            "balance": getattr(unwrapped_env, 'balance', 0),
-                            "action": self.locals.get("actions", [0])[0].item() if "actions" in self.locals else 0,
-                            "reward": self.locals.get("rewards", [0.0])[0].item() if "rewards" in self.locals else 0.0,
-                            "price": unwrapped_env.df.loc[unwrapped_env.current_step, 'Close'] if unwrapped_env.current_step < len(unwrapped_env.df) else 0.0,
+                            "step": int(unwrapped_env.current_step),
+                            "net_worth": float(unwrapped_env.net_worth),
+                            "position": int(unwrapped_env.position),
+                            "balance": float(getattr(unwrapped_env, 'balance', 0)),
+                            "action": int(self.locals.get("actions", [0])[0].item() if "actions" in self.locals else 0),
+                            "reward": float(self.locals.get("rewards", [0.0])[0].item() if "rewards" in self.locals else 0.0),
+                            "price": float(unwrapped_env.df.loc[unwrapped_env.current_step, 'Close']) if unwrapped_env.current_step < len(unwrapped_env.df) else 0.0,
                         }
                         
                         message = {
@@ -694,8 +694,8 @@ class AdvancedMLEngine:
                             redis_client.publish("task_updates", json.dumps(message))
                             self.last_streamed_step = self.num_timesteps
                             self.last_stream_time = now
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            add_log(f"⚠️ Live Stream Error: {e}")
                 
                 # 3. Save Checkpoint
                 if self.num_timesteps > 0 and self.num_timesteps % self.checkpoint_interval == 0:
@@ -727,6 +727,17 @@ class AdvancedMLEngine:
         model.save(model_path)
         
         # ✅ Save Replay File and Log Equity Curve
+        add_log("Running final evaluation pass to generate accurate metrics...")
+        try:
+            obs = env.reset()
+            done = False
+            while not done:
+                action, _states = model.predict(obs, deterministic=True)
+                obs, rewards, dones, info = env.step(action)
+                done = dones[0]
+        except Exception as e:
+            add_log(f"⚠️ Evaluation pass error: {e}")
+
         if hasattr(env.envs[0], 'equity_history'):
             equity_data = env.envs[0].equity_history
             trade_data = env.envs[0].trade_history
