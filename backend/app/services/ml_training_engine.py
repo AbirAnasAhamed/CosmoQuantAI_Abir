@@ -1117,7 +1117,13 @@ def train_model_task(job_id: str, db: Session):
         if not features:
             add_log("⚠️ All features were removed! Falling back to 'obi' or first available numerical column.")
             features = ["obi"] if "obi" in df.columns else [df.select_dtypes(include=[np.number]).columns[0]]
-        
+        # Ensure features are saved to config so auto-resume uses the exact same shape
+        current_config = dict(job.config) if job.config else {}
+        if current_config.get("features") != features:
+            current_config["features"] = features
+            job.config = current_config
+            db.commit()
+            
         prediction_target = config.get("prediction_target", "classification")
         if prediction_target == "classification" and df['Target'].nunique() == 1:
             add_log("⚠️ Target variable has only one class (no variance). Artificially adding an opposite label to prevent model crash.")
@@ -1992,7 +1998,13 @@ def train_model_task(job_id: str, db: Session):
                 final_f1 = metrics.get("f1_score", metrics.get("rmse"))
                 add_log("✅ Advanced Transformer Training complete.")
             except Exception as e:
-                add_log(f"❌ Advanced Transformer Error: {e}")
+                err_msg = str(e).lower()
+                if "paused by user" in err_msg:
+                    add_log(f"⏸️ Advanced Transformer safely paused.")
+                elif "cancelled by user" in err_msg:
+                    add_log(f"🛑 Advanced Transformer safely cancelled.")
+                else:
+                    add_log(f"❌ Advanced Transformer Error: {e}")
                 raise e
 
         elif job.algorithm == "TCN":
@@ -2007,7 +2019,13 @@ def train_model_task(job_id: str, db: Session):
                 final_f1 = metrics.get("f1_score", metrics.get("rmse", 0))
                 add_log("✅ Advanced TCN Training complete.")
             except Exception as e:
-                add_log(f"❌ Advanced TCN Error: {e}")
+                err_msg = str(e).lower()
+                if "paused by user" in err_msg:
+                    add_log(f"⏸️ Advanced TCN safely paused.")
+                elif "cancelled by user" in err_msg:
+                    add_log(f"🛑 Advanced TCN safely cancelled.")
+                else:
+                    add_log(f"❌ Advanced TCN Error: {e}")
                 raise e
 
         elif job.algorithm == "TabNet":
@@ -2022,7 +2040,13 @@ def train_model_task(job_id: str, db: Session):
                 final_f1 = metrics.get("f1_score", metrics.get("rmse", 0))
                 add_log("✅ Advanced TabNet Training complete.")
             except Exception as e:
-                add_log(f"❌ Advanced TabNet Error: {e}")
+                err_msg = str(e).lower()
+                if "paused by user" in err_msg:
+                    add_log(f"⏸️ Advanced TabNet safely paused.")
+                elif "cancelled by user" in err_msg:
+                    add_log(f"🛑 Advanced TabNet safely cancelled.")
+                else:
+                    add_log(f"❌ Advanced TabNet Error: {e}")
                 raise e
 
         elif job.algorithm == "Auto-Encoder":
@@ -2038,7 +2062,13 @@ def train_model_task(job_id: str, db: Session):
                 final_explainability = {"anomaly_threshold": final_f1, "mse": metrics.get("mse")}
                 add_log("✅ Advanced Auto-Encoder Training complete.")
             except Exception as e:
-                add_log(f"❌ Advanced Auto-Encoder Error: {e}")
+                err_msg = str(e).lower()
+                if "paused by user" in err_msg:
+                    add_log(f"⏸️ Advanced Auto-Encoder safely paused.")
+                elif "cancelled by user" in err_msg:
+                    add_log(f"🛑 Advanced Auto-Encoder safely cancelled.")
+                else:
+                    add_log(f"❌ Advanced Auto-Encoder Error: {e}")
                 raise e
 
         elif job.algorithm in ["PPO-RL", "SAC-RL"]:
@@ -2054,7 +2084,13 @@ def train_model_task(job_id: str, db: Session):
                 final_explainability = metrics
                 add_log(f"✅ Advanced {job.algorithm} Training complete.")
             except Exception as e:
-                add_log(f"❌ Advanced {job.algorithm} Error: {e}")
+                err_msg = str(e).lower()
+                if "paused by user" in err_msg:
+                    add_log(f"⏸️ Advanced {job.algorithm} safely paused.")
+                elif "cancelled by user" in err_msg:
+                    add_log(f"🛑 Advanced {job.algorithm} safely cancelled.")
+                else:
+                    add_log(f"❌ Advanced {job.algorithm} Error: {e}")
                 raise e
 
         elif job.algorithm in ["A2C-RL", "DDPG-RL", "DQN-RL", "TD3-RL", "QR-DQN", "CQL", "GAIL", "Decision-Transformer", "Liquid-NN"]:
@@ -2072,7 +2108,13 @@ def train_model_task(job_id: str, db: Session):
                 add_log(f"[METRICS] {json.dumps(metrics)}")
                 add_log(f"✅ Extended {job.algorithm} Training complete.")
             except Exception as e:
-                add_log(f"❌ Extended {job.algorithm} Error: {e}")
+                err_msg = str(e).lower()
+                if "paused by user" in err_msg:
+                    add_log(f"⏸️ Extended {job.algorithm} safely paused.")
+                elif "cancelled by user" in err_msg:
+                    add_log(f"🛑 Extended {job.algorithm} safely cancelled.")
+                else:
+                    add_log(f"❌ Extended {job.algorithm} Error: {e}")
                 raise e
 
         else:

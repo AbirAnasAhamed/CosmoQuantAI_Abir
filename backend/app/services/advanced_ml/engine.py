@@ -658,14 +658,12 @@ class AdvancedMLEngine:
                         raise Exception("Training paused by user.")
                     if job.status == models.TrainingStatus.FAILED and job.error_message and "cancelled" in job.error_message.lower():
                         raise Exception("Training cancelled by user.")
-                    self.last_db_check_time = now
-                
-                # Progress Update
-                if self.num_timesteps % self.check_interval == 0:
+                        
+                    # Update progress every 5 seconds
                     current_progress = (self.num_timesteps / total_timesteps) * 100
                     job.progress = current_progress
                     db.commit()
-                
+                    self.last_db_check_time = now
                 # 2. Stream Data to Frontend
                 now = time.time()
                 # Stream data at most once per second
@@ -714,6 +712,11 @@ class AdvancedMLEngine:
             checkpoint_path=checkpoint_path,
             state_path=state_path
         )
+        
+        # Set initial progress immediately before learning
+        job.progress = (start_timestep / total_timesteps) * 100
+        db.commit()
+        
         model.learn(total_timesteps=remaining_timesteps, callback=callback, reset_num_timesteps=False)
         
         # Save final model

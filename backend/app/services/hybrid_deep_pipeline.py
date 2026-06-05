@@ -194,10 +194,15 @@ async def _async_hybrid_deep_scraper(
                         })
             except asyncio.CancelledError:
                 break
-            except Exception:
+            except Exception as ex:
+                if type(ex).__name__ == 'TrainingPausedException':
+                    raise
+                add_log_func(f"⚠️ [L2 Stream] Exception: {type(ex).__name__}: {ex}")
                 if not stop_event.is_set():
                     retry += 1
                     await asyncio.sleep(2)
+                    continue
+                break
         
         # Signal the other stream to stop if this one exits (e.g., max retries reached)
         stop_event.set()
@@ -305,15 +310,12 @@ async def _async_hybrid_deep_scraper(
             except Exception as ex:
                 if type(ex).__name__ == 'TrainingPausedException':
                     raise
+                add_log_func(f"⚠️ [Trade Stream] Exception: {type(ex).__name__}: {ex}")
                 if not stop_event.is_set():
                     retry += 1
                     await asyncio.sleep(2)
-                stop_event.set()
+                    continue
                 break
-            except Exception:
-                if not stop_event.is_set():
-                    retry += 1
-                    await asyncio.sleep(2)
         
         # Signal the other stream to stop if this one exits (e.g., max retries reached)
         stop_event.set()
