@@ -11,7 +11,7 @@ from app.api import deps
 from app.db.session import get_db
 from app.services.ml_training_engine import train_model_task
 from app.services.auto_feature_selector import suggest_optimal_features
-from app.services.notifications import NotificationService
+from app.services.notification import NotificationService
 from pydantic import BaseModel
 
 class SuggestFeaturesRequest(BaseModel):
