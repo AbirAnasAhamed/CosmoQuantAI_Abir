@@ -1,4 +1,6 @@
 import time
+import asyncio
+import datetime
 from typing import List, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
@@ -9,6 +11,7 @@ from app.api import deps
 from app.db.session import get_db
 from app.services.ml_training_engine import train_model_task
 from app.services.auto_feature_selector import suggest_optimal_features
+from app.services.notifications import NotificationService
 from pydantic import BaseModel
 
 class SuggestFeaturesRequest(BaseModel):
@@ -145,12 +148,32 @@ def pause_training_job(
     job.status = models.TrainingStatus.PAUSED
     
     logs = list(job.logs) if job.logs else []
-    import datetime
     logs.append(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] ⏸️ Pause requested. Waiting for engine to save checkpoint and exit gracefully...")
     job.logs = logs
 
     db.commit()
     db.refresh(job)
+    
+    # Send Telegram Notification
+    try:
+        telegram_msg = (
+            f"⏸️ *Training Paused*\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🤖 *Job ID:* `{job.id}`\n"
+            f"📈 *Symbol:* {job.symbol}\n"
+            f"⚙️ *Algorithm:* {job.algorithm}\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"Your model training has been gracefully paused."
+        )
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(
+            NotificationService.send_message(db, current_user.id, telegram_msg, parse_mode="Markdown")
+        )
+        loop.close()
+    except Exception as e:
+        print(f"Failed to send telegram notification: {e}")
+
     return job
 
 @router.post("/jobs/{job_id}/resume", response_model=schemas.TrainingJobResponse)
@@ -177,12 +200,31 @@ def resume_training_job(
     job.error_message = None
     
     logs = list(job.logs) if job.logs else []
-    import datetime
     logs.append(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] ▶️ Resume requested. Queuing job...")
     job.logs = logs
 
     db.commit()
     db.refresh(job)
+    
+    # Send Telegram Notification
+    try:
+        telegram_msg = (
+            f"▶️ *Training Resumed*\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🤖 *Job ID:* `{job.id}`\n"
+            f"📈 *Symbol:* {job.symbol}\n"
+            f"⚙️ *Algorithm:* {job.algorithm}\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"Your model training has been successfully resumed."
+        )
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(
+            NotificationService.send_message(db, current_user.id, telegram_msg, parse_mode="Markdown")
+        )
+        loop.close()
+    except Exception as e:
+        print(f"Failed to send telegram notification: {e}")
     
     # trigger celery background task again
     from app.tasks import celery_train_model_task
