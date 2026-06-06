@@ -61,6 +61,7 @@ celery_app.conf.update(
         'app.tasks.celery_train_model_task': {'queue': 'heavy'},
     },
     broker_connection_retry_on_startup=True,
+    broker_transport_options={'visibility_timeout': 86400},  # 24 hours to prevent duplicate long tasks
 )
 
 # Auto-discover tasks in packages

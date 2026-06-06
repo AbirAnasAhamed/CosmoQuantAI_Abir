@@ -3,7 +3,6 @@
     "whale_value": 500000.0,
     "active_exchanges": [
         "binance",
-        "bybit",
-        "okx"
+        "bybit"
     ]
 }

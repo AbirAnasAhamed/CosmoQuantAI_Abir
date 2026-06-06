@@ -481,7 +481,7 @@ class AdvancedMLEngine:
         return model, model_path, metrics
 
     @staticmethod
-    def train_rl(job, df, features, db, add_log, previous_model_path=None):
+    def train_rl(job, df, features, db, add_log, previous_model_path=None, check_cancelled=None):
         """Reinforcement Learning Training for PPO Agent."""
         config = job.config or {}
         epochs = int(config.get("epochs", 10))
@@ -651,6 +651,8 @@ class AdvancedMLEngine:
                     self.last_db_check_time = now
                     
                 if now - self.last_db_check_time >= 5.0:
+                    if check_cancelled:
+                        check_cancelled()
                     db.refresh(job)
                     if job.status == models.TrainingStatus.PAUSED:
                         self.model.save(self.checkpoint_path)

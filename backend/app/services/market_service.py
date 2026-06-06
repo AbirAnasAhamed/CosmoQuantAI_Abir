@@ -644,7 +644,11 @@ class MarketService:
         Generates correlation data between Price, News Sentiment, and Smart Money.
         Moved from sentiment.py.
         """
-        exchange = ccxt.binance()
+        exchange = ccxt.binance({
+            'enableRateLimit': True,
+            'options': {'adjustForTimeDifference': True},
+            'userAgent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        })
         try:
             # Dynamic Timeframe Logic
             if period == "1h":

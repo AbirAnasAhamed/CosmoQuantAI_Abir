@@ -2076,7 +2076,8 @@ def train_model_task(job_id: str, db: Session):
             try:
                 model, model_path, metrics = AdvancedMLEngine.train_rl(
                     job, df, features, db, add_log,
-                    previous_model_path=_prev_path if is_fine_tune else None
+                    previous_model_path=_prev_path if is_fine_tune else None,
+                    check_cancelled=check_cancelled
                 )
                 final_latency = 10.0
                 final_accuracy = metrics.get("win_rate", 0) / 100.0  # Normalize to 0-1
