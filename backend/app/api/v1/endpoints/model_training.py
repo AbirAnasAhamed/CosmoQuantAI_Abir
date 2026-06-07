@@ -292,7 +292,7 @@ def predict_signal(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
-@router.post("/start-l2-collector")
+@router.post("/start-l2-collector", response_model=schemas.TrainingJobResponse)
 def start_l2_collector(
     request: schemas.StartL2CollectorRequest,
     background_tasks: BackgroundTasks,
@@ -304,18 +304,40 @@ def start_l2_collector(
     """
     import subprocess
     import os
+    import uuid
+    from datetime import datetime
+    
+    # Create a job to track progress
+    job_id = f"l2_job_{uuid.uuid4().hex[:8]}"
+    new_job = models.ModelTrainingJob(
+        id=job_id,
+        user_id=current_user.id,
+        symbol=request.symbol.upper(),
+        timeframe="Tick",
+        algorithm="L2 Data Collector",
+        status=models.TrainingStatus.RUNNING,
+        progress=0.0,
+        config={"target_rows": request.target_rows, "dataset_type": "l2_collector"},
+        logs=[f"[{datetime.utcnow().strftime('%H:%M:%S')}] Started L2 Collector for {request.symbol} with target {request.target_rows}"]
+    )
+    db.add(new_job)
+    db.commit()
+    db.refresh(new_job)
     
     script_path = os.path.join(os.getcwd(), "scripts", "l2_collector.py")
     
     # Run the collector in a non-blocking subprocess
     try:
         subprocess.Popen(
-            ["python", script_path, "--symbol", request.symbol.lower(), "--target", str(request.target_rows)],
+            ["python", script_path, "--symbol", request.symbol.lower(), "--target", str(request.target_rows), "--job_id", job_id],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
-        return {"status": "success", "message": f"Started L2 Collector for {request.symbol} with target {request.target_rows}"}
+        return new_job
     except Exception as e:
+        new_job.status = models.TrainingStatus.FAILED
+        new_job.error_message = f"Failed to start collector subprocess: {str(e)}"
+        db.commit()
         raise HTTPException(status_code=500, detail=f"Failed to start collector: {str(e)}")
 
 @router.get("/l2-snapshots", response_model=List[str])

@@ -92,6 +92,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     const [showManualFeatures, setShowManualFeatures] = useState(false);
     
     const [currentJob, setCurrentJob] = useState<TrainingJob | null>(null);
+    const [l2ScrapeJob, setL2ScrapeJob] = useState<TrainingJob | null>(null);
     const logsEndRef = useRef<HTMLDivElement>(null);
     const [showVisualizer, setShowVisualizer] = useState(false);
     const [isRetrainMode, setIsRetrainMode] = useState(false);
@@ -181,8 +182,8 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
         if (dataSource === 'l2_orderbook') {
             apiClient.get('/model-training/l2-snapshots').then((res) => {
                 setL2SnapshotFiles(res.data);
-                if (res.data.length > 0 && !selectedL2File) {
-                    setSelectedL2File(res.data[0]);
+                if (!selectedL2File) {
+                    setSelectedL2File('');
                 }
             }).catch(e => console.error("Failed to load L2 snapshots", e));
         }
@@ -436,6 +437,30 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
         return () => clearInterval(interval);
     }, [isTraining, currentJob?.id, currentJob?.status]);
 
+    // L2 Scraper Polling logic
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (l2ScrapeJob && ['PENDING', 'RUNNING'].includes(l2ScrapeJob.status)) {
+            interval = setInterval(async () => {
+                try {
+                    const latestJob = await mlTrainingService.getJobStatus(l2ScrapeJob.id);
+                    setL2ScrapeJob(latestJob);
+                    if (['COMPLETED', 'FAILED'].includes(latestJob.status)) {
+                        clearInterval(interval);
+                        if (latestJob.status === 'COMPLETED' && dataSource === 'l2_orderbook') {
+                            apiClient.get('/model-training/l2-snapshots').then((res) => {
+                                setL2SnapshotFiles(res.data);
+                            }).catch(e => console.error("Failed to load L2 snapshots", e));
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error fetching L2 job status:", error);
+                }
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [l2ScrapeJob?.id, l2ScrapeJob?.status, dataSource]);
+
     const handleToggleIndicator = (ind: string) => {
         setSelectedIndicators(prev => 
             prev.includes(ind) ? prev.filter(i => i !== ind) : [...prev, ind]
@@ -449,13 +474,24 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     const handleStartL2Collector = async () => {
         try {
             const targetRows = parseInt(manualTargetRows, 10) || targetRowOptions[targetRowsIndex];
-            await apiClient.post('/training/start-l2-collector', {
+            const response = await apiClient.post('/model-training/start-l2-collector', {
                 symbol: symbol,
                 target_rows: targetRows
             });
-            alert(`✅ L2 Data Collector started for ${symbol} with target ${targetRows} rows! It is running in the background.`);
+            setL2ScrapeJob(response.data);
         } catch (error: any) {
             alert(`❌ Failed to start L2 Collector: ${error.response?.data?.detail || error.message}`);
+        }
+    };
+
+    const handleCancelL2Scrape = async () => {
+        if (!l2ScrapeJob) return;
+        if (!confirm('Are you sure you want to stop the L2 data collector?')) return;
+        try {
+            await apiClient.post(`/model-training/jobs/${l2ScrapeJob.id}/cancel`);
+            setL2ScrapeJob(prev => prev ? { ...prev, status: 'FAILED', error_message: 'Cancelled by user' } : null);
+        } catch (error: any) {
+            alert(`Failed to cancel: ${error.message}`);
         }
     };
 
@@ -466,7 +502,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
             setCurrentJob(null);
             
             // Fix: Send "Tick" instead of the default timeframe if we are using raw unresampled L2 data
-            const actualTimeframe = (dataSource === 'l2_orderbook' && !isResampleL2) ? 'Tick' : timeframe;
+            const actualTimeframe = (dataSource === 'l2_orderbook' && l2ProcessingMode === 'raw') ? 'Tick' : timeframe;
 
             // Hybrid Deep always collects at tick level — no resampling needed
             const hybridDeepTargetRows = parseInt(manualTargetRows, 10) || targetRowOptions[targetRowsIndex];
@@ -484,7 +520,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                     data_lookback_hours: dataLookback,
                     ohlcv_start_date: (dataSource === 'ohlcv' || dataSource === 'hybrid') ? ohlcvStartDate : undefined,
                     ohlcv_end_date: (dataSource === 'ohlcv' || dataSource === 'hybrid') ? ohlcvEndDate : undefined,
-                    resample_l2: (dataSource === 'l2_orderbook' || dataSource === 'hybrid') ? isResampleL2 : undefined,
+                    resample_l2: dataSource === 'l2_orderbook' ? (l2ProcessingMode === 'bars') : (dataSource === 'hybrid' ? true : undefined),
                     prediction_target: predictionTarget,
                     missing_data_strategy: missingDataStrategy,
                     outlier_removal: outlierRemoval,
@@ -1235,11 +1271,42 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                             
                                             <button 
                                                 onClick={handleStartL2Collector}
-                                                disabled={isTraining}
-                                                className="w-full mt-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all flex items-center justify-center gap-2"
+                                                disabled={isTraining || (l2ScrapeJob && ['PENDING', 'RUNNING'].includes(l2ScrapeJob.status)) as boolean}
+                                                className="w-full mt-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                             >
                                                 <Play className="w-4 h-4" fill="currentColor" /> Start L2 Data Collector
                                             </button>
+
+                                            {l2ScrapeJob && (
+                                                <div className="mt-4 p-4 bg-black/40 border border-purple-500/30 rounded-xl">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="text-xs font-bold text-slate-300">Live Scraping Progress</span>
+                                                        <span className="text-xs text-purple-400">{l2ScrapeJob.progress.toFixed(1)}%</span>
+                                                    </div>
+                                                    <div className="w-full h-2 bg-purple-900/30 rounded-full overflow-hidden mb-3">
+                                                        <div 
+                                                            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
+                                                            style={{ width: `${l2ScrapeJob.progress}%` }}
+                                                        />
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-400 font-mono mb-3 truncate">
+                                                        {l2ScrapeJob.logs && l2ScrapeJob.logs.length > 0 ? l2ScrapeJob.logs[l2ScrapeJob.logs.length - 1] : 'Initializing...'}
+                                                    </div>
+                                                    
+                                                    {['PENDING', 'RUNNING'].includes(l2ScrapeJob.status) ? (
+                                                        <button 
+                                                            onClick={handleCancelL2Scrape}
+                                                            className="w-full py-1.5 rounded-lg border border-red-500/30 text-red-400 text-xs hover:bg-red-500/10 transition-colors"
+                                                        >
+                                                            Stop Collector
+                                                        </button>
+                                                    ) : (
+                                                        <div className={`text-center text-xs font-bold ${l2ScrapeJob.status === 'COMPLETED' ? 'text-green-400' : 'text-red-400'}`}>
+                                                            {l2ScrapeJob.status === 'COMPLETED' ? '✅ Completed Successfully' : '❌ ' + (l2ScrapeJob.error_message || 'Stopped')}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
@@ -1264,8 +1331,9 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                                     className="w-full bg-[#0A0A0A] border border-purple-500/30 rounded-lg p-2.5 text-slate-200"
                                                     disabled={isTraining}
                                                 >
-                                                    {l2SnapshotFiles.length === 0 ? <option value="">No L2 snapshots available</option> : null}
-                                                    {l2SnapshotFiles.map(f => <option key={f} value={f}>{f}</option>)}
+                                                    <option value="">⚡ Fetch Database Ticks (Default)</option>
+                                                    {l2SnapshotFiles.length === 0 ? <option value="" disabled>No L2 snapshots available</option> : null}
+                                                    {l2SnapshotFiles.map(f => <option key={f} value={f}>📂 {f}</option>)}
                                                 </select>
                                             </div>
                                             
