@@ -384,3 +384,94 @@ def delete_l2_snapshot(
         return {"status": "success", "message": f"Deleted {filename}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+
+@router.post("/start-hybrid-collector", response_model=schemas.TrainingJobResponse)
+def start_hybrid_collector(
+    request: schemas.StartHybridCollectorRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_user),
+):
+    """
+    Start the Hybrid L2+Trades Data Collector script in the background.
+    """
+    import subprocess
+    import os
+    import uuid
+    from datetime import datetime
+    
+    # Create a job to track progress
+    job_id = f"hybrid_job_{uuid.uuid4().hex[:8]}"
+    new_job = models.ModelTrainingJob(
+        id=job_id,
+        user_id=current_user.id,
+        symbol=request.symbol.upper(),
+        timeframe="Tick",
+        algorithm="Hybrid Data Collector",
+        status=models.TrainingStatus.RUNNING,
+        progress=0.0,
+        config={"target_rows": request.target_rows, "dataset_type": "hybrid_collector"},
+        logs=[f"[{datetime.utcnow().strftime('%H:%M:%S')}] Started Hybrid Collector for {request.symbol} with target {request.target_rows}"]
+    )
+    db.add(new_job)
+    db.commit()
+    db.refresh(new_job)
+    
+    script_path = os.path.join(os.getcwd(), "scripts", "hybrid_collector.py")
+    
+    # Run the collector in a non-blocking subprocess
+    try:
+        subprocess.Popen(
+            ["python", script_path, "--symbol", request.symbol.lower(), "--target", str(request.target_rows), "--job_id", job_id],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        return new_job
+    except Exception as e:
+        new_job.status = models.TrainingStatus.FAILED
+        new_job.error_message = f"Failed to start hybrid collector subprocess: {str(e)}"
+        db.commit()
+        raise HTTPException(status_code=500, detail=f"Failed to start hybrid collector: {str(e)}")
+
+@router.get("/hybrid-snapshots", response_model=List[str])
+def list_hybrid_snapshots(
+    current_user: models.User = Depends(deps.get_current_user),
+):
+    """
+    List all downloaded hybrid snapshot .parquet files.
+    """
+    import os
+    import glob
+    
+    data_dir = os.path.join(os.getcwd(), "data", "raw", "hybrid_snapshots")
+    if not os.path.exists(data_dir):
+        return []
+        
+    pattern = os.path.join(data_dir, "*.parquet")
+    files = glob.glob(pattern)
+    files.sort(key=os.path.getmtime, reverse=True)
+    return [os.path.basename(f) for f in files]
+
+@router.delete("/hybrid-snapshots/{filename}")
+def delete_hybrid_snapshot(
+    filename: str,
+    current_user: models.User = Depends(deps.get_current_user),
+):
+    """
+    Delete a downloaded hybrid snapshot .parquet file.
+    """
+    import os
+    
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+        
+    file_path = os.path.join(os.getcwd(), "data", "raw", "hybrid_snapshots", filename)
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    try:
+        os.remove(file_path)
+        return {"status": "success", "message": f"Deleted {filename}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")

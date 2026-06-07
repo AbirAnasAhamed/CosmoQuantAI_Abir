@@ -124,15 +124,15 @@ async def _async_hybrid_deep_scraper(
     job,
     add_log_func,
     check_cancelled=None
-) -> tuple:
+) -> pd.DataFrame:
     """
-    Runs two Binance WebSocket streams in parallel until target_rows trade
-    ticks are collected.
-
-    Stream 1: @depth20@100ms  → l2_buffer
-    Stream 2: @aggTrade       → trade_buffer
-
-    Returns: (df_trades, df_l2)
+    Runs two Binance WebSocket streams in parallel until target_rows L2 frames
+    are collected. Merges trade ticks exactly into the L2 frame.
+    
+    Stream 1: @depth20@100ms
+    Stream 2: @aggTrade
+    
+    Returns: df_merged
     """
     from app import models as _models
     from app.services.ml_training_engine import TrainingCancelledException, TrainingPausedException
@@ -141,30 +141,126 @@ async def _async_hybrid_deep_scraper(
     l2_url    = f"wss://stream.binance.com:9443/ws/{clean}@depth20@100ms"
     trade_url = f"wss://stream.binance.com:9443/ws/{clean}@aggTrade"
 
-    l2_buffer    = []
-    trade_buffer = []
+    merged_buffer = []
     trade_count  = 0
+    l2_count = 0
     stop_event   = asyncio.Event()
-    log_interval = max(100, target_rows // 20)
+    log_interval = max(10, target_rows // 20)
 
     try:
         from app.services.websocket_manager import manager as _ws_manager
     except Exception:
         _ws_manager = None
 
-    # ── L2 Stream ─────────────────────────────────────────────────────────────
-    async def _l2_stream():
+    # Shared trade accumulators for the current 100ms frame
+    trade_lock = asyncio.Lock()
+    current_trades = {
+        "buy_volume": 0.0,
+        "sell_volume": 0.0,
+        "trade_count": 0,
+        "last_price": None,
+        "aggressor_ratio": 0.0,
+        "large_trade_flag": 0,
+        "vwap_deviation": 0.0,
+        "cvd": 0.0
+    }
+    cumulative_cvd = 0.0
+
+    # ── Trade Stream ──────────────────────────────────────────────────────────
+    async def _trade_stream():
+        nonlocal trade_count, cumulative_cvd
         retry = 0
         while not stop_event.is_set() and retry < 5:
             try:
-                async with websockets.connect(
-                    l2_url, ping_interval=20, ping_timeout=30
-                ) as ws:
+                async with websockets.connect(trade_url, ping_interval=20, ping_timeout=30) as ws:
                     retry = 0
                     while not stop_event.is_set():
                         try:
-                            raw  = await asyncio.wait_for(ws.recv(), timeout=15)
+                            raw = await asyncio.wait_for(ws.recv(), timeout=15)
                         except asyncio.TimeoutError:
+                            continue
+                        
+                        data = json.loads(raw)
+                        if data.get('e') != 'aggTrade':
+                            continue
+
+                        price = float(data['p'])
+                        qty   = float(data['q'])
+                        is_bm = bool(data['m']) # maker = True -> seller made it -> buy order filled? Actually is_buyer_maker=True means the buyer is the maker, so it's a SELL market order.
+                        
+                        vol = price * qty
+                        is_sell = is_bm
+                        
+                        async with trade_lock:
+                            trade_count += 1
+                            current_trades['trade_count'] += 1
+                            current_trades['last_price'] = price
+                            if is_sell:
+                                current_trades['sell_volume'] += vol
+                                cumulative_cvd -= vol
+                            else:
+                                current_trades['buy_volume'] += vol
+                                cumulative_cvd += vol
+                            
+                            current_trades['cvd'] = cumulative_cvd
+                            
+                            # arbitrary large trade
+                            if vol > 50000:
+                                current_trades['large_trade_flag'] = 1
+                            
+                        # Broadcast live tick
+                        if _ws_manager:
+                            try:
+                                await _ws_manager.broadcast(
+                                    json.dumps({
+                                        "type":      "hybrid_deep_tick",
+                                        "symbol":    symbol,
+                                        "timestamp": datetime.utcnow().isoformat(),
+                                        "price":     price,
+                                        "qty":       qty,
+                                        "side":      "sell" if is_sell else "buy",
+                                    }),
+                                    channel_id="training_visualizer"
+                                )
+                            except Exception:
+                                pass
+
+            except asyncio.CancelledError:
+                break
+            except Exception as ex:
+                if type(ex).__name__ in ('TrainingPausedException', 'TrainingCancelledException'):
+                    raise
+                if not stop_event.is_set():
+                    retry += 1
+                    await asyncio.sleep(2)
+                    continue
+                break
+        stop_event.set()
+
+    # ── L2 Stream (The Clock) ─────────────────────────────────────────────────
+    async def _l2_stream():
+        nonlocal l2_count
+        retry = 0
+        while not stop_event.is_set() and retry < 5:
+            try:
+                async with websockets.connect(l2_url, ping_interval=20, ping_timeout=30) as ws:
+                    retry = 0
+                    while not stop_event.is_set() and l2_count < target_rows:
+                        try:
+                            raw = await asyncio.wait_for(ws.recv(), timeout=15)
+                        except asyncio.TimeoutError:
+                            if check_cancelled:
+                                check_cancelled()
+                            else:
+                                db.refresh(job)
+                                if job.status == _models.TrainingStatus.PAUSED:
+                                    add_log_func("⏸️ HybridDeep paused by user.")
+                                    stop_event.set()
+                                    raise TrainingPausedException("Paused during hybrid deep scraping.")
+                                if (job.status == _models.TrainingStatus.FAILED and job.error_message and "cancelled" in job.error_message.lower()):
+                                    add_log_func("🛑 HybridDeep stopped by cancellation.")
+                                    stop_event.set()
+                                    raise TrainingCancelledException("Cancelled during hybrid deep scraping.")
                             continue
                         
                         data = json.loads(raw)
@@ -181,19 +277,68 @@ async def _async_hybrid_deep_scraper(
 
                         obi        = (bid_vol - ask_vol) / total_v if total_v > 0 else 0.0
                         spread     = (best_ask - best_bid) / best_bid if best_bid > 0 else 0.0
-                        microprice = (bid_vol * best_ask + ask_vol * best_bid) / total_v \
-                                     if total_v > 0 else (best_bid + best_ask) / 2
-
-                        l2_buffer.append({
+                        microprice = (bid_vol * best_ask + ask_vol * best_bid) / total_v if total_v > 0 else (best_bid + best_ask) / 2
+                        
+                        # Lock and extract trades
+                        async with trade_lock:
+                            t_data = dict(current_trades)
+                            
+                            # Calculate ratios before reset
+                            total_trade_vol = t_data['buy_volume'] + t_data['sell_volume']
+                            if total_trade_vol > 0:
+                                t_data['aggressor_ratio'] = t_data['buy_volume'] / total_trade_vol
+                            
+                            if t_data['last_price'] and total_trade_vol > 0:
+                                vwap = (t_data['last_price'] * total_trade_vol) / total_trade_vol
+                                t_data['vwap_deviation'] = (microprice - vwap) / vwap
+                            
+                            # Reset accumulators for the next 100ms
+                            current_trades['buy_volume'] = 0.0
+                            current_trades['sell_volume'] = 0.0
+                            current_trades['trade_count'] = 0
+                            current_trades['large_trade_flag'] = 0
+                            current_trades['aggressor_ratio'] = 0.0
+                            current_trades['vwap_deviation'] = 0.0
+                        
+                        # Merge into a single row
+                        merged_buffer.append({
                             'timestamp':  datetime.utcnow(),
                             'obi':        obi,
                             'spread':     spread,
                             'microprice': microprice,
                             'bids':       bids[:20],
                             'asks':       asks[:20],
+                            **t_data
                         })
-            except asyncio.CancelledError:
-                break
+                        l2_count += 1
+                        
+                        # Cancellation check every 50 frames
+                        if l2_count % 50 == 0:
+                            if check_cancelled:
+                                check_cancelled()
+                            else:
+                                db.refresh(job)
+                                if job.status == _models.TrainingStatus.PAUSED:
+                                    add_log_func("⏸️ HybridDeep paused by user.")
+                                    stop_event.set()
+                                    raise TrainingPausedException("Paused.")
+                                if (job.status == _models.TrainingStatus.FAILED and job.error_message and "cancelled" in job.error_message.lower()):
+                                    add_log_func("🛑 HybridDeep stopped by cancellation.")
+                                    stop_event.set()
+                                    raise TrainingCancelledException("Cancelled.")
+
+                        # Progress log (User's request to show both Trade and L2 counts!)
+                        if l2_count % log_interval == 0:
+                            pct = min(100.0, (l2_count / target_rows) * 100.0)
+                            job.progress = pct
+                            db.commit()
+                            add_log_func(f"⬇️ Collected {l2_count}/{target_rows} L2 frames | Trade Ticks: {trade_count}")
+
+                    stop_event.set()
+                    break
+
+            except TrainingCancelledException:
+                raise
             except Exception as ex:
                 if type(ex).__name__ == 'TrainingPausedException':
                     raise
@@ -204,127 +349,11 @@ async def _async_hybrid_deep_scraper(
                     continue
                 break
         
-        # Signal the other stream to stop if this one exits (e.g., max retries reached)
-        stop_event.set()
-
-    # ── Trade Stream ──────────────────────────────────────────────────────────
-    async def _trade_stream():
-        nonlocal trade_count
-        retry = 0
-        while not stop_event.is_set() and retry < 5:
-            try:
-                async with websockets.connect(
-                    trade_url, ping_interval=20, ping_timeout=30
-                ) as ws:
-                    retry = 0
-                    while not stop_event.is_set() and trade_count < target_rows:
-                        try:
-                            raw  = await asyncio.wait_for(ws.recv(), timeout=15)
-                        except asyncio.TimeoutError:
-                            if check_cancelled:
-                                check_cancelled()
-                            else:
-                                db.refresh(job)
-                                if job.status == _models.TrainingStatus.PAUSED:
-                                    add_log_func("⏸️ HybridDeep paused by user.")
-                                    stop_event.set()
-                                    raise TrainingPausedException("Paused during hybrid deep scraping.")
-                                if (job.status == _models.TrainingStatus.FAILED and
-                                        job.error_message and
-                                        "cancelled" in job.error_message.lower()):
-                                    add_log_func("🛑 HybridDeep stopped by cancellation.")
-                                    stop_event.set()
-                                    raise TrainingCancelledException(
-                                        "Cancelled during hybrid deep scraping."
-                                    )
-                            continue
-                            
-                        data = json.loads(raw)
-                        if data.get('e') != 'aggTrade':
-                            continue
-
-                        ts    = datetime.utcfromtimestamp(data['T'] / 1000.0)
-                        price = float(data['p'])
-                        qty   = float(data['q'])
-                        is_bm = bool(data['m'])
-
-                        # Cancellation/Pause check every 50 trades
-                        if trade_count % 50 == 0:
-                            if check_cancelled:
-                                check_cancelled()
-                            else:
-                                db.refresh(job)
-                                if job.status == _models.TrainingStatus.PAUSED:
-                                    add_log_func("⏸️ HybridDeep paused by user.")
-                                    stop_event.set()
-                                    raise TrainingPausedException("Paused during hybrid deep scraping.")
-                                if (job.status == _models.TrainingStatus.FAILED and
-                                        job.error_message and
-                                        "cancelled" in job.error_message.lower()):
-                                    add_log_func("🛑 HybridDeep stopped by cancellation.")
-                                    stop_event.set()
-                                    raise TrainingCancelledException(
-                                        "Cancelled during hybrid deep scraping."
-                                    )
-
-                        trade_buffer.append({
-                            'timestamp':       ts,
-                            'price':           price,
-                            'qty':             qty,
-                            'is_buyer_maker':  is_bm,
-                        })
-                        trade_count += 1
-
-                        # Live tick broadcast to frontend visualizer
-                        if _ws_manager:
-                            try:
-                                await _ws_manager.broadcast(
-                                    json.dumps({
-                                        "type":      "hybrid_deep_tick",
-                                        "symbol":    symbol,
-                                        "timestamp": ts.isoformat(),
-                                        "price":     price,
-                                        "qty":       qty,
-                                        "side":      "sell" if is_bm else "buy",
-                                    }),
-                                    channel_id="training_visualizer"
-                                )
-                            except Exception:
-                                pass
-
-                        # Progress log
-                        if trade_count % log_interval == 0:
-                            pct = min(100.0, (trade_count / target_rows) * 100.0)
-                            job.progress = pct
-                            db.commit()
-                            add_log_func(
-                                f"[HybridDeep] Trades: {trade_count}/{target_rows} | "
-                                f"L2 snapshots: {len(l2_buffer)}"
-                            )
-
-                    stop_event.set()  # Signal L2 stream to stop too
-                    break
-
-            except TrainingCancelledException:
-                raise
-            except Exception as ex:
-                if type(ex).__name__ == 'TrainingPausedException':
-                    raise
-                add_log_func(f"⚠️ [Trade Stream] Exception: {type(ex).__name__}: {ex}")
-                if not stop_event.is_set():
-                    retry += 1
-                    await asyncio.sleep(2)
-                    continue
-                break
-        
-        # Signal the other stream to stop if this one exits (e.g., max retries reached)
         stop_event.set()
 
     # ── Run Both in Parallel ──────────────────────────────────────────────────
-    add_log_func(f"[HybridDeep] Dual WebSocket connecting for {symbol}...")
-    add_log_func(f"[HybridDeep]  ├─ Stream 1: L2 Orderbook (depth20@100ms)")
-    add_log_func(f"[HybridDeep]  └─ Stream 2: Aggregated Trades (aggTrade)")
-
+    add_log_func(f"[HybridDeep] L2 Priority Collector Started for {symbol}...")
+    
     try:
         await asyncio.gather(_l2_stream(), _trade_stream())
     except Exception as e:
@@ -335,22 +364,15 @@ async def _async_hybrid_deep_scraper(
 
     add_log_func(
         f"[HybridDeep] Collection complete: "
-        f"{len(trade_buffer)} trades | {len(l2_buffer)} L2 snapshots"
+        f"{l2_count} L2 frames | {trade_count} Total Trades Processed"
     )
 
-    # Build DataFrames
-    df_trades = pd.DataFrame(trade_buffer)
-    df_l2     = pd.DataFrame(l2_buffer)
+    df_merged = pd.DataFrame(merged_buffer)
+    if not df_merged.empty:
+        df_merged['timestamp'] = pd.to_datetime(df_merged['timestamp'])
+        df_merged.set_index('timestamp', inplace=True)
 
-    if not df_trades.empty:
-        df_trades['timestamp'] = pd.to_datetime(df_trades['timestamp'])
-        df_trades.set_index('timestamp', inplace=True)
-
-    if not df_l2.empty:
-        df_l2['timestamp'] = pd.to_datetime(df_l2['timestamp'])
-        df_l2.set_index('timestamp', inplace=True)
-
-    return df_trades, df_l2
+    return df_merged
 
 
 def _run_hybrid_deep_scraper(symbol, target_rows, db, job, add_log_func, check_cancelled=None):
@@ -366,7 +388,7 @@ def _run_hybrid_deep_scraper(symbol, target_rows, db, job, add_log_func, check_c
         if type(e).__name__ == 'TrainingPausedException':
             raise
         add_log_func(f"[HybridDeep] Scraper crashed: {e}")
-        return pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -446,25 +468,21 @@ def build_hybrid_deep_dataset(job, db: Session, config: dict, add_log, check_can
         add_log(f"[HybridDeep] PLP features selected: {len(sel_plp)}")
 
     # ── Step 1: Dual WebSocket Collection ─────────────────────────────────────
-    df_trades, df_l2 = _run_hybrid_deep_scraper(
+    df = _run_hybrid_deep_scraper(
         symbol, target_rows, db, job, add_log, check_cancelled
     )
 
-    if df_trades.empty:
+    if df.empty:
         raise Exception(
-            "[HybridDeep] Trade buffer is empty. Check WebSocket connectivity."
-        )
-    if df_l2.empty:
-        raise Exception(
-            "[HybridDeep] L2 buffer is empty. Check WebSocket connectivity."
+            "[HybridDeep] Buffer is empty. Check WebSocket connectivity."
         )
 
-    add_log(f"[HybridDeep] Raw: {len(df_trades)} trade ticks, {len(df_l2)} L2 snapshots")
+    add_log(f"[HybridDeep] Raw: {len(df)} L2 frames collected with embedded trades.")
 
     # ── Step 2: Advanced L2 Feature Calculation ────────────────────────────────
     add_log("[HybridDeep] Calculating advanced L2 microstructure features...")
     try:
-        l2_prep = df_l2.copy().reset_index()
+        l2_prep = df.copy().reset_index()
         # Rename index column to 'timestamp' if needed
         if l2_prep.columns[0] != 'timestamp':
             l2_prep.rename(columns={l2_prep.columns[0]: 'timestamp'}, inplace=True)
@@ -472,22 +490,17 @@ def build_hybrid_deep_dataset(job, db: Session, config: dict, add_log, check_can
             l2_prep['Close'] = l2_prep['microprice']
 
         df_l2_adv, _ = calculate_l2_advanced_features(l2_prep)
-        # Attach advanced feature columns back to df_l2
-        df_l2_adv.index = df_l2.index[:len(df_l2_adv)]
+        # Attach advanced feature columns back to df
+        df_l2_adv.index = df.index[:len(df_l2_adv)]
         for col in df_l2_adv.columns:
-            if col not in df_l2.columns:
-                df_l2[col] = df_l2_adv[col]
+            if col not in df.columns:
+                df[col] = df_l2_adv[col]
         add_log(f"[HybridDeep] Added {len(df_l2_adv.columns)} advanced L2 features.")
     except Exception as e:
         add_log(f"[HybridDeep] ⚠️ Advanced L2 features skipped (non-fatal): {e}")
 
     # Drop raw bids/asks (not needed after feature extraction)
-    df_l2.drop(columns=['bids', 'asks'], inplace=True, errors='ignore')
-
-    # ── Step 3: As-Of Merge (trade-tick granularity) ──────────────────────────
-    add_log("[HybridDeep] Merging trade ticks ← L2 snapshots (as-of merge)...")
-    df = merge_tick_with_l2(df_trades, df_l2)
-    add_log(f"[HybridDeep] Merged: {len(df)} rows × {len(df.columns)} columns")
+    df.drop(columns=['bids', 'asks'], inplace=True, errors='ignore')
 
     # ── Step 4: Trade Tick Feature Engineering ────────────────────────────────
     add_log(f"[HybridDeep] Engineering trade features: {sel_trade}")

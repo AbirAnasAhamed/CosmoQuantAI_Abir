@@ -56,6 +56,7 @@ export interface TrainingConfig {
         // L2 Snapshot params (new)
         l2_snapshot_file?: string;
         l2_processing_mode?: string;
+        hybrid_snapshot_file?: string; // ✅ Hybrid Deep
         hybrid_deep_trade_features?: string[]; // ✅ Hybrid Deep (L2 + aggTrade)
         plp_features?: string[]; // ✅ Predatory Liquidity Pipeline (PLP) Features
         execution_strategy?: string;

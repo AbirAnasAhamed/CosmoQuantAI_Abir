@@ -31,3 +31,7 @@ class TrainingJobResponse(BaseModel):
 class StartL2CollectorRequest(BaseModel):
     symbol: str
     target_rows: int
+
+class StartHybridCollectorRequest(BaseModel):
+    symbol: str
+    target_rows: int

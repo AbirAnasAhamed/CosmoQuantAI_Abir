@@ -113,6 +113,11 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     const [l2ProcessingMode, setL2ProcessingMode] = useState<'raw' | 'bars'>('raw');
 
     // Hybrid Deep (L2 + Live Trade) States
+    const [isHybridScraping, setIsHybridScraping] = useState(false);
+    const [hybridSnapshotFiles, setHybridSnapshotFiles] = useState<string[]>([]);
+    const [selectedHybridFile, setSelectedHybridFile] = useState('');
+    const [hybridScrapeJob, setHybridScrapeJob] = useState<TrainingJob | null>(null);
+
     const [selectedHybridDeepTradeFeatures, setSelectedHybridDeepTradeFeatures] = useState<string[]>([
         'cvd', 'buy_volume', 'sell_volume', 'trade_count',
         'aggressor_ratio', 'large_trade_flag', 'vwap_deviation',
@@ -188,6 +193,14 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
             }).catch(e => console.error("Failed to load L2 snapshots", e));
         }
     }, [dataSource, selectedL2File]);
+
+    useEffect(() => {
+        if (dataSource === 'hybrid_deep') {
+            apiClient.get('/model-training/hybrid-snapshots').then((res) => {
+                setHybridSnapshotFiles(res.data);
+            }).catch(e => console.error("Failed to load hybrid snapshots", e));
+        }
+    }, [dataSource]);
 
     const handleDeleteL2SnapshotFile = async (e: React.MouseEvent) => {
         e.preventDefault();
@@ -461,6 +474,68 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
         return () => clearInterval(interval);
     }, [l2ScrapeJob?.id, l2ScrapeJob?.status, dataSource]);
 
+    // Hybrid Scraper Polling logic
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (hybridScrapeJob && ['PENDING', 'RUNNING'].includes(hybridScrapeJob.status)) {
+            interval = setInterval(async () => {
+                try {
+                    const latestJob = await mlTrainingService.getJobStatus(hybridScrapeJob.id);
+                    setHybridScrapeJob(latestJob);
+                    if (['COMPLETED', 'FAILED'].includes(latestJob.status)) {
+                        clearInterval(interval);
+                        if (latestJob.status === 'COMPLETED' && dataSource === 'hybrid_deep') {
+                            apiClient.get('/model-training/hybrid-snapshots').then((res) => {
+                                setHybridSnapshotFiles(res.data);
+                            }).catch(e => console.error("Failed to load hybrid snapshots", e));
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error fetching Hybrid job status:", error);
+                }
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [hybridScrapeJob?.id, hybridScrapeJob?.status, dataSource]);
+
+    const handleStartHybridCollector = async () => {
+        try {
+            const targetRows = parseInt(manualTargetRows, 10) || targetRowOptions[targetRowsIndex];
+            const response = await apiClient.post('/model-training/start-hybrid-collector', {
+                symbol: symbol,
+                target_rows: targetRows
+            });
+            setHybridScrapeJob(response.data);
+        } catch (error: any) {
+            alert(`❌ Failed to start Hybrid Collector: ${error.response?.data?.detail || error.message}`);
+        }
+    };
+
+    const handleCancelHybridScrape = async () => {
+        if (!hybridScrapeJob) return;
+        if (!confirm('Are you sure you want to stop the Hybrid Data Collector?')) return;
+        try {
+            await apiClient.post(`/model-training/jobs/${hybridScrapeJob.id}/cancel`);
+            setHybridScrapeJob(prev => prev ? { ...prev, status: 'FAILED', error_message: 'Cancelled by user' } : null);
+        } catch (error: any) {
+            alert(`Failed to cancel: ${error.message}`);
+        }
+    };
+
+    const handleDeleteHybridSnapshotFile = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (!selectedHybridFile) return;
+        if (!confirm(`Are you sure you want to delete ${selectedHybridFile}?`)) return;
+        try {
+            await apiClient.delete(`/model-training/hybrid-snapshots/${selectedHybridFile}`);
+            setHybridSnapshotFiles(prev => prev.filter(f => f !== selectedHybridFile));
+            setSelectedHybridFile('');
+            alert(`✅ Deleted Hybrid snapshot: ${selectedHybridFile}`);
+        } catch (error: any) {
+            alert(`❌ Failed to delete Hybrid snapshot: ${error?.response?.data?.detail || error.message}`);
+        }
+    };
+
     const handleToggleIndicator = (ind: string) => {
         setSelectedIndicators(prev => 
             prev.includes(ind) ? prev.filter(i => i !== ind) : [...prev, ind]
@@ -552,6 +627,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                     l2_snapshot_file: dataSource === 'l2_orderbook' && !isL2Scraping ? selectedL2File : undefined,
                     l2_processing_mode: dataSource === 'l2_orderbook' && !isL2Scraping ? l2ProcessingMode : undefined,
                     // Hybrid Deep params (new)
+                    hybrid_snapshot_file: dataSource === 'hybrid_deep' && !isHybridScraping ? selectedHybridFile : undefined,
                     hybrid_deep_trade_features: dataSource === 'hybrid_deep' ? selectedHybridDeepTradeFeatures : undefined,
                     plp_features: (dataSource === 'hybrid_deep' || dataSource === 'l2_orderbook' || dataSource === 'hybrid') ? selectedPlpFeatures : undefined,
                     // Execution strategy params
@@ -1593,62 +1669,177 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                         </div>
                                     </div>
 
-                                    {/* Target Trade Ticks */}
-                                    <div className="p-4 bg-white/5 border border-rose-500/20 rounded-xl space-y-4 shadow-inner">
-                                        <div className="flex justify-between items-center">
-                                            <label className="block text-sm font-medium text-slate-300">Target Trade Ticks (aggTrade)</label>
-                                            <span className="text-sm font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20 font-mono">
-                                                {targetRowOptions[targetRowsIndex].toLocaleString()} Ticks
-                                            </span>
+                                    {/* Hybrid Scraper Toggle & UI */}
+                                    <div className="flex items-center justify-between p-4 bg-rose-500/10 rounded-xl border border-rose-500/20 shadow-inner">
+                                        <div>
+                                            <h4 className="text-sm font-bold text-rose-400">Live Hybrid Scraping Engine</h4>
+                                            <p className="text-xs text-slate-400 mt-0.5 font-medium">Connect to Binance WSS to download real-time synced L2 + Trades data.</p>
                                         </div>
-                                        <input
-                                            type="range"
-                                            min={0}
-                                            max={targetRowOptions.length - 1}
-                                            step={1}
-                                            value={targetRowsIndex}
-                                            onChange={(e) => handleSliderChange(parseInt(e.target.value))}
-                                            disabled={isTraining}
-                                            className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-rose-500"
-                                        />
-                                        <div className="flex justify-between text-[10px] text-slate-500 font-medium -mt-1">
-                                            <span>1K</span><span>50K</span><span>500K</span><span>5M</span><span>50M</span><span>100M</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="relative flex-1">
-                                                <input
-                                                    type="number"
-                                                    min={1}
-                                                    max={100000000}
-                                                    step={1000}
-                                                    value={manualTargetRows}
-                                                    onChange={(e) => handleManualRowInput(e.target.value)}
-                                                    onBlur={() => {
-                                                        const num = parseInt(manualTargetRows.replace(/,/g, ''), 10);
-                                                        if (!isNaN(num) && num > 0) {
-                                                            const clamped = Math.max(1, Math.min(100_000_000, num));
-                                                            setTargetRowsIndex(snapToNearestPreset(clamped));
-                                                            setManualTargetRows(String(clamped));
-                                                        }
-                                                    }}
-                                                    disabled={isTraining}
-                                                    className="w-full bg-black/50 border border-rose-500/30 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:ring-2 focus:ring-rose-500/50 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                />
-                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-rose-400/60 uppercase pointer-events-none">ticks</span>
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-6 gap-1.5">
-                                            {[{label:'1K',val:1_000},{label:'10K',val:10_000},{label:'100K',val:100_000},{label:'1M',val:1_000_000},{label:'10M',val:10_000_000},{label:'100M',val:100_000_000}].map(({label,val}) => {
-                                                const isActive = targetRowOptions[targetRowsIndex] === val;
-                                                return (
-                                                    <button key={label} disabled={isTraining}
-                                                        onClick={() => { const idx = targetRowOptions.indexOf(val); setTargetRowsIndex(idx); setManualTargetRows(String(val)); }}
-                                                        className={`py-1 text-[10px] font-black rounded-lg border transition-all ${isActive ? 'bg-rose-600/30 border-rose-400/60 text-rose-300' : 'bg-black/30 border-white/10 text-slate-400 hover:border-rose-500/40 hover:text-rose-300'}`}
-                                                    >{label}</button>
-                                                );
-                                            })}
-                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                className="sr-only peer" 
+                                                checked={isHybridScraping}
+                                                onChange={() => setIsHybridScraping(!isHybridScraping)}
+                                                disabled={isTraining || (hybridScrapeJob !== null && ['PENDING', 'RUNNING'].includes(hybridScrapeJob.status))}
+                                            />
+                                            <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all border-white/5 peer-checked:bg-gradient-to-r peer-checked:from-rose-500 peer-checked:to-orange-500"></div>
+                                        </label>
                                     </div>
+
+                                    {isHybridScraping && (
+                                        <div className="p-4 bg-rose-500/5 rounded-xl border border-rose-500/20 shadow-inner space-y-4">
+                                            <div>
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="block text-sm font-medium text-slate-300">Target Rows (100ms Frames)</label>
+                                                    <span className="text-xs font-bold text-rose-400 font-mono bg-rose-500/10 px-2 py-0.5 rounded">
+                                                        {manualTargetRows || targetRowOptions[targetRowsIndex].toLocaleString()} Rows
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <input
+                                                        type="number"
+                                                        min={100}
+                                                        max={10000000}
+                                                        step={100}
+                                                        value={manualTargetRows}
+                                                        onChange={(e) => setManualTargetRows(e.target.value)}
+                                                        disabled={isTraining || (hybridScrapeJob !== null && ['PENDING', 'RUNNING'].includes(hybridScrapeJob.status))}
+                                                        className="w-full bg-[#0A0A0A] border border-rose-500/30 rounded-lg p-2.5 text-slate-200"
+                                                        placeholder="e.g. 200000"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {(!hybridScrapeJob || ['COMPLETED', 'FAILED'].includes(hybridScrapeJob.status)) && (
+                                                <button
+                                                    onClick={handleStartHybridCollector}
+                                                    disabled={isTraining}
+                                                    className="w-full py-2.5 rounded-lg font-bold text-sm bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/50 transition-all shadow-[0_0_15px_rgba(244,63,94,0.2)] disabled:opacity-50"
+                                                >
+                                                    Start Hybrid Data Collector
+                                                </button>
+                                            )}
+
+                                            {hybridScrapeJob && (
+                                                <div className="mt-3 p-3 bg-[#0A0A0A]/50 rounded-lg border border-rose-500/20">
+                                                    <div className="flex justify-between items-end mb-2">
+                                                        <span className="text-xs font-medium text-slate-400">Collector Progress</span>
+                                                        <span className="text-sm font-bold text-rose-400">{hybridScrapeJob.progress}%</span>
+                                                    </div>
+                                                    <div className="w-full bg-slate-800 rounded-full h-1.5 mb-3 overflow-hidden">
+                                                        <div 
+                                                            className="bg-gradient-to-r from-rose-500 to-orange-500 h-1.5 rounded-full transition-all duration-300" 
+                                                            style={{ width: `${hybridScrapeJob.progress}%` }}
+                                                        />
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-400 font-mono mb-3 truncate">
+                                                        {hybridScrapeJob.logs && hybridScrapeJob.logs.length > 0 ? hybridScrapeJob.logs[hybridScrapeJob.logs.length - 1] : 'Initializing...'}
+                                                    </div>
+                                                    
+                                                    {['PENDING', 'RUNNING'].includes(hybridScrapeJob.status) ? (
+                                                        <button 
+                                                            onClick={handleCancelHybridScrape}
+                                                            className="w-full py-1.5 rounded-lg border border-red-500/30 text-red-400 text-xs hover:bg-red-500/10 transition-colors"
+                                                        >
+                                                            Stop Collector
+                                                        </button>
+                                                    ) : (
+                                                        <div className={`text-center text-xs font-bold ${hybridScrapeJob.status === 'COMPLETED' ? 'text-green-400' : 'text-red-400'}`}>
+                                                            {hybridScrapeJob.status === 'COMPLETED' ? '✅ Completed Successfully' : '❌ ' + (hybridScrapeJob.error_message || 'Stopped')}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {!isHybridScraping && (
+                                        <div className="space-y-4">
+                                            <div className="p-4 bg-rose-500/10 rounded-xl border border-rose-500/20 shadow-inner">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="block text-sm font-medium text-slate-300">Select Hybrid Snapshot File</label>
+                                                    <button
+                                                        onClick={handleDeleteHybridSnapshotFile}
+                                                        disabled={isTraining || !selectedHybridFile}
+                                                        className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded transition-all hover:bg-red-500/20 disabled:opacity-50"
+                                                        title="Delete selected snapshot"
+                                                    >
+                                                        <Trash2 className="w-3 h-3" />
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                                <select 
+                                                    value={selectedHybridFile} 
+                                                    onChange={(e) => setSelectedHybridFile(e.target.value)}
+                                                    className="w-full bg-[#0A0A0A] border border-rose-500/30 rounded-lg p-2.5 text-slate-200"
+                                                    disabled={isTraining}
+                                                >
+                                                    <option value="">⚡ Fetch Database Ticks (Default)</option>
+                                                    {hybridSnapshotFiles.length === 0 ? <option value="" disabled>No Hybrid snapshots available</option> : null}
+                                                    {hybridSnapshotFiles.map(f => <option key={f} value={f}>📂 {f}</option>)}
+                                                </select>
+                                            </div>
+
+                                            {!selectedHybridFile && (
+                                                <div className="p-4 bg-white/5 border border-rose-500/20 rounded-xl space-y-4 shadow-inner">
+                                                    <div className="flex justify-between items-center">
+                                                        <label className="block text-sm font-medium text-slate-300">Target Rows (100ms Frames)</label>
+                                                        <span className="text-sm font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20 font-mono">
+                                                            {targetRowOptions[targetRowsIndex].toLocaleString()} Rows
+                                                        </span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min={0}
+                                                        max={targetRowOptions.length - 1}
+                                                        step={1}
+                                                        value={targetRowsIndex}
+                                                        onChange={(e) => handleSliderChange(parseInt(e.target.value))}
+                                                        disabled={isTraining}
+                                                        className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                                                    />
+                                                    <div className="flex justify-between text-[10px] text-slate-500 font-medium -mt-1">
+                                                        <span>1K</span><span>50K</span><span>500K</span><span>5M</span><span>50M</span><span>100M</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="relative flex-1">
+                                                            <input
+                                                                type="number"
+                                                                min={1}
+                                                                max={100000000}
+                                                                step={1000}
+                                                                value={manualTargetRows}
+                                                                onChange={(e) => handleManualRowInput(e.target.value)}
+                                                                onBlur={() => {
+                                                                    const num = parseInt(manualTargetRows.replace(/,/g, ''), 10);
+                                                                    if (!isNaN(num) && num > 0) {
+                                                                        const clamped = Math.max(1, Math.min(100_000_000, num));
+                                                                        setTargetRowsIndex(snapToNearestPreset(clamped));
+                                                                        setManualTargetRows(String(clamped));
+                                                                    }
+                                                                }}
+                                                                disabled={isTraining}
+                                                                className="w-full bg-black/50 border border-rose-500/30 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:ring-2 focus:ring-rose-500/50 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                            />
+                                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-rose-400/60 uppercase pointer-events-none">rows</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-6 gap-1.5">
+                                                        {[{label:'1K',val:1_000},{label:'10K',val:10_000},{label:'100K',val:100_000},{label:'1M',val:1_000_000},{label:'10M',val:10_000_000},{label:'100M',val:100_000_000}].map(({label,val}) => {
+                                                            const isActive = targetRowOptions[targetRowsIndex] === val;
+                                                            return (
+                                                                <button key={label} disabled={isTraining}
+                                                                    onClick={() => { const idx = targetRowOptions.indexOf(val); setTargetRowsIndex(idx); setManualTargetRows(String(val)); }}
+                                                                    className={`py-1 text-[10px] font-black rounded-lg border transition-all ${isActive ? 'bg-rose-600/30 border-rose-400/60 text-rose-300' : 'bg-black/30 border-white/10 text-slate-400 hover:border-rose-500/40 hover:text-rose-300'}`}
+                                                                >{label}</button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* Trade Tick Feature Selector — 12 features */}
                                     <div className="bg-white/5 border border-rose-500/20 p-5 rounded-2xl shadow-inner">
