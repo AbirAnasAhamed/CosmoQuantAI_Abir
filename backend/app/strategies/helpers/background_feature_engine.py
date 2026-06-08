@@ -12,11 +12,12 @@ class BackgroundFeatureEngine:
     Maintains a rolling cache of slow-to-calculate features (Trade, PLP) so that 
     the real-time L2 predictor can access them instantly without latency.
     """
-    def __init__(self, symbol: str, required_features: list):
+    def __init__(self, symbol: str, required_features: list, is_futures: bool = False):
         self.symbol = symbol
         self.required_features = required_features
         self.latest_features_cache: Dict[str, float] = {}
         self.is_running = False
+        self.is_futures = is_futures or ":" in symbol
         self._task = None
         self._lock = asyncio.Lock()
 
@@ -66,7 +67,7 @@ class BackgroundFeatureEngine:
     async def _cache_loop(self):
         import ccxt.async_support as ccxt_async
         # Use binanceusdm for futures if symbol contains ':', else binance spot
-        if ":" in self.symbol:
+        if self.is_futures:
             exchange = ccxt_async.binanceusdm({'enableRateLimit': True})
         else:
             exchange = ccxt_async.binance({'enableRateLimit': True})
@@ -120,6 +121,16 @@ class BackgroundFeatureEngine:
                 break
             except Exception as e:
                 logger.error(f"BackgroundFeatureEngine error for {self.symbol}: {e}")
+                # Fallback for ccxt symbol mapping issues
+                if "does not have market" in str(e) or "BadSymbol" in str(e):
+                    if ":" in self.symbol:
+                        new_sym = self.symbol.split(":")[0]
+                        logger.warning(f"BackgroundFeatureEngine: Retrying fetch_trades with fallback symbol {new_sym}")
+                        try:
+                            _ = await exchange.fetch_trades(new_sym, limit=10)
+                            self.symbol = new_sym # If successful, keep using it
+                        except Exception:
+                            pass
                 
             # Sleep 2 seconds before next poll to avoid rate limits
             await asyncio.sleep(2.0)

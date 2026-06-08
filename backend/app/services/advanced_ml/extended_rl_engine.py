@@ -39,17 +39,18 @@ class ExtendedRLEngine:
     @staticmethod
     def _calculate_env_metrics(env_instance, initial_balance):
         rl_metrics = {"total_return_pct": 0.0, "win_rate": 0.0, "sharpe_ratio": 0.0, "trades_count": 0, "net_profit": 0.0}
-        if hasattr(env_instance, 'equity_history') and len(env_instance.equity_history) > 1:
-            equity = np.array(env_instance.equity_history)
+        unwrapped_env = getattr(env_instance, 'unwrapped', env_instance)
+        if hasattr(unwrapped_env, 'equity_history') and len(unwrapped_env.equity_history) > 1:
+            equity = np.array(unwrapped_env.equity_history)
             returns = np.diff(equity) / equity[:-1]
             total_return = (equity[-1] - initial_balance) / initial_balance * 100
             sharpe = (np.mean(returns) / (np.std(returns) + 1e-9)) * np.sqrt(252 * 24 * 60)
             
-            trades = env_instance.trade_history
+            trades = unwrapped_env.trade_history
             pnl_trades = [t['pnl'] for t in trades if 'pnl' in t]
             
-            if getattr(env_instance, 'position', 0) != 0:
-                unrealized_pnl = env_instance.net_worth - getattr(env_instance, 'entry_net_worth', initial_balance)
+            if getattr(unwrapped_env, 'position', 0) != 0:
+                unrealized_pnl = unwrapped_env.net_worth - getattr(unwrapped_env, 'entry_net_worth', initial_balance)
                 pnl_trades.append(unrealized_pnl)
                 
             win_rate = (len([p for p in pnl_trades if p > 0]) / len(pnl_trades)) * 100 if pnl_trades else 0
@@ -95,7 +96,9 @@ class ExtendedRLEngine:
             commission = float(config.get("commission", 0.02)) / 100.0
             slippage = float(config.get("slippage", 0.01)) / 100.0
             
-            env_df = AdvancedDataHandler.prepare_rl_data(df, features)
+            model_dir = os.path.join("uploads", "models", f"job_{job.id}")
+            scaler_path = os.path.join(model_dir, "scaler.pkl")
+            env_df = AdvancedDataHandler.prepare_rl_data(df, features, scaler_path=scaler_path)
             def make_env():
                 base_env = AdvancedTradingEnv(env_df, features=features, initial_balance=initial_balance, commission=commission, slippage=slippage, is_continuous=False)
                 max_allowed_drawdown = float(config.get("max_allowed_drawdown", 0.0))
@@ -251,7 +254,9 @@ class ExtendedRLEngine:
             commission = float(config.get("commission", 0.02)) / 100.0
             slippage = float(config.get("slippage", 0.01)) / 100.0
             
-            env_df = AdvancedDataHandler.prepare_rl_data(df, features)
+            model_dir = os.path.join("uploads", "models", f"job_{job.id}")
+            scaler_path = os.path.join(model_dir, "scaler.pkl")
+            env_df = AdvancedDataHandler.prepare_rl_data(df, features, scaler_path=scaler_path)
             
             def make_env():
                 base_env = AdvancedTradingEnv(env_df, features=features, initial_balance=initial_balance, commission=commission, slippage=slippage, is_continuous=True)
@@ -419,7 +424,9 @@ class ExtendedRLEngine:
         commission = float(config.get("commission", 0.02)) / 100.0
         slippage = float(config.get("slippage", 0.01)) / 100.0
         
-        env_df = AdvancedDataHandler.prepare_rl_data(df, features)
+        model_dir = os.path.join("uploads", "models", f"job_{job.id}")
+        scaler_path = os.path.join(model_dir, "scaler.pkl")
+        env_df = AdvancedDataHandler.prepare_rl_data(df, features, scaler_path=scaler_path)
         is_continuous = job.algorithm in ["DDPG-RL", "TD3-RL"]
         
         def make_env():
@@ -587,17 +594,18 @@ class ExtendedRLEngine:
             "trades_count": 0,
             "net_profit": 0.0
         }
-        if hasattr(env.envs[0], 'equity_history') and len(env.envs[0].equity_history) > 1:
-            equity = np.array(env.envs[0].equity_history)
+        unwrapped_env = getattr(env.envs[0], 'unwrapped', env.envs[0])
+        if hasattr(unwrapped_env, 'equity_history') and len(unwrapped_env.equity_history) > 1:
+            equity = np.array(unwrapped_env.equity_history)
             returns = np.diff(equity) / equity[:-1]
             total_return = (equity[-1] - initial_balance) / initial_balance * 100
             sharpe = (np.mean(returns) / (np.std(returns) + 1e-9)) * np.sqrt(252 * 24 * 60)
             
-            trades = env.envs[0].trade_history
+            trades = unwrapped_env.trade_history
             pnl_trades = [t['pnl'] for t in trades if 'pnl' in t]
             
-            if getattr(env.envs[0], 'position', 0) != 0:
-                unrealized_pnl = env.envs[0].net_worth - getattr(env.envs[0], 'entry_net_worth', initial_balance)
+            if getattr(unwrapped_env, 'position', 0) != 0:
+                unrealized_pnl = unwrapped_env.net_worth - getattr(unwrapped_env, 'entry_net_worth', initial_balance)
                 pnl_trades.append(unrealized_pnl)
                 
             win_rate = (len([p for p in pnl_trades if p > 0]) / len(pnl_trades)) * 100 if pnl_trades else 0

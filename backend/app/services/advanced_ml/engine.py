@@ -488,13 +488,17 @@ class AdvancedMLEngine:
         lr = float(config.get("learning_rate", 0.0003))
         initial_balance = float(config.get("initial_balance", 10000))
         # Frontend sends percentage (e.g. 0.001 for 0.001%), so divide by 100
-        commission_pct = float(config.get("commission", 0.02)) # default 0.02%
+        comm_val = config.get("commission")
+        commission_pct = float(comm_val) if comm_val is not None and comm_val != "" else 0.02
         commission = commission_pct / 100.0
         
-        slippage_pct = float(config.get("slippage", 0.01)) # default 0.01%
+        slip_val = config.get("slippage")
+        slippage_pct = float(slip_val) if slip_val is not None and slip_val != "" else 0.01
         slippage = slippage_pct / 100.0
         
-        env_df = AdvancedDataHandler.prepare_rl_data(df, features)
+        model_dir = os.path.join("uploads", "models", f"job_{job.id}")
+        scaler_path = os.path.join(model_dir, "scaler.pkl")
+        env_df = AdvancedDataHandler.prepare_rl_data(df, features, scaler_path=scaler_path)
         
         if len(env_df) < 100:
             error_msg = f"❌ Not enough data for RL: You have {len(env_df)} candles. Please collect more rows or use a lower 'Timeframe'."
@@ -763,8 +767,8 @@ class AdvancedMLEngine:
                 obs, reward, terminated, truncated, info = eval_env.step(action)
                 done = terminated or truncated
                 
-            equity_data = eval_env.equity_history
-            trade_data = eval_env.trade_history
+            equity_data = getattr(eval_env.unwrapped, 'equity_history', [])
+            trade_data = getattr(eval_env.unwrapped, 'trade_history', [])
         except Exception as e:
             add_log(f"⚠️ Evaluation pass error: {e}")
 

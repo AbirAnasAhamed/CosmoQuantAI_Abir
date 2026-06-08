@@ -45,7 +45,8 @@ class AdvancedDataHandler:
     def prepare_rl_data(
         df: pd.DataFrame, 
         features: List[str], 
-        sequence_length: int = 1
+        sequence_length: int = 1,
+        scaler_path: str = None
     ) -> pd.DataFrame:
         """
         Prepares data specifically for the TradingEnv.
@@ -72,9 +73,20 @@ class AdvancedDataHandler:
         
         # Normalize features for RL Neural Network (MlpPolicy)
         from sklearn.preprocessing import StandardScaler
+        import joblib
+        import logging
         if len(features) > 0:
             scaler = StandardScaler()
             scaled_vals = scaler.fit_transform(res_df[features].values)
+            
+            if scaler_path:
+                try:
+                    import os
+                    os.makedirs(os.path.dirname(scaler_path), exist_ok=True)
+                    joblib.dump(scaler, scaler_path)
+                except Exception as e:
+                    logging.getLogger(__name__).warning(f"Could not save scaler to {scaler_path}: {e}")
+
             scaled_vals = np.nan_to_num(scaled_vals, nan=0.0)
             # Strict clip to prevent extreme outliers from blowing up SAC gradients
             scaled_vals = np.clip(scaled_vals, -10.0, 10.0)
@@ -83,3 +95,4 @@ class AdvancedDataHandler:
         res_df = res_df.copy()
         res_df['Raw_Close'] = df['Close'].copy()
         return res_df
+

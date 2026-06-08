@@ -1861,7 +1861,9 @@ class WallHunterFuturesStrategy:
                 if self.enable_ml_filter and hasattr(self, 'ml_predictor') and self.ml_predictor:
                     active = getattr(self.ml_predictor, 'last_active_features', 0)
                     total = getattr(self.ml_predictor, 'total_model_features', 0)
-                    ml_health_str = f"🧠 AI Health: {active}/{total} Features Active\n"
+                    bullish = getattr(self.ml_predictor, 'bullish_threshold', 0.5) * 100
+                    bearish = getattr(self.ml_predictor, 'bearish_threshold', 0.5) * 100
+                    ml_health_str = f"🧠 AI Health: {active}/{total} Features Active\n📈 Bullish Threshold: {bullish:.0f}%\n📉 Bearish Threshold: {bearish:.0f}%\n"
 
                 asyncio.create_task(self._send_telegram(
                     f"⚡ WallHunter Entered!\n"

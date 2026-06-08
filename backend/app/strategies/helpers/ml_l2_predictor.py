@@ -44,6 +44,9 @@ class MLL2Predictor:
         self.l2_history = []
         self.bullish_threshold = 0.5
         self.bearish_threshold = 0.5
+        self.scaler = None
+        self._dynamic_features_history = []
+        self.last_features_list = []
 
     async def start_background_engine(self, symbol: str):
         """Starts the background engine if complex features are needed."""
@@ -102,6 +105,16 @@ class MLL2Predictor:
                         self.model_features = meta.get("features")
                 except Exception as e:
                     logger.warning(f"MLL2Predictor: Failed to load metadata: {e}")
+
+            # Attempt to load scaler
+            model_dir = os.path.dirname(file_path)
+            scaler_path = os.path.join(model_dir, "scaler.pkl")
+            if os.path.exists(scaler_path):
+                try:
+                    self.scaler = joblib.load(scaler_path)
+                    logger.info(f"MLL2Predictor: Scaler loaded successfully from {scaler_path}.")
+                except Exception as e:
+                    logger.warning(f"MLL2Predictor: Failed to load scaler: {e}")
 
             if self.model_type in ["Random Forest", "XGBoost", "LightGBM", "CatBoost"]:
                 self.model = joblib.load(file_path)
@@ -343,14 +356,39 @@ class MLL2Predictor:
                 if not self._feature_mismatch_logged:
                     logger.warning(
                         f"MLL2Predictor: Model expects {expected_features} features, but L2 provides "
-                        f"{len(features_list)}. Padding with zeros. "
+                        f"{len(features_list)}. Padding with last known or zeros. "
                     )
                     self._feature_mismatch_logged = True
-                features_list.extend([0.0] * missing_count)
+                    
+                if self.last_features_list and len(self.last_features_list) == expected_features:
+                    features_list.extend(self.last_features_list[len(features_list):])
+                else:
+                    features_list.extend([0.0] * missing_count)
             elif expected_features < len(features_list):
                 features_list = features_list[:expected_features]
+                
+            self.last_features_list = features_list.copy()
                         
             features = np.array(features_list).reshape(1, -1)
+            
+            # Apply feature scaling
+            if self.scaler is not None:
+                features = self.scaler.transform(features)
+                features = np.nan_to_num(features, nan=0.0)
+                features = np.clip(features, -10.0, 10.0)
+            elif self.model_type not in ["Random Forest", "XGBoost", "LightGBM", "CatBoost"]:
+                # Dynamic scaling fallback for NNs/RL without saved scaler
+                self._dynamic_features_history.append(features_list)
+                if len(self._dynamic_features_history) > 100:
+                    self._dynamic_features_history.pop(0)
+                if len(self._dynamic_features_history) > 1:
+                    hist_arr = np.array(self._dynamic_features_history)
+                    mean = np.mean(hist_arr, axis=0)
+                    std = np.std(hist_arr, axis=0)
+                    std[std == 0] = 1.0 # prevent div by zero
+                    features = (features - mean) / std
+                    features = np.nan_to_num(features, nan=0.0)
+                    features = np.clip(features, -10.0, 10.0)
 
             # 2. Predict
             if self.model_type in ["Random Forest", "XGBoost", "LightGBM", "CatBoost"]:
@@ -380,14 +418,21 @@ class MLL2Predictor:
                     
                 # Handle continuous vs discrete action spaces
                 if hasattr(self.model, 'action_space') and type(self.model.action_space).__name__ == 'Box':
-                    # Continuous action space: > 0 means Buy/Up, <= 0 means Sell/Down
-                    pred = 1.0 if val > 0 else 0.0
-                else:
-                    # Discrete action space: 1 = Buy/Up, 0 = Sell/Down
-                    if isinstance(val, (float, np.floating)) and not float(val).is_integer():
-                        pred = 1.0 if val > 0 else 0.0
+                    # Continuous action space: > 0.33 means Buy, < -0.33 means Sell, else Neutral
+                    if val > 0.33:
+                        pred = 1.0
+                    elif val < -0.33:
+                        pred = 0.0
                     else:
-                        pred = 1.0 if val == 1 else 0.0
+                        pred = 0.5
+                else:
+                    # Discrete action space: 1 = Buy, 2 = Sell, 0 = Neutral
+                    if val == 1:
+                        pred = 1.0
+                    elif val == 2:
+                        pred = 0.0
+                    else:
+                        pred = 0.5
             else:
                 return True
 
@@ -402,9 +447,9 @@ class MLL2Predictor:
             if self.prediction_target == "classification":
                 is_long = (side.lower() in ("long", "buy"))
                 if is_long:
-                    return pred >= self.bullish_threshold
+                    return pred > self.bullish_threshold
                 else:
-                    return pred <= self.bearish_threshold
+                    return pred < self.bearish_threshold
             else:
                 is_bullish = (pred > current_price)
                 is_long = (side.lower() in ("long", "buy"))

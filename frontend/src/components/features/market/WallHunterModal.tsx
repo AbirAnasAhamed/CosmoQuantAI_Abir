@@ -1879,43 +1879,48 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 </select>
                                             )}
                                             
-                                            <div className="mt-3 bg-black/60 p-3 rounded-lg border border-white/5">
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <label className="text-[10px] font-bold text-gray-300 uppercase">
-                                                        Bullish Probability Threshold
-                                                    </label>
-                                                    <span className="text-xs font-mono text-blue-400">{(form.mlBullishThreshold * 100).toFixed(0)}%</span>
+                                            {(tradingMode === 'spot' ? strategyMode !== 'short' : form.positionDirection !== 'short') && (
+                                                <div className="mt-3 bg-black/60 p-3 rounded-lg border border-white/5">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <label className="text-[10px] font-bold text-gray-300 uppercase">
+                                                            Bullish Probability Threshold
+                                                        </label>
+                                                        <span className="text-xs font-mono text-blue-400">{(form.mlBullishThreshold * 100).toFixed(0)}%</span>
+                                                    </div>
+                                                    <input 
+                                                        type="range" 
+                                                        min="0.1" max="0.9" step="0.05"
+                                                        value={form.mlBullishThreshold}
+                                                        onChange={(e) => handleFormChange('mlBullishThreshold', parseFloat(e.target.value))}
+                                                        className="w-full accent-blue-500"
+                                                    />
+                                                    <p className="text-[9px] text-gray-500 mt-1 leading-tight">
+                                                        Lowering this (e.g. 0.40) makes the bot take Longs more easily. Higher (e.g. 0.60) makes it stricter. Defaults to 0.50.
+                                                    </p>
                                                 </div>
-                                                <input 
-                                                    type="range" 
-                                                    min="0.1" max="0.9" step="0.05"
-                                                    value={form.mlBullishThreshold}
-                                                    onChange={(e) => handleFormChange('mlBullishThreshold', parseFloat(e.target.value))}
-                                                    className="w-full accent-blue-500"
-                                                />
-                                                <p className="text-[9px] text-gray-500 mt-1 leading-tight">
-                                                    Lowering this (e.g. 0.40) makes the bot take Longs more easily. Higher (e.g. 0.60) makes it stricter. Defaults to 0.50.
-                                                </p>
-                                            </div>
+                                            )}
                                             
-                                            <div className="mt-3 bg-black/60 p-3 rounded-lg border border-white/5">
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <label className="text-[10px] font-bold text-gray-300 uppercase">
-                                                        Bearish Probability Threshold
-                                                    </label>
-                                                    <span className="text-xs font-mono text-fuchsia-400">{(form.mlBearishThreshold * 100).toFixed(0)}%</span>
+                                            {(tradingMode === 'spot' ? strategyMode === 'short' : form.positionDirection !== 'long') && (
+                                                <div className="mt-3 bg-black/60 p-3 rounded-lg border border-white/5">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <label className="text-[10px] font-bold text-gray-300 uppercase">
+                                                            Bearish Probability Threshold
+                                                        </label>
+                                                        <span className="text-xs font-mono text-fuchsia-400">{(form.mlBearishThreshold * 100).toFixed(0)}%</span>
+                                                    </div>
+                                                    <input 
+                                                        type="range" 
+                                                        min="0.1" max="0.9" step="0.05"
+                                                        value={form.mlBearishThreshold}
+                                                        onChange={(e) => handleFormChange('mlBearishThreshold', parseFloat(e.target.value))}
+                                                        className="w-full accent-fuchsia-500"
+                                                    />
+                                                    <p className="text-[9px] text-gray-500 mt-1 leading-tight">
+                                                        Higher this (e.g. 0.60) makes the bot take Shorts more easily. Lower (e.g. 0.40) makes it stricter. Defaults to 0.50.
+                                                    </p>
                                                 </div>
-                                                <input 
-                                                    type="range" 
-                                                    min="0.1" max="0.9" step="0.05"
-                                                    value={form.mlBearishThreshold}
-                                                    onChange={(e) => handleFormChange('mlBearishThreshold', parseFloat(e.target.value))}
-                                                    className="w-full accent-fuchsia-500"
-                                                />
-                                                <p className="text-[9px] text-gray-500 mt-1 leading-tight">
-                                                    Higher this (e.g. 0.60) makes the bot take Shorts more easily. Lower (e.g. 0.40) makes it stricter. Defaults to 0.50.
-                                                </p>
-                                            </div>
+                                            )}
+                                            
                                             <p className="text-[9px] text-gray-500 mt-2 italic leading-tight">
                                                 When enabled, the WallHunter will extract L2 state features (Bids/Asks, Imbalance, Spread) and pass them to your Custom AI. It will only fire if the AI predicts "BULLISH" for Longs or "BEARISH" for Shorts. This is the ultimate defense against spoofed walls.
                                             </p>
