@@ -499,7 +499,10 @@ class MLL2Predictor:
                 if is_long:
                     return pred > self.bullish_threshold
                 else:
-                    return pred < self.bearish_threshold
+                    # If user sets Bearish Threshold to 60% (0.6), they want > 60% bearish confidence.
+                    # Since pred is bullish probability, bearish probability is (1 - pred).
+                    # We need (1 - pred) > threshold => pred < (1 - threshold)
+                    return pred < (1.0 - self.bearish_threshold)
             else:
                 is_bullish = (pred > current_price)
                 is_long = (side.lower() in ("long", "buy"))

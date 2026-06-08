@@ -1889,7 +1889,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                     </div>
                                                     <input 
                                                         type="range" 
-                                                        min="0.1" max="0.9" step="0.05"
+                                                        min="0.1" max="0.9" step="0.01"
                                                         value={form.mlBullishThreshold}
                                                         onChange={(e) => handleFormChange('mlBullishThreshold', parseFloat(e.target.value))}
                                                         className="w-full accent-blue-500"
@@ -1910,7 +1910,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                     </div>
                                                     <input 
                                                         type="range" 
-                                                        min="0.1" max="0.9" step="0.05"
+                                                        min="0.1" max="0.9" step="0.01"
                                                         value={form.mlBearishThreshold}
                                                         onChange={(e) => handleFormChange('mlBearishThreshold', parseFloat(e.target.value))}
                                                         className="w-full accent-fuchsia-500"
