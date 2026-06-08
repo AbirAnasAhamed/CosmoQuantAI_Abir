@@ -47,6 +47,8 @@ class MLL2Predictor:
         self.scaler = None
         self._dynamic_features_history = []
         self.last_features_list = []
+        self.sequence_length = 15
+        self._feature_sequence = []
 
     async def start_background_engine(self, symbol: str):
         """Starts the background engine if complex features are needed."""
@@ -190,6 +192,8 @@ class MLL2Predictor:
 
         best_bid = bids[0][0]
         best_ask = asks[0][0]
+        best_bid_v = bids[0][1]
+        best_ask_v = asks[0][1]
 
         bid_vol_10 = sum(x[1] for x in bids[:10])
         ask_vol_10 = sum(x[1] for x in asks[:10])
@@ -203,6 +207,32 @@ class MLL2Predictor:
         else:
             microprice = (best_bid + best_ask) / 2
 
+        # Advanced Continuous OFI State Tracking
+        if self._prev_bb_p is not None:
+            if best_bid > self._prev_bb_p: e_b = best_bid_v
+            elif best_bid == self._prev_bb_p: e_b = best_bid_v - self._prev_bb_v
+            else: e_b = -self._prev_bb_v
+
+            if best_ask < self._prev_ba_p: e_a = best_ask_v
+            elif best_ask == self._prev_ba_p: e_a = best_ask_v - self._prev_ba_v
+            else: e_a = -self._prev_ba_v
+
+            ofi = e_b - e_a
+        else:
+            ofi = 0.0
+
+        ofi_acceleration = ofi - self._ofi_prev
+        level1_imb = best_bid_v / (best_bid_v + best_ask_v + 1e-9)
+        imbalance_momentum = level1_imb - self._prev_level1_imb
+        self._cumulative_ofi += ofi
+
+        self._prev_bb_p = best_bid
+        self._prev_bb_v = best_bid_v
+        self._prev_ba_p = best_ask
+        self._prev_ba_v = best_ask_v
+        self._ofi_prev = ofi
+        self._prev_level1_imb = level1_imb
+
         self.l2_history.append({
             "timestamp": datetime.datetime.utcnow(),
             "Close": microprice,
@@ -210,7 +240,11 @@ class MLL2Predictor:
             "asks": asks,
             "obi": obi,
             "spread": spread,
-            "microprice": microprice
+            "microprice": microprice,
+            "ofi": ofi,
+            "ofi_acceleration": ofi_acceleration,
+            "imbalance_momentum": imbalance_momentum,
+            "cvd_proxy": self._cumulative_ofi
         })
         
         # Keep rolling window of 15 ticks
@@ -263,11 +297,11 @@ class MLL2Predictor:
                 microprice = (best_bid + best_ask) / 2
 
             if self._prev_bb_p is not None:
-                if best_bid >= self._prev_bb_p: e_b = best_bid_v
+                if best_bid > self._prev_bb_p: e_b = best_bid_v
                 elif best_bid == self._prev_bb_p: e_b = best_bid_v - self._prev_bb_v
                 else: e_b = -self._prev_bb_v
 
-                if best_ask <= self._prev_ba_p: e_a = best_ask_v
+                if best_ask < self._prev_ba_p: e_a = best_ask_v
                 elif best_ask == self._prev_ba_p: e_a = best_ask_v - self._prev_ba_v
                 else: e_a = -self._prev_ba_v
 
@@ -379,7 +413,7 @@ class MLL2Predictor:
             elif self.model_type not in ["Random Forest", "XGBoost", "LightGBM", "CatBoost"]:
                 # Dynamic scaling fallback for NNs/RL without saved scaler
                 self._dynamic_features_history.append(features_list)
-                if len(self._dynamic_features_history) > 100:
+                if len(self._dynamic_features_history) > 1000:
                     self._dynamic_features_history.pop(0)
                 if len(self._dynamic_features_history) > 1:
                     hist_arr = np.array(self._dynamic_features_history)
@@ -389,6 +423,17 @@ class MLL2Predictor:
                     features = (features - mean) / std
                     features = np.nan_to_num(features, nan=0.0)
                     features = np.clip(features, -10.0, 10.0)
+
+            # Maintain sequence buffer for sequence-based models
+            self._feature_sequence.append(features[0])
+            if len(self._feature_sequence) > self.sequence_length:
+                self._feature_sequence.pop(0)
+                
+            seq_features = np.array(self._feature_sequence)
+            if len(seq_features) < self.sequence_length:
+                pad_length = self.sequence_length - len(seq_features)
+                padding = np.tile(seq_features[0], (pad_length, 1))
+                seq_features = np.vstack([padding, seq_features])
 
             # 2. Predict
             if self.model_type in ["Random Forest", "XGBoost", "LightGBM", "CatBoost"]:
@@ -400,11 +445,11 @@ class MLL2Predictor:
                 else:
                     pred = float(self.model.predict(features)[0])
             elif self.model_type in ["LSTM", "GRU"]:
-                X_t = torch.FloatTensor(features).unsqueeze(1)
+                X_t = torch.FloatTensor(seq_features).unsqueeze(0) # (1, seq_len, num_features)
                 with torch.no_grad():
                     pred = self.model(X_t).item()
             elif self.model_type in ["1D-CNN", "DeepLOB", "Transformer"]:
-                X_t = torch.FloatTensor(features)
+                X_t = torch.FloatTensor(seq_features).unsqueeze(0) # (1, seq_len, num_features)
                 with torch.no_grad():
                     pred = self.model(X_t).item()
             elif self.model_type in ["PPO-RL", "SAC-RL", "A2C-RL", "DQN-RL"]:
@@ -444,7 +489,7 @@ class MLL2Predictor:
                 logger.info(f"🤖 MLL2Predictor: Target={side.upper()}, Pred={pred:.4f}")
                 self._last_log_time = time.time()
 
-            if self.prediction_target == "classification":
+            if self.prediction_target == "classification" or self.model_type in ["PPO-RL", "SAC-RL", "A2C-RL", "DQN-RL"]:
                 is_long = (side.lower() in ("long", "buy"))
                 if is_long:
                     return pred > self.bullish_threshold

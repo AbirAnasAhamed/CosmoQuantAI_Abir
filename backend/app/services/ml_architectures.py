@@ -36,20 +36,19 @@ class SimpleGRU(nn.Module):
 class CNN1D(nn.Module):
     def __init__(self, input_size, output_size):
         super(CNN1D, self).__init__()
-        self.conv1 = nn.Conv1d(in_channels=1, out_channels=16, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv1d(in_channels=input_size, out_channels=16, kernel_size=3, padding=1)
         self.relu = nn.ReLU()
-        self.pool = nn.MaxPool1d(kernel_size=2)
-        pool_out_size = input_size // 2
-        self.fc1 = nn.Linear(16 * pool_out_size, 32)
+        self.adaptive_pool = nn.AdaptiveAvgPool1d(1)
+        self.fc1 = nn.Linear(16, 32)
         self.fc2 = nn.Linear(32, output_size)
         
     def forward(self, x):
-        # Expects (batch, 1, seq_len=input_size)
-        x = x.unsqueeze(1)
+        # Expects (batch, seq_len, features)
+        x = x.transpose(1, 2) # (batch, channels=features, seq_len)
         out = self.conv1(x)
         out = self.relu(out)
-        out = self.pool(out)
-        out = out.view(out.size(0), -1)
+        out = self.adaptive_pool(out) # (batch, 16, 1)
+        out = out.view(out.size(0), -1) # (batch, 16)
         out = self.relu(self.fc1(out))
         out = self.fc2(out)
         return out
@@ -57,15 +56,16 @@ class CNN1D(nn.Module):
 class DeepLOB(nn.Module):
     def __init__(self, input_size, output_size):
         super(DeepLOB, self).__init__()
-        self.conv1 = nn.Conv1d(1, 16, kernel_size=2, padding=1)
+        self.conv1 = nn.Conv1d(in_channels=input_size, out_channels=16, kernel_size=2, padding=1)
         self.relu = nn.ReLU()
         self.lstm = nn.LSTM(16, 32, 1, batch_first=True)
         self.fc = nn.Linear(32, output_size)
         
     def forward(self, x):
-        x = x.unsqueeze(1)
+        # Expects (batch, seq_len, features)
+        x = x.transpose(1, 2) # (batch, features, seq_len)
         x = self.relu(self.conv1(x))
-        x = x.transpose(1, 2)
+        x = x.transpose(1, 2) # (batch, seq_len, 16)
         out, _ = self.lstm(x)
         out = self.fc(out[:, -1, :])
         return out
@@ -78,7 +78,7 @@ class TimeSeriesTransformer(nn.Module):
         self.fc = nn.Linear(input_size, output_size)
         
     def forward(self, x):
-        x = x.unsqueeze(1)
+        # Expects (batch, seq_len, features)
         out = self.transformer(x)
         out = self.fc(out[:, -1, :])
         return out

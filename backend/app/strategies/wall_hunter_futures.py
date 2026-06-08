@@ -1327,6 +1327,7 @@ class WallHunterFuturesStrategy:
                             break
                         
                         if best_wall:
+                            target_side = "buy" if best_wall['type'] == 'buy' else "sell"
                             should_log_alert = current_time - self.last_wall_alert_time >= 2.0
                             
                             if should_log_alert:
