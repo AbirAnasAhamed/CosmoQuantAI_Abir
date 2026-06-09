@@ -488,6 +488,7 @@ class MLL2Predictor:
 
             # 3. Interpret Prediction
             is_bullish = False
+            self.last_prediction_score = float(pred)
             
             import time
             if time.time() - self._last_log_time > 10.0:

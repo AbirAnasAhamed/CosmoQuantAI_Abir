@@ -328,8 +328,9 @@ class WallHunterFuturesStrategy:
         self.total_executed_orders = 0
         self._total_realized_pnl = 0.0
         self.total_wins = 0
-        self.total_wins = 0
         self.total_losses = 0
+        self.total_longs = 0
+        self.total_shorts = 0
         self.auto_stop_manager = AutoStopManager(bot_record.config)
         self.advanced_risk_manager = AdvancedRiskManager(bot_record.config)
         self.total_gross_pnl = 0.0
@@ -1857,6 +1858,10 @@ class WallHunterFuturesStrategy:
                 self._save_state()
                 self.active_pos['entry_time'] = time.time()
                 trade_type = "Long" if side == "buy" else "Short"
+                if side == "buy":
+                    self.total_longs += 1
+                else:
+                    self.total_shorts += 1
                 
                 ml_health_str = ""
                 if self.enable_ml_filter and hasattr(self, 'ml_predictor') and self.ml_predictor:
@@ -1864,7 +1869,8 @@ class WallHunterFuturesStrategy:
                     total = getattr(self.ml_predictor, 'total_model_features', 0)
                     bullish = getattr(self.ml_predictor, 'bullish_threshold', 0.5) * 100
                     bearish = getattr(self.ml_predictor, 'bearish_threshold', 0.5) * 100
-                    ml_health_str = f"🧠 AI Health: {active}/{total} Features Active\n📈 Bullish Threshold: {bullish:.0f}%\n📉 Bearish Threshold: {bearish:.0f}%\n"
+                    pred_score = getattr(self.ml_predictor, 'last_prediction_score', 0.0)
+                    ml_health_str = f"🧠 AI Health: {active}/{total} Features Active\n📈 Bullish Threshold: {bullish:.0f}%\n📉 Bearish Threshold: {bearish:.0f}%\n🤖 AI Score: {pred_score:.4f} ({(pred_score*100):.2f}%)\n"
 
                 asyncio.create_task(self._send_telegram(
                     f"⚡ WallHunter Entered!\n"
@@ -2918,12 +2924,15 @@ class WallHunterFuturesStrategy:
                 "total_orders": self.total_executed_orders,
                 "total_wins": self.total_wins,
                 "total_losses": self.total_losses,
+                "total_longs": self.total_longs,
+                "total_shorts": self.total_shorts,
                 "price": current_price,
                 "position": self.active_pos is not None,
                 "entry_price": self.active_pos['entry'] if self.active_pos else 0,
                 "sl_price": self.active_pos['sl'] if self.active_pos and self.active_pos['sl'] != float('inf') else 0.0,
                 "tp_price": self.active_pos['tp'] if self.active_pos else 0,
                 "trading_mode": "futures",
+                "mode": "short" if self.active_pos and self.active_pos.get('side') == 'sell' else "long",
                 "side": self.active_pos['side'] if self.active_pos else None,
                 "absorption_delta": float(f"{self.absorption_tracker.get_current_delta():.2f}"),
                 "is_absorbing": self.absorption_tracker.is_absorption_detected('buy') or self.absorption_tracker.is_absorption_detected('sell')

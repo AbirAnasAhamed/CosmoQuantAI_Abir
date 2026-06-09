@@ -20,6 +20,9 @@ export interface WallHunterStatusData {
     total_orders?: number;
     total_wins?: number;
     total_losses?: number;
+    total_longs?: number;
+    total_shorts?: number;
+    trading_mode?: string;
     mode?: string;
 }
 
