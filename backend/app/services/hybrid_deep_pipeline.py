@@ -469,8 +469,24 @@ def build_hybrid_deep_dataset(job, db: Session, config: dict, add_log, check_can
 
     # ── Step 1: Dual WebSocket Collection OR File Load ────────────────────────
     hybrid_snapshot_file = config.get("hybrid_snapshot_file")
+    use_merged_file = config.get("use_merged_file", False)
+    merged_file = config.get("merged_file")
     
-    if hybrid_snapshot_file:
+    if use_merged_file and merged_file:
+        import os
+        file_path = os.path.join(os.getcwd(), "uploads", "datasets", merged_file)
+        if not os.path.exists(file_path):
+            raise Exception(f"[HybridDeep] Merged dataset file not found: {file_path}")
+            
+        add_log(f"[HybridDeep] 📂 Loading merged archive dataset: {merged_file}")
+        df = pd.read_csv(file_path)
+        
+        # Ensure timestamp is the index
+        if 'timestamp' in df.columns:
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df.set_index('timestamp', inplace=True)
+            
+    elif hybrid_snapshot_file:
         import os
         file_path = os.path.join(os.getcwd(), "data", "raw", "hybrid_snapshots", hybrid_snapshot_file)
         if not os.path.exists(file_path):
@@ -484,6 +500,7 @@ def build_hybrid_deep_dataset(job, db: Session, config: dict, add_log, check_can
             df['timestamp'] = pd.to_datetime(df['timestamp'])
             df.set_index('timestamp', inplace=True)
             
+    if (use_merged_file and merged_file) or hybrid_snapshot_file:
         # Reconstruct bids/asks if missing but flattened columns exist
         if 'bids' not in df.columns and 'bid_price_1' in df.columns:
             add_log(f"[HybridDeep] Reconstructing bids/asks arrays from {len(df)} flattened rows...")
@@ -499,6 +516,12 @@ def build_hybrid_deep_dataset(job, db: Session, config: dict, add_log, check_can
             
             df['bids'] = df.apply(lambda r: reconstruct(r, 'bid'), axis=1)
             df['asks'] = df.apply(lambda r: reconstruct(r, 'ask'), axis=1)
+            
+        # Parse stringified JSON bids/asks from CSV
+        if 'bids' in df.columns and isinstance(df['bids'].iloc[0], str):
+            import json
+            df['bids'] = df['bids'].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
+            df['asks'] = df['asks'].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
             
         add_log(f"[HybridDeep] File loaded successfully. Rows: {len(df)}")
     else:

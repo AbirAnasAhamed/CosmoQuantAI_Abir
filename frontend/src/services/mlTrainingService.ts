@@ -59,6 +59,8 @@ export interface TrainingConfig {
         hybrid_snapshot_file?: string; // ✅ Hybrid Deep
         hybrid_deep_trade_features?: string[]; // ✅ Hybrid Deep (L2 + aggTrade)
         plp_features?: string[]; // ✅ Predatory Liquidity Pipeline (PLP) Features
+        merged_file?: string; // ✅ Merged Mega Dataset
+        use_merged_file?: boolean; // ✅ Flag to use merged dataset
         execution_strategy?: string;
         iceberg_slices?: number;
         twap_duration_minutes?: number;
@@ -103,6 +105,26 @@ export const mlTrainingService = {
 
     resumeTraining: async (jobId: string): Promise<TrainingJob> => {
         const response = await apiClient.post(`/model-training/jobs/${jobId}/resume`);
+        return response.data;
+    },
+
+    mergeDataset: async (symbol: string, file: File | null): Promise<{
+        status: string;
+        merged_filename: string;
+        total_rows: number;
+        sources: any;
+    }> => {
+        const formData = new FormData();
+        formData.append('symbol', symbol);
+        if (file) {
+            formData.append('file', file);
+        }
+        
+        const response = await apiClient.post('/model-training/dataset/merge', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
         return response.data;
     }
 };

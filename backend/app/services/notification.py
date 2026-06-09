@@ -158,3 +158,40 @@ class NotificationService:
             return False, "Request timed out — check your network or Telegram API access."
         except Exception as e:
             return False, str(e)
+
+    @staticmethod
+    async def broadcast_admin_alert(db: Session, message: str, parse_mode: str = None):
+        """
+        Sends a system-level broadcast alert to all users with active Telegram notifications.
+        Useful for background tasks (Auto-Archiver, System Errors).
+        """
+        try:
+            active_users = db.query(NotificationSettings).filter(
+                NotificationSettings.is_enabled == True,
+                NotificationSettings.telegram_bot_token != None,
+                NotificationSettings.telegram_chat_id != None,
+            ).all()
+
+            for settings in active_users:
+                try:
+                    bot = _make_bot(settings.telegram_bot_token)
+                    await bot.send_message(chat_id=settings.telegram_chat_id, text=message, parse_mode=parse_mode)
+                    logger.info(f"Broadcast alert sent to user {settings.user_id}")
+                except Exception as e:
+                    logger.error(f"[TelegramNotify] Failed to broadcast to user {settings.user_id}: {e}")
+        except Exception as e:
+            logger.error(f"[TelegramNotify] Broadcast failed: {e}")
+
+    @staticmethod
+    def broadcast_admin_alert_sync(db: Session, message: str, parse_mode: str = None):
+        """
+        Synchronous wrapper for broadcast_admin_alert.
+        """
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(NotificationService.broadcast_admin_alert(db, message, parse_mode))
+            else:
+                loop.run_until_complete(NotificationService.broadcast_admin_alert(db, message, parse_mode))
+        except RuntimeError:
+            asyncio.run(NotificationService.broadcast_admin_alert(db, message, parse_mode))

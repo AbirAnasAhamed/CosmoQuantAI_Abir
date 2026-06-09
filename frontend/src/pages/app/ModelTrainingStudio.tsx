@@ -132,6 +132,12 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     const [initialAlgorithm, setInitialAlgorithm] = useState<string>('');
     const [isCrossAlgorithmTransfer, setIsCrossAlgorithmTransfer] = useState(false);
 
+    // Merged Dataset States
+    const [isIncludeArchived, setIsIncludeArchived] = useState(false);
+    const [mergedFile, setMergedFile] = useState<File | null>(null);
+    const [isMerging, setIsMerging] = useState(false);
+    const [mergedResult, setMergedResult] = useState<any>(null);
+
     useEffect(() => {
         if (retrainModelId) {
             setIsRetrainMode(true);
@@ -579,7 +585,25 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
         }
     };
 
+    const handleMergeDataset = async () => {
+        if (!mergedFile) return;
+        setIsMerging(true);
+        try {
+            const res = await mlTrainingService.mergeDataset(symbol, mergedFile);
+            setMergedResult(res);
+        } catch (error: any) {
+            alert(`❌ Merge failed: ${error?.response?.data?.detail || error.message}`);
+        } finally {
+            setIsMerging(false);
+        }
+    };
+
     const handleStartTraining = async () => {
+        if (['l2_orderbook', 'hybrid_deep'].includes(dataSource) && isIncludeArchived && !mergedResult) {
+            alert("Please click 'Merge & Prepare Dataset' first to prepare the archived data.");
+            return;
+        }
+
         try {
             setIsTraining(true);
             setShowTerminal(true);
@@ -599,6 +623,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                     indicators: (dataSource === 'ohlcv' || dataSource === 'hybrid' || dataSource === 'historical_trades') ? selectedIndicators : [],
                     epochs,
                     dataset_type: dataSource,
+                    use_merged_file: (['l2_orderbook', 'hybrid_deep'].includes(dataSource) && isIncludeArchived && !!mergedResult),
                     is_auto_retrain: isAutoRetrain,
                     retrain_interval_hours: isAutoRetrain ? retrainInterval : undefined,
                     data_lookback_hours: dataLookback,
@@ -633,12 +658,14 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                     volume_threshold: dataSource === 'historical_trades' ? tradeVolumeThreshold : undefined,
                     trade_features: dataSource === 'historical_trades' ? selectedTradeFeatures : undefined,
                     // L2 Snapshot params (new)
-                    l2_snapshot_file: dataSource === 'l2_orderbook' && !isL2Scraping ? selectedL2File : undefined,
+                    l2_snapshot_file: dataSource === 'l2_orderbook' && !isL2Scraping && !isIncludeArchived ? selectedL2File : undefined,
                     l2_processing_mode: dataSource === 'l2_orderbook' && !isL2Scraping ? l2ProcessingMode : undefined,
                     // Hybrid Deep params (new)
                     hybrid_snapshot_file: dataSource === 'hybrid_deep' && !isHybridScraping ? selectedHybridFile : undefined,
                     hybrid_deep_trade_features: dataSource === 'hybrid_deep' ? selectedHybridDeepTradeFeatures : undefined,
                     plp_features: (dataSource === 'hybrid_deep' || dataSource === 'l2_orderbook' || dataSource === 'hybrid') ? selectedPlpFeatures : undefined,
+                    // Merged Dataset params (new)
+                    merged_file: (['l2_orderbook', 'hybrid_deep'].includes(dataSource) && isIncludeArchived) ? mergedResult?.merged_filename : undefined,
                     // Execution strategy params
                     execution_strategy: executionStrategy,
                     iceberg_slices: executionStrategy === 'iceberg' ? icebergSlices : undefined,
@@ -1289,7 +1316,62 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                 </button>
                             </div>
 
-                            {/* ── L2 ORDERBOOK ───────────────────────────────────────────── */}
+
+                            {/* ── L2 ORDERBOOK & HYBRID DEEP (ARCHIVED MERGE OPTION) ───────────────────────────────────────────── */}
+                            {['l2_orderbook', 'hybrid_deep'].includes(dataSource) && (
+                                <div className="mb-5 space-y-4">
+                                    <div className="flex items-center justify-between p-4 bg-indigo-500/10 rounded-xl border border-indigo-500/20 shadow-inner">
+                                        <div>
+                                            <h4 className="text-sm font-bold text-indigo-400">Merge 10GB Auto-Archived Data</h4>
+                                            <p className="text-xs text-slate-400 mt-0.5 font-medium">Merge live database with the auto-archived Parquet L2 files for a gap-free dataset.</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                className="sr-only peer" 
+                                                checked={isIncludeArchived}
+                                                onChange={() => setIsIncludeArchived(!isIncludeArchived)}
+                                                disabled={isTraining}
+                                            />
+                                            <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all border-white/5 peer-checked:bg-gradient-to-r peer-checked:from-indigo-500 peer-checked:to-blue-500"></div>
+                                        </label>
+                                    </div>
+
+                                    {isIncludeArchived && (
+                                        <div className="p-4 bg-white/5 border border-indigo-500/20 rounded-xl space-y-4 shadow-inner">
+                                            <div>
+                                                <h4 className="text-sm font-bold text-indigo-400">Optional: Add Historical DVC CSV</h4>
+                                                <p className="text-xs text-slate-400 mt-1">Leave empty to just merge Live DB + Parquet Archives, or upload an older CSV to include it.</p>
+                                            </div>
+                                            
+                                            <input 
+                                                type="file" 
+                                                accept=".csv"
+                                                onChange={(e) => setMergedFile(e.target.files?.[0] || null)}
+                                                className="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-500/10 file:text-indigo-400 hover:file:bg-indigo-500/20 cursor-pointer"
+                                            />
+                                            
+                                            <button
+                                                onClick={handleMergeDataset}
+                                                disabled={isMerging}
+                                                className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl text-white font-bold disabled:opacity-50 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                                            >
+                                                {isMerging ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                                                {isMerging ? "Merging Data..." : "Merge & Prepare Dataset"}
+                                            </button>
+                                            
+                                            {mergedResult && (
+                                                <div className="mt-3 p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-lg text-sm text-indigo-200">
+                                                    ✅ Mega Dataset Created: <span className="font-bold text-white">{mergedResult.total_rows.toLocaleString()}</span> rows!<br/>
+                                                    <span className="text-xs opacity-75">(Sources: {mergedResult.sources.uploaded_csv ? 'Upload + ' : ''}{mergedResult.sources.parquet_archives} Archives + Live DB)</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* ── L2 ORDERBOOK (SCRAPING/SNAPSHOT OPTIONS) ───────────────────────────────────────────── */}
                             {dataSource === 'l2_orderbook' && (
                                 <div className="mb-5 space-y-4">
                                     <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-xl border border-purple-500/20 shadow-inner">

@@ -91,6 +91,9 @@ async def l2_listener(target_rows: int, symbol_ws: str, symbol_orig: str, sessio
                     job = db.query(ModelTrainingJob).filter(ModelTrainingJob.id == job_id).first()
                     if job and (job.status == TrainingStatus.FAILED or job.status == TrainingStatus.PAUSED or (job.error_message and "cancel" in job.error_message.lower())):
                         add_job_log(db, job_id, "🛑 Hybrid Collector was cancelled by user.")
+                        if job.user_id:
+                            from app.services.notification import NotificationService
+                            await NotificationService.send_message(db, job.user_id, f"🛑 *Hybrid Collector Cancelled*\nSymbol: {symbol_orig.upper()}\nTarget: {target_rows:,}", parse_mode="Markdown")
                         stop_event.set()
                         break
 
@@ -165,6 +168,9 @@ async def l2_listener(target_rows: int, symbol_ws: str, symbol_orig: str, sessio
                 job.status = TrainingStatus.FAILED
                 job.error_message = str(e)
                 db.commit()
+                if job.user_id:
+                    from app.services.notification import NotificationService
+                    await NotificationService.send_message(db, job.user_id, f"❌ *Hybrid Collector Failed*\nSymbol: {symbol_orig.upper()}\nError: {e}", parse_mode="Markdown")
 
     # Finish and merge
     stop_event.set()
@@ -207,6 +213,9 @@ async def collect_hybrid_data(target_rows: int, symbol: str = SYMBOL, job_id: st
                     job.progress = 100.0
                     job.status = TrainingStatus.COMPLETED
                     db.commit()
+                    if job.user_id:
+                        from app.services.notification import NotificationService
+                        await NotificationService.send_message(db, job.user_id, f"✅ *Hybrid Collection Complete*\nSymbol: {symbol_orig.upper()}\nRows: {target_rows:,}", parse_mode="Markdown")
                     
         except Exception as e:
             add_job_log(db, job_id, f"Error during merge process: {e}")
@@ -216,6 +225,9 @@ async def collect_hybrid_data(target_rows: int, symbol: str = SYMBOL, job_id: st
                     job.status = TrainingStatus.FAILED
                     job.error_message = str(e)
                     db.commit()
+                    if job.user_id:
+                        from app.services.notification import NotificationService
+                        await NotificationService.send_message(db, job.user_id, f"❌ *Hybrid Merge Failed*\nSymbol: {symbol_orig.upper()}\nError: {e}", parse_mode="Markdown")
     else:
         msg = "No hybrid data collected to merge."
         add_job_log(db, job_id, msg)

@@ -63,6 +63,9 @@ async def collect_l2_data(target_rows: int, symbol: str = SYMBOL, job_id: str = 
                     job = db.query(ModelTrainingJob).filter(ModelTrainingJob.id == job_id).first()
                     if job and (job.status == TrainingStatus.FAILED or job.status == TrainingStatus.PAUSED or (job.error_message and "cancel" in job.error_message.lower())):
                         add_job_log(db, job_id, "🛑 Collector was cancelled by user.")
+                        if job.user_id:
+                            from app.services.notification import NotificationService
+                            await NotificationService.send_message(db, job.user_id, f"🛑 *Collector Cancelled*\nSymbol: {symbol.upper()}\nTarget: {target_rows:,}", parse_mode="Markdown")
                         break
 
                 try:
@@ -122,6 +125,9 @@ async def collect_l2_data(target_rows: int, symbol: str = SYMBOL, job_id: str = 
                 job.status = TrainingStatus.FAILED
                 job.error_message = str(e)
                 db.commit()
+                if job.user_id:
+                    from app.services.notification import NotificationService
+                    await NotificationService.send_message(db, job.user_id, f"❌ *L2 Collector Failed*\nSymbol: {symbol.upper()}\nError: {e}", parse_mode="Markdown")
 
     # Merge Process
     if chunk_files:
@@ -148,6 +154,9 @@ async def collect_l2_data(target_rows: int, symbol: str = SYMBOL, job_id: str = 
                     job.progress = 100.0
                     job.status = TrainingStatus.COMPLETED
                     db.commit()
+                    if job.user_id:
+                        from app.services.notification import NotificationService
+                        await NotificationService.send_message(db, job.user_id, f"✅ *L2 Collection Complete*\nSymbol: {symbol.upper()}\nRows: {target_rows:,}", parse_mode="Markdown")
                     
         except Exception as e:
             add_job_log(db, job_id, f"Error during merge process: {e}")
@@ -157,6 +166,9 @@ async def collect_l2_data(target_rows: int, symbol: str = SYMBOL, job_id: str = 
                     job.status = TrainingStatus.FAILED
                     job.error_message = str(e)
                     db.commit()
+                    if job.user_id:
+                        from app.services.notification import NotificationService
+                        await NotificationService.send_message(db, job.user_id, f"❌ *L2 Merge Failed*\nSymbol: {symbol.upper()}\nError: {e}", parse_mode="Markdown")
     else:
         msg = "No data collected to merge."
         add_job_log(db, job_id, msg)

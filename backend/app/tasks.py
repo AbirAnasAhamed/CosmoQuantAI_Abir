@@ -984,19 +984,39 @@ def broadcast_container_logs():
 def prune_l2_data():
     """
     Periodic Task: Delete L2 OrderBook snapshots older than 24 hours to save space.
+    NEW: Now auto-archives the data to a 10GB limited Parquet storage before deletion!
     """
     logger = get_task_logger("l2_pruner", "l2_pruner.log")
     db = SessionLocal()
     try:
         from app.models.orderbook_snapshot import OrderBookSnapshot
+        from app.services.dataset_archiver import DatasetArchiver
         from datetime import datetime, timedelta
         
         threshold = datetime.utcnow() - timedelta(hours=24)
         
+        # 1. Fetch records to be deleted
+        old_snapshots = db.query(OrderBookSnapshot).filter(OrderBookSnapshot.timestamp < threshold).all()
+        
+        if not old_snapshots:
+            logger.info("No L2 snapshots older than 24 hours to prune.")
+            return "No data to prune."
+
+        # 2. Archive records to Parquet (includes 10GB smart management)
+        def log_proxy(msg):
+            logger.info(msg)
+            
+        success = DatasetArchiver.archive_snapshots(old_snapshots, add_log_func=log_proxy)
+        
+        if not success:
+            logger.error("Failed to archive L2 snapshots. Aborting deletion to prevent data loss.")
+            return "Archiving failed. Deletion aborted."
+
+        # 3. Safe Deletion
         deleted_count = db.query(OrderBookSnapshot).filter(OrderBookSnapshot.timestamp < threshold).delete()
         db.commit()
         
-        msg = f"Pruned {deleted_count} L2 snapshots older than 24 hours."
+        msg = f"Archived and Pruned {deleted_count} L2 snapshots older than 24 hours."
         logger.info(msg)
         return msg
     except Exception as e:

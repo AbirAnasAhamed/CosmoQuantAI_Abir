@@ -620,8 +620,21 @@ def train_model_task(job_id: str, db: Session):
             
             is_deep_training = config.get("is_deep_training", False)
             target_rows = config.get("target_rows", 0)
+            use_merged_file = config.get("use_merged_file", False)
+            merged_file = config.get("merged_file")
 
-            if is_deep_training and target_rows > 0:
+            if use_merged_file and merged_file:
+                merged_filepath = os.path.join(os.getcwd(), "uploads", "datasets", merged_file)
+                add_log(f"📂 Loading pre-merged massive dataset from {merged_filepath}...")
+                if not os.path.exists(merged_filepath):
+                    raise Exception(f"Merged dataset file not found: {merged_filepath}")
+                df = pd.read_csv(merged_filepath)
+                if 'timestamp' in df.columns:
+                    df['timestamp'] = pd.to_datetime(df['timestamp'])
+                    df.set_index('timestamp', inplace=True)
+                add_log(f"Loaded {len(df)} rows from merged dataset.")
+
+            elif is_deep_training and target_rows > 0:
                 min_required_rows = 1000
                 if target_rows < min_required_rows:
                     add_log(f"⚠️ Target rows ({target_rows}) is too low for PLP/Rolling features. Auto-increasing to {min_required_rows}.")

@@ -46,8 +46,8 @@ class L2DataCollector:
 
     @staticmethod
     def _build_url(base: str, symbols: list[str]) -> str:
-        """Build a Binance combined-stream URL for the given symbols."""
-        streams = "/".join(f"{s}@depth20@100ms" for s in symbols)
+        """Build a Binance combined-stream URL for the given symbols including trade streams."""
+        streams = "/".join(f"{s}@depth20@100ms/{s}@trade" for s in symbols)
         return f"{base}?streams={streams}"
 
     # ── DB Symbol Loader ───────────────────────────────────────────────────
@@ -142,6 +142,7 @@ class L2DataCollector:
 
     async def _save_to_db(self, symbol: str, bids, asks,
                           obi: float, spread: float, microprice: float,
+                          trade_count: int, buy_volume: float, sell_volume: float, trade_price: float,
                           exchange: str):
         db = SessionLocal()
         try:
@@ -153,6 +154,10 @@ class L2DataCollector:
                 obi=obi,
                 spread=spread,
                 microprice=microprice,
+                trade_count=trade_count,
+                buy_volume=buy_volume,
+                sell_volume=sell_volume,
+                trade_price=trade_price,
             )
             db.add(snap)
             db.commit()
@@ -168,6 +173,12 @@ class L2DataCollector:
         """Connect to a Binance combined WebSocket stream and persist snapshots."""
         url = self._build_url(base_url, symbols)
         last_save: dict[str, float] = {}
+        trade_buffers: dict[str, dict] = {}
+
+        def get_trade_buffer(sym: str) -> dict:
+            if sym not in trade_buffers:
+                trade_buffers[sym] = {"count": 0, "buy_vol": 0.0, "sell_vol": 0.0, "last_price": None}
+            return trade_buffers[sym]
 
         while self.running:
             try:
@@ -179,32 +190,63 @@ class L2DataCollector:
                         raw = await ws.recv()
                         data = json.loads(raw)
 
-                        # Combined stream payload: {"stream": "...", "data": {...}}
-                        if "stream" in data and "data" in data:
-                            sym     = data["stream"].split("@")[0].upper()
-                            payload = data["data"]
-                        else:
-                            # Fallback for single-stream (shouldn't happen with ?streams=)
-                            sym     = symbols[0].upper()
-                            payload = data
+                        if "stream" not in data or "data" not in data:
+                            continue
 
-                        bids = payload.get("bids", [])
-                        asks = payload.get("asks", [])
+                        stream_name = data["stream"]
+                        sym = stream_name.split("@")[0].upper()
+                        payload = data["data"]
 
-                        try:
-                            from app.metrics import L2_TICK_COUNT
-                            L2_TICK_COUNT.labels(symbol=sym).inc()
-                        except Exception:
-                            pass
+                        if "@trade" in stream_name:
+                            # Aggregate trade
+                            buf = get_trade_buffer(sym)
+                            price = float(payload.get('p', 0))
+                            qty = float(payload.get('q', 0))
+                            is_buyer_maker = payload.get('m', False)
 
-                        now = time.time()
-                        # Rate-limit: 1 DB save per symbol per second
-                        if sym not in last_save or (now - last_save[sym]) >= 1.0:
-                            obi, spread, mp = self.calculate_micro_features(bids, asks)
-                            asyncio.create_task(
-                                self._save_to_db(sym, bids, asks, obi, spread, mp, label)
-                            )
-                            last_save[sym] = now
+                            buf["count"] += 1
+                            buf["last_price"] = price
+                            if is_buyer_maker:
+                                buf["sell_vol"] += qty
+                            else:
+                                buf["buy_vol"] += qty
+                            continue
+
+                        if "@depth" in stream_name:
+                            bids = payload.get("bids", [])
+                            asks = payload.get("asks", [])
+
+                            try:
+                                from app.metrics import L2_TICK_COUNT
+                                L2_TICK_COUNT.labels(symbol=sym).inc()
+                            except Exception:
+                                pass
+
+                            now = time.time()
+                            # Rate-limit: 1 DB save per symbol per second
+                            if sym not in last_save or (now - last_save[sym]) >= 1.0:
+                                obi, spread, mp = self.calculate_micro_features(bids, asks)
+                                
+                                buf = get_trade_buffer(sym)
+                                trade_count = buf["count"]
+                                buy_vol = buf["buy_vol"]
+                                sell_vol = buf["sell_vol"]
+                                trade_price = buf["last_price"]
+
+                                # Reset buffer for next second
+                                buf["count"] = 0
+                                buf["buy_vol"] = 0.0
+                                buf["sell_vol"] = 0.0
+                                # keep last_price as is in case there are no trades in next second
+                                
+                                asyncio.create_task(
+                                    self._save_to_db(
+                                        sym, bids, asks, obi, spread, mp, 
+                                        trade_count, buy_vol, sell_vol, trade_price, 
+                                        label
+                                    )
+                                )
+                                last_save[sym] = now
 
             except asyncio.CancelledError:
                 logger.info(f"[L2Collector] [{label}] Stream cancelled.")

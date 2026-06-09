@@ -23,3 +23,9 @@ class OrderBookSnapshot(Base):
     obi = Column(Float, nullable=True) # Order Book Imbalance (scaled or float depending on db, we can use Float)
     spread = Column(Float, nullable=True) 
     microprice = Column(Float, nullable=True)
+
+    # Hybrid Deep live trade features
+    trade_count = Column(Integer, default=0)
+    buy_volume = Column(Float, default=0.0)
+    sell_volume = Column(Float, default=0.0)
+    trade_price = Column(Float, nullable=True)
