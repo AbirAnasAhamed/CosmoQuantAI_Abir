@@ -65,21 +65,51 @@ class BackgroundFeatureEngine:
         return self.latest_features_cache
 
     async def _cache_loop(self):
-        import ccxt.async_support as ccxt_async
+        import ccxt.pro as ccxt_pro
         # Use binanceusdm for futures if symbol contains ':', else binance spot
         if self.is_futures:
-            exchange = ccxt_async.binanceusdm({'enableRateLimit': True})
+            exchange = ccxt_pro.binanceusdm({'enableRateLimit': True})
         else:
-            exchange = ccxt_async.binance({'enableRateLimit': True})
+            exchange = ccxt_pro.binance({'enableRateLimit': True})
             
         from app.services.hybrid_deep_pipeline import calculate_trade_tick_features
 
+        trades_cache = []
+        try:
+            # Prefill cache via REST so features are instantly available
+            initial = await exchange.fetch_trades(self.symbol, limit=1000)
+            if initial:
+                trades_cache.extend(initial)
+        except Exception as e:
+            logger.warning(f"BackgroundFeatureEngine: fetch_trades prefill failed: {e}")
+
         while self.is_running:
             try:
-                # 1. Fetch recent trades (limit 1000 is usually enough for rolling features)
-                trades = await exchange.fetch_trades(self.symbol, limit=1000)
+                # 1. Watch trades via websocket (blocks until new trades)
+                new_trades = await exchange.watch_trades(self.symbol)
+                if not new_trades:
+                    await asyncio.sleep(0.1)
+                    continue
+                    
+                trades_cache.extend(new_trades)
+                
+                # Keep last 1000, deduplicating by ID
+                if len(trades_cache) > 1000:
+                    trades_by_id = {}
+                    no_id = []
+                    for t in trades_cache:
+                        if t.get('id'):
+                            trades_by_id[t['id']] = t
+                        else:
+                            no_id.append(t)
+                    
+                    merged = no_id + list(trades_by_id.values())
+                    merged.sort(key=lambda x: x['timestamp'] if x.get('timestamp') else 0)
+                    trades_cache = merged[-1000:]
+                    
+                trades = trades_cache
+                
                 if not trades:
-                    await asyncio.sleep(2)
                     continue
                     
                 t_data = []
@@ -125,14 +155,14 @@ class BackgroundFeatureEngine:
                 if "does not have market" in str(e) or "BadSymbol" in str(e):
                     if ":" in self.symbol:
                         new_sym = self.symbol.split(":")[0]
-                        logger.warning(f"BackgroundFeatureEngine: Retrying fetch_trades with fallback symbol {new_sym}")
+                        logger.warning(f"BackgroundFeatureEngine: Retrying watch_trades with fallback symbol {new_sym}")
                         try:
-                            _ = await exchange.fetch_trades(new_sym, limit=10)
+                            _ = await exchange.watch_trades(new_sym)
                             self.symbol = new_sym # If successful, keep using it
                         except Exception:
                             pass
-                
-            # Sleep 2 seconds before next poll to avoid rate limits
-            await asyncio.sleep(2.0)
+                else:
+                    # Sleep 5 seconds on general error before next poll to avoid rate limits / spamming
+                    await asyncio.sleep(5.0)
             
         await exchange.close()

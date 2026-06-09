@@ -991,9 +991,9 @@ def prune_l2_data():
     try:
         from app.models.orderbook_snapshot import OrderBookSnapshot
         from app.services.dataset_archiver import DatasetArchiver
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         
-        threshold = datetime.utcnow() - timedelta(hours=24)
+        threshold = datetime.now(timezone.utc) - timedelta(hours=24)
         
         # 1. Fetch records to be deleted
         old_snapshots = db.query(OrderBookSnapshot).filter(OrderBookSnapshot.timestamp < threshold).all()

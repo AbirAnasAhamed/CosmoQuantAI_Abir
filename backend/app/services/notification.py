@@ -219,10 +219,10 @@ class NotificationService:
         Synchronous wrapper for broadcast_admin_alert.
         """
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(NotificationService.broadcast_admin_alert(db, message, parse_mode))
-            else:
-                loop.run_until_complete(NotificationService.broadcast_admin_alert(db, message, parse_mode))
-        except RuntimeError:
-            asyncio.run(NotificationService.broadcast_admin_alert(db, message, parse_mode))
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(
+                NotificationService.broadcast_admin_alert(db, message, parse_mode)
+            )
+        finally:
+            loop.close()
