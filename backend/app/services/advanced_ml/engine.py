@@ -15,6 +15,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from app.services.advanced_ml.trading_env import AdvancedTradingEnv
 from app.services.advanced_ml.architectures import TimeSeriesTransformer, TransformerRLFeatureExtractor, TCNModel, TabNetEncoder, AutoEncoder
 from app.services.advanced_ml.data_handler import AdvancedDataHandler
+from app.services.ml_data_prep import apply_data_split
 from app import models
 
 class AdvancedMLEngine:
@@ -27,7 +28,7 @@ class AdvancedMLEngine:
     def train_transformer(job, df, features, db, add_log, previous_model_path=None):
         """Supervised Training for Transformer Model."""
         config = job.config or {}
-        seq_len = int(config.get("sequence_length", 30))
+        seq_len = int(config.get("lookback_window", config.get("sequence_length", 30)))
         epochs = int(config.get("epochs", 10))
         lr = float(config.get("learning_rate", 0.001))
         batch_size = 64
@@ -42,9 +43,10 @@ class AdvancedMLEngine:
         target_col = "Target"
         X, y = AdvancedDataHandler.create_sequences(df, features, sequence_length=seq_len, target_col=target_col)
         
-        split = int(len(X) * 0.8)
-        X_train, X_test = torch.FloatTensor(X[:split]), torch.FloatTensor(X[split:])
-        y_train, y_test = torch.FloatTensor(y[:split]).view(-1, 1), torch.FloatTensor(y[split:]).view(-1, 1)
+        X_train, X_test, y_train, y_test = apply_data_split(X, y, config, add_log)
+        
+        X_train, X_test = torch.FloatTensor(X_train), torch.FloatTensor(X_test)
+        y_train, y_test = torch.FloatTensor(y_train).view(-1, 1), torch.FloatTensor(y_test).view(-1, 1)
         
         train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=batch_size, shuffle=True)
         
@@ -165,7 +167,7 @@ class AdvancedMLEngine:
     def train_tcn(job, df, features, db, add_log, previous_model_path=None):
         """Supervised Training for TCN Model."""
         config = job.config or {}
-        seq_len = int(config.get("sequence_length", 30))
+        seq_len = int(config.get("lookback_window", config.get("sequence_length", 30)))
         epochs = int(config.get("epochs", 10))
         lr = float(config.get("learning_rate", 0.001))
         batch_size = 64
@@ -174,9 +176,10 @@ class AdvancedMLEngine:
         target_col = "Target"
         X, y = AdvancedDataHandler.create_sequences(df, features, sequence_length=seq_len, target_col=target_col)
         
-        split = int(len(X) * 0.8)
-        X_train, X_test = torch.FloatTensor(X[:split]), torch.FloatTensor(X[split:])
-        y_train, y_test = torch.FloatTensor(y[:split]).view(-1, 1), torch.FloatTensor(y[split:]).view(-1, 1)
+        X_train, X_test, y_train, y_test = apply_data_split(X, y, config, add_log)
+        
+        X_train, X_test = torch.FloatTensor(X_train), torch.FloatTensor(X_test)
+        y_train, y_test = torch.FloatTensor(y_train).view(-1, 1), torch.FloatTensor(y_test).view(-1, 1)
         
         train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=batch_size, shuffle=True)
         
@@ -277,9 +280,10 @@ class AdvancedMLEngine:
         X = df[features].fillna(0).values.copy()
         y = df['Target'].fillna(0).values.copy()
         
-        split = int(len(X) * 0.8)
-        X_train, X_test = torch.FloatTensor(X[:split]), torch.FloatTensor(X[split:])
-        y_train, y_test = torch.FloatTensor(y[:split]).view(-1, 1), torch.FloatTensor(y[split:]).view(-1, 1)
+        X_train, X_test, y_train, y_test = apply_data_split(X, y, config, add_log)
+        
+        X_train, X_test = torch.FloatTensor(X_train), torch.FloatTensor(X_test)
+        y_train, y_test = torch.FloatTensor(y_train).view(-1, 1), torch.FloatTensor(y_test).view(-1, 1)
         
         train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=batch_size, shuffle=True)
         

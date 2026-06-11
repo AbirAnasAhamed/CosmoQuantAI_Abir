@@ -22,6 +22,7 @@ from app.services.helpers.institutional_features import add_smc_fvg, add_ict_kil
 # ✅ NEW: Modular ML Pipeline Services
 from app.services.ml_walk_forward_cv import run_walk_forward_cv
 from app.services.ml_backtest_runner import run_post_training_backtest
+from app.services.ml_data_prep import apply_data_split, apply_imbalance_strategy
 
 def fetch_l2_data(symbol: str, db: Session, lookback_hours: int = 6, timeframe: str = None) -> pd.DataFrame:
     from app.models.orderbook_snapshot import OrderBookSnapshot
@@ -700,7 +701,7 @@ def train_model_task(job_id: str, db: Session):
                 
             add_log(f"Using {len(features)} L2 features for training.")
             
-            horizon = config.get("prediction_horizon", 5)
+            horizon = int(config.get("forecast_horizon", config.get("prediction_horizon", 5)))
             if not config.get("resample_l2", True):
                 horizon = max(horizon, 100) # Minimum 100 ticks for raw L2
                 
@@ -1083,7 +1084,7 @@ def train_model_task(job_id: str, db: Session):
                     
             add_log(f"Successfully calculated {len(successful_indicators)} features.")
                 
-            horizon = config.get("prediction_horizon", 5)
+            horizon = int(config.get("forecast_horizon", config.get("prediction_horizon", 5)))
             prediction_target = config.get("prediction_target", "classification")
             if prediction_target == "classification":
                 # Calculate future return 'horizon' steps ahead
@@ -1218,9 +1219,7 @@ def train_model_task(job_id: str, db: Session):
         df_scaled[features] = X_scaled
         df_scaled['Target'] = y_scaled.ravel()
         
-        split = int(len(X) * 0.8)
-        X_train, X_test = X_scaled[:split], X_scaled[split:]
-        y_train, y_test = y_scaled[:split], y_scaled[split:]
+        X_train, X_test, y_train, y_test = apply_data_split(X_scaled, y_scaled, config, add_log)
         
         # ── Walk-Forward Cross-Validation (ALL model types) ──────────────────
         # Runs BEFORE SMOTE to prevent data leakage. Results stored in cv_result for later save.
@@ -1257,27 +1256,10 @@ def train_model_task(job_id: str, db: Session):
                         # Change the first 'needed' samples of the opposite class
                         for i in range(min(needed, len(opp_idx))):
                             y_train_flat[opp_idx[i]] = cls_val
-                # y_train is a view or copy? Best to re-assign just in case
                 y_train = y_train_flat.reshape(-1, 1)
                 
-            # --- Apply SMOTE for true balance after satisfying CV minimums ---
-            try:
-                from imblearn.over_sampling import SMOTE
-                y_train_flat_smote = y_train.ravel()
-                uniq_c, counts_c = np.unique(y_train_flat_smote, return_counts=True)
-                m_count = counts_c.min()
-                if len(uniq_c) > 1 and counts_c.max() / m_count > 1.2:
-                    k_neighbors = min(5, m_count - 1) if m_count > 1 else 1
-                    # SMOTE requires at least k_neighbors <= n_samples - 1. We artificially forced min 3 samples.
-                    k_neighbors = max(1, min(5, m_count - 1))
-                    smote = SMOTE(sampling_strategy='auto', k_neighbors=k_neighbors, random_state=42)
-                    X_train, y_train_flat_smote = smote.fit_resample(X_train, y_train_flat_smote)
-                    y_train = y_train_flat_smote.reshape(-1, 1)
-                    add_log(f"✅ Applied SMOTE (k={k_neighbors}) to balance classes. New shape: {X_train.shape}")
-            except ImportError:
-                add_log("⚠️ imbalanced-learn not installed. Skipping SMOTE.")
-            except Exception as e:
-                add_log(f"⚠️ Failed to apply SMOTE: {e}")
+            # Apply modular imbalance strategy (SMOTE/Undersampling/Class Weights)
+            X_train, y_train = apply_imbalance_strategy(X_train, y_train, config, add_log, is_classification=True)
         
         # FIX: Wrap X in DataFrame to preserve feature names.
         # This eliminates the SHAP / sklearn "X does not have valid feature names" warning spam.

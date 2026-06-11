@@ -817,6 +817,54 @@ const ModelDetailsModal: React.FC<{
 
                                 </div>
 
+                                {/* Advanced Training Configurations */}
+                                {(config.config?.split_method || config.config?.eval_metric || config.config?.imbalance_strategy || config.config?.forecast_horizon || config.config?.lookback_window) && (
+                                    <div className="bg-black/20 border border-rose-500/10 rounded-2xl p-5 shadow-inner relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-1 h-full bg-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.5)]"></div>
+                                        <h3 className="text-sm font-bold text-rose-400 mb-4 flex items-center gap-2">
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                            Advanced Training Configuration
+                                        </h3>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                            {config.config?.split_method && (
+                                                <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 flex flex-col gap-1 hover:bg-white/[0.06] transition-colors">
+                                                    <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Split Method</span>
+                                                    <span className="text-sm font-mono font-bold text-white capitalize">{config.config.split_method}</span>
+                                                    {config.config?.train_ratio && (
+                                                        <span className="text-[10px] text-gray-500 font-mono mt-1">
+                                                            Train: {config.config.train_ratio}% | Test: {config.config.test_ratio || (100 - config.config.train_ratio - (config.config.val_ratio || 0))}%
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {config.config?.imbalance_strategy && (
+                                                <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 flex flex-col gap-1 hover:bg-white/[0.06] transition-colors">
+                                                    <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Imbalance Strategy</span>
+                                                    <span className="text-sm font-mono font-bold text-white capitalize">{config.config.imbalance_strategy.replace('_', ' ')}</span>
+                                                </div>
+                                            )}
+                                            {config.config?.eval_metric && (
+                                                <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 flex flex-col gap-1 hover:bg-white/[0.06] transition-colors">
+                                                    <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Evaluation Metric</span>
+                                                    <span className="text-sm font-mono font-bold text-white uppercase">{config.config.eval_metric.replace('_', ' ')}</span>
+                                                </div>
+                                            )}
+                                            {config.config?.forecast_horizon && (
+                                                <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 flex flex-col gap-1 hover:bg-white/[0.06] transition-colors">
+                                                    <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Forecast Horizon</span>
+                                                    <span className="text-sm font-mono font-bold text-white">{config.config.forecast_horizon} Steps</span>
+                                                </div>
+                                            )}
+                                            {config.config?.lookback_window && (
+                                                <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 flex flex-col gap-1 hover:bg-white/[0.06] transition-colors">
+                                                    <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Lookback Window</span>
+                                                    <span className="text-sm font-mono font-bold text-white">{config.config.lookback_window} Steps</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Features Sections */}
                                 <div className="space-y-6">
                                     {/* OHLCV */}

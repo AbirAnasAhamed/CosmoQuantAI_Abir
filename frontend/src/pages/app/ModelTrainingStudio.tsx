@@ -4,6 +4,9 @@ import { BrainCircuit, Play, Square, Settings, Database, Activity, Terminal, Che
 import { mlTrainingService, TrainingJob } from '@/services/mlTrainingService';
 import apiClient from '@/services/client';
 import TargetSelection from '@/components/ml/TargetSelection';
+import DatasetSplitConfig from '@/components/ml/DatasetSplitConfig';
+import ForecastConfigurator from '@/components/ml/ForecastConfigurator';
+import EvaluationMetricSelector from '@/components/ml/EvaluationMetricSelector';
 import AdvancedHyperparameters from '@/components/ml/AdvancedHyperparameters';
 import FeatureImportanceChart from '@/components/ml/FeatureImportanceChart';
 import { HeatmapSymbolSelector } from '../../components/features/market/HeatmapSymbolSelector';
@@ -48,6 +51,19 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     
     // New Feature States
     const [predictionTarget, setPredictionTarget] = useState('classification');
+    const [evalMetric, setEvalMetric] = useState('f1_macro'); // ✅ New Evaluation Metric
+    
+    // Split States
+    const [splitMethod, setSplitMethod] = useState('chronological');
+    const [trainRatio, setTrainRatio] = useState(70);
+    const [valRatio, setValRatio] = useState(15);
+    const [testRatio, setTestRatio] = useState(15);
+    const [imbalanceStrategy, setImbalanceStrategy] = useState('none');
+    
+    // Forecast Config
+    const [forecastHorizon, setForecastHorizon] = useState(1); // Look-ahead
+    const [lookbackWindow, setLookbackWindow] = useState(30); // Memory sequence
+
     const [learningRate, setLearningRate] = useState(0.1);
     const [maxDepth, setMaxDepth] = useState(6);
     const [modelName, setModelName] = useState('');
@@ -634,6 +650,14 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                     missing_data_strategy: missingDataStrategy,
                     outlier_removal: outlierRemoval,
                     scaling_method: scalingMethod,
+                    eval_metric: evalMetric,
+                    split_method: splitMethod,
+                    train_ratio: trainRatio,
+                    val_ratio: valRatio,
+                    test_ratio: testRatio,
+                    imbalance_strategy: imbalanceStrategy,
+                    forecast_horizon: forecastHorizon,
+                    lookback_window: lookbackWindow,
                     learning_rate: learningRate,
                     max_depth: maxDepth,
                     model_name: modelName,
@@ -880,6 +904,19 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                             isTraining={isTraining}
                         />
 
+                        <ForecastConfigurator
+                            forecastHorizon={forecastHorizon}
+                            setForecastHorizon={setForecastHorizon}
+                            lookbackWindow={lookbackWindow}
+                            setLookbackWindow={setLookbackWindow}
+                        />
+
+                        <EvaluationMetricSelector
+                            predictionTarget={predictionTarget}
+                            evalMetric={evalMetric}
+                            setEvalMetric={setEvalMetric}
+                        />
+
                         {(dataSource === 'ohlcv' || dataSource === 'hybrid') && (
                             <div>
                                 <label className="block text-sm font-medium text-slate-300 mb-1">Candle Interval</label>
@@ -993,6 +1030,22 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                     </p>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Dataset Split Configuration */}
+                        <div className="mt-6 pt-6 border-t border-white/10">
+                            <DatasetSplitConfig
+                                splitMethod={splitMethod}
+                                setSplitMethod={setSplitMethod}
+                                trainRatio={trainRatio}
+                                setTrainRatio={setTrainRatio}
+                                valRatio={valRatio}
+                                setValRatio={setValRatio}
+                                testRatio={testRatio}
+                                setTestRatio={setTestRatio}
+                                imbalanceStrategy={imbalanceStrategy}
+                                setImbalanceStrategy={setImbalanceStrategy}
+                            />
                         </div>
                         
                             </div>

@@ -19,11 +19,22 @@ def sync_directory(dir_path, db, user):
 
     model_id = os.path.basename(dir_path)
 
-    # Check if model already exists in DB
+    # Check if model already exists in DB by ID
     existing_model = db.query(models.CustomMLModel).filter(models.CustomMLModel.id == model_id).first()
     if existing_model:
         logger.info(f"Model {model_id} already exists in database. Skipping.")
         return existing_model
+
+    # Check if the directory is already mapped to an existing model version
+    # This prevents duplicate registration when the training engine saves files in job_train_... 
+    # but registers the model as model_...
+    existing_version = db.query(models.ModelVersion).filter(
+        models.ModelVersion.file_path.like(f"%{model_id}%")
+    ).first()
+    
+    if existing_version:
+        logger.info(f"Directory {model_id} is already mapped to model {existing_version.model_id}. Skipping.")
+        return None
 
     # Look for model files and metadata
     json_file = None

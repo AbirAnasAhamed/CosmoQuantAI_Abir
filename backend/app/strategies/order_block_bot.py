@@ -441,7 +441,10 @@ class OrderBlockBotTask:
         self._task: Optional[asyncio.Task] = None
         
         # We will use CCXT just to fetch public orderbook data rapidly for detection
-        self._public_exchange = getattr(ccxt, self.exchange_id)({'enableRateLimit': True})
+        exchange_params = {'enableRateLimit': True}
+        if config.get("trading_mode", "spot").lower() == "futures":
+            exchange_params['options'] = {'defaultType': 'swap'}
+        self._public_exchange = getattr(ccxt, self.exchange_id)(exchange_params)
 
     async def start(self):
         self.running = True

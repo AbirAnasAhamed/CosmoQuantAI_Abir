@@ -33,6 +33,14 @@ export interface TrainingConfig {
         missing_data_strategy?: string;
         outlier_removal?: string;
         scaling_method?: string;
+        eval_metric?: string;
+        split_method?: string;
+        train_ratio?: number;
+        val_ratio?: number;
+        test_ratio?: number;
+        imbalance_strategy?: string;
+        forecast_horizon?: number;
+        lookback_window?: number;
         learning_rate?: number;
         max_depth?: number;
         model_name?: string;

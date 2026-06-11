@@ -455,14 +455,14 @@ class WallHunterFuturesStrategy:
             self.symbol = ccxt_service.format_futures_symbol(self.symbol, self.exchange_id)
             
             # Public instance for data
-            self.public_exchange = exchange_class({'enableRateLimit': True})
+            self.public_exchange = exchange_class({'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
             
             # Proxy Exchange Initialization (Cross-Exchange Routing)
             if self.enable_proxy_wall and hasattr(self, 'proxy_exchange') and self.proxy_exchange != self.exchange_id:
                 try:
                     proxy_class = getattr(ccxt_pro, self.proxy_exchange, getattr(ccxt, self.proxy_exchange, None))
                     if proxy_class:
-                        self.proxy_public_exchange = proxy_class({'enableRateLimit': True})
+                        self.proxy_public_exchange = proxy_class({'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
                         self.logger.info(f"🔄 Dual-Exchange Initialized: Native ({self.exchange_id}) | Proxy ({self.proxy_exchange})")
                     else:
                         raise Exception("Exchange class not found")
@@ -476,6 +476,7 @@ class WallHunterFuturesStrategy:
             exchange_params = {
                 'enableRateLimit': True,
                 'options': {
+                    'defaultType': 'swap',
                     'adjustForTimeDifference': True,
                     'recvWindow': 60000 if self.exchange_id == 'mexc' else 30000,
                     'new_updates': True if self.exchange_id == 'mexc' else False

@@ -94,7 +94,10 @@ class LiveBotEngine:
                 exch_name = (bot.exchange or 'binance').lower()
                 if hasattr(ccxt, exch_name):
                     self.public_exchange = getattr(ccxt, exch_name)({
-                        'enableRateLimit': True, 'options': {'adjustForTimeDifference': True},
+                        'enableRateLimit': True, 'options': {
+                            'adjustForTimeDifference': True,
+                            'defaultType': self.deployment_target
+                        },
                     })
             except Exception as e:
                 print(f"Public Exchange Init Error: {e}")
