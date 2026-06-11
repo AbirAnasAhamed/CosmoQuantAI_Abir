@@ -27,7 +27,9 @@ const EvaluationMetricSelector: React.FC<EvaluationMetricSelectorProps> = ({
         { value: 'rmse', label: 'RMSE (Root Mean Square Error)' },
         { value: 'mae', label: 'MAE (Mean Absolute Error)' },
         { value: 'r2', label: 'R-Squared' },
-        { value: 'sharpe_loss', label: 'Sharpe Loss (Finance Specific)' },
+        { value: 'sharpe_loss', label: 'Sharpe Loss (Risk-Adjusted Return)' },
+        { value: 'max_drawdown_penalty', label: 'Max Drawdown Penalty (Capital Protection)' },
+        { value: 'dxy_loss', label: 'Directional Symmetry Loss (Trend Accuracy)' },
         { value: 'mape', label: 'MAPE (Mean Absolute Percentage Error)' }
       ];
     }

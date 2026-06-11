@@ -21,6 +21,13 @@ def apply_data_split(X, y, config, add_log):
         split = int(len(X) * train_ratio)
         X_train, X_test = X[:split], X[split:]
         y_train, y_test = y[:split], y[split:]
+    elif split_method == "purged_cv":
+        purge_len = int(config.get("purge_length", 5))
+        add_log(f"Applying Purged Cross-Validation Split (Train: {train_ratio*100:.0f}%, Purge: {purge_len} bars)")
+        split = int(len(X) * train_ratio)
+        train_end = max(0, split - purge_len)
+        X_train, X_test = X[:train_end], X[split:]
+        y_train, y_test = y[:train_end], y[split:]
     else:
         # Default chronological
         add_log(f"Applying Chronological Split (Train: {train_ratio*100:.0f}%)")

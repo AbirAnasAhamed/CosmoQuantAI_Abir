@@ -45,7 +45,7 @@ def sync_directory(dir_path, db, user):
             json_file = os.path.join(dir_path, file)
         elif file == "metadata.json":
             json_file = os.path.join(dir_path, file)
-        elif file.endswith((".zip", ".pkl", ".pt", ".onnx", ".h5")) and "checkpoint" not in file:
+        elif file.endswith((".zip", ".pkl", ".pt", ".onnx", ".h5")) and "checkpoint" not in file and not file.startswith("scaler"):
             model_file = os.path.join(dir_path, file)
 
     # fallback for metadata.json if exists

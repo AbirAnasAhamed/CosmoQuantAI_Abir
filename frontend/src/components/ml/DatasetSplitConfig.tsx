@@ -12,6 +12,8 @@ export interface DatasetSplitConfigProps {
   setTestRatio: (val: number) => void;
   imbalanceStrategy: string;
   setImbalanceStrategy: (val: string) => void;
+  purgeLength?: number;
+  setPurgeLength?: (val: number) => void;
 }
 
 const DatasetSplitConfig: React.FC<DatasetSplitConfigProps> = ({
@@ -24,7 +26,9 @@ const DatasetSplitConfig: React.FC<DatasetSplitConfigProps> = ({
   testRatio,
   setTestRatio,
   imbalanceStrategy,
-  setImbalanceStrategy
+  setImbalanceStrategy,
+  purgeLength = 5,
+  setPurgeLength
 }) => {
   useEffect(() => {
     // Ensure ratios sum to 100
@@ -51,9 +55,30 @@ const DatasetSplitConfig: React.FC<DatasetSplitConfigProps> = ({
             >
               <option value="chronological">Chronological (Time-Series)</option>
               <option value="walk_forward">Walk-Forward Validation</option>
+              <option value="purged_cv">Purged Cross-Validation (CPCV)</option>
               <option value="random">Random Split (Not Rec. for TS)</option>
             </select>
           </div>
+          
+          {splitMethod === 'purged_cv' && setPurgeLength && (
+            <div className="mt-3 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
+                <div className="flex justify-between text-[11px] font-bold text-indigo-300 mb-2 uppercase">
+                    <span>Purge Length (Bars)</span>
+                    <span>{purgeLength}</span>
+                </div>
+                <input 
+                    type="range" 
+                    min="1" 
+                    max="50" 
+                    value={purgeLength}
+                    onChange={(e) => setPurgeLength(Number(e.target.value))}
+                    className="w-full accent-indigo-500"
+                />
+                <p className="text-[10px] text-indigo-400/80 mt-2 leading-relaxed">
+                    Drops samples between train and validation sets to prevent data leakage from overlapping features (e.g. rolling means).
+                </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm text-slate-400 mb-1">Class Imbalance Strategy</label>

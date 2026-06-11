@@ -594,9 +594,27 @@ def build_hybrid_deep_dataset(job, db: Session, config: dict, add_log, check_can
         else:
             raise Exception("[HybridDeep] Cannot find Close price for target.")
 
+    # ── Step 4.8: Optional Resampling ─────────────────────────────────────────
+    resample_l2 = config.get("resample_l2", False)
+    if resample_l2:
+        pd_tf = job.timeframe.replace('m', 'min').replace('h', 'h').replace('d', 'D')
+        add_log(f"[HybridDeep] Resampling tick data to {job.timeframe} candles...")
+        agg_dict = {}
+        for col in df.columns:
+            if col == 'Close':
+                agg_dict[col] = 'last'
+            elif col in ['buy_volume', 'sell_volume', 'trade_count']:
+                agg_dict[col] = 'sum'
+            else:
+                agg_dict[col] = 'mean'
+        
+        df = df.resample(pd_tf).agg(agg_dict).dropna()
+        add_log(f"[HybridDeep] Resampling complete. Final rows: {len(df)}")
+
     # High frequency data needs a larger shift to capture price movement
     future_shift = config.get("prediction_horizon", 5)
-    future_shift = max(future_shift, 100) # Minimum 100 ticks for deep tick data
+    if not resample_l2:
+        future_shift = max(future_shift, 100) # Minimum 100 ticks for deep tick data
 
     if pred_target == "classification":
         future_return = df['Close'].shift(-future_shift) - df['Close']

@@ -588,7 +588,11 @@ def train_model_task(job_id: str, db: Session):
                 add_log("⚠️ Transfer failed or unsupported pair. Falling back to fresh training.")
                 is_fine_tune = False
         
-        if is_auto_resume:
+        has_saved_dataset = os.path.exists(dataset_path)
+        if has_saved_dataset and not is_auto_resume:
+            add_log(f"📂 Found existing dataset but no checkpoints. Skipping data collection and starting fresh training.")
+
+        if is_auto_resume or has_saved_dataset:
             # Skip data collection and load the DVC dataset
             add_log(f"Loading existing dataset from {dataset_path}...")
             df = pd.read_csv(dataset_path)
@@ -1099,6 +1103,13 @@ def train_model_task(job_id: str, db: Session):
             from app.services.ml_utils import apply_data_cleaning
             df = apply_data_cleaning(df, config, add_log)
             
+            if config.get("fractional_diff", False):
+                d_val = config.get("fractional_d_value", 0.5)
+                add_log(f"Applying Fractional Differentiation (d={d_val}) to preserve memory...")
+                from app.services.ml_fractional_diff import apply_fractional_differentiation
+                df = apply_fractional_differentiation(df, d_value=d_val, exclude_cols=['Target', 'timestamp', 'datetime'])
+                add_log(f"Fractional Differentiation complete. Shape: {df.shape}")
+            
             features = [col for col in df.columns if col not in ['Target', 'Open', 'High', 'Low', 'Close', 'Volume', 'Adj Close']]
             if not features:
                 features = ['Close']
@@ -1260,6 +1271,19 @@ def train_model_task(job_id: str, db: Session):
                 
             # Apply modular imbalance strategy (SMOTE/Undersampling/Class Weights)
             X_train, y_train = apply_imbalance_strategy(X_train, y_train, config, add_log, is_classification=True)
+            
+        # Apply Time-Series Data Augmentation to Training Set Only
+        aug_strategy = config.get("augmentation_strategy", "none")
+        aug_factor = int(config.get("augmentation_factor", 2))
+        if aug_strategy != "none" and aug_factor > 1:
+            add_log(f"Applying Data Augmentation ({aug_strategy}) factor {aug_factor}x to training set...")
+            from app.services.ml_augmentation import apply_data_augmentation
+            _train_df = pd.DataFrame(X_train, columns=features)
+            _train_df['Target'] = y_train.ravel()
+            _aug_df = apply_data_augmentation(_train_df, strategy=aug_strategy, factor=aug_factor)
+            X_train = _aug_df[features].values
+            y_train = _aug_df['Target'].values.reshape(-1, 1)
+            add_log(f"Data Augmentation complete. New train size: {len(X_train)} rows.")
         
         # FIX: Wrap X in DataFrame to preserve feature names.
         # This eliminates the SHAP / sklearn "X does not have valid feature names" warning spam.
@@ -1292,6 +1316,7 @@ def train_model_task(job_id: str, db: Session):
         max_depth = int(config.get("max_depth", 6))
         prediction_target = config.get("prediction_target", "classification")
         is_classification_target = (prediction_target == "classification")
+        eval_metric = config.get("eval_metric", "rmse")
 
         use_automl = config.get("use_automl", False)
         if use_automl and job.algorithm in ["Random Forest", "XGBoost", "LightGBM", "CatBoost"]:
@@ -1567,8 +1592,20 @@ def train_model_task(job_id: str, db: Session):
             job.progress = 80.0
             joblib.dump(model, model_path)
             
-            fi_log = extract_feature_importance(model, features)
-            if fi_log: add_log(fi_log)
+            if config.get("use_clustered_importance"):
+                try:
+                    from app.services.ml_feature_clustering import get_feature_clusters, clustered_mda
+                    add_log("Computing Clustered Feature Importance (MDA)...")
+                    _clusters = get_feature_clusters(X_train_df, features, threshold=0.5)
+                    _, fi_log = clustered_mda(model, X_test_df, y_test.ravel(), _clusters, is_classification=(prediction_target=="classification"), n_repeats=3)
+                    if fi_log: add_log(fi_log)
+                except Exception as e_clust:
+                    add_log(f"⚠️ Clustered MDA failed: {e_clust}. Falling back to default FI.")
+                    fi_log = extract_feature_importance(model, features)
+                    if fi_log: add_log(fi_log)
+            else:
+                fi_log = extract_feature_importance(model, features)
+                if fi_log: add_log(fi_log)
             add_log(f"Random Forest training complete.")
             
         elif job.algorithm == "XGBoost":
@@ -1624,8 +1661,20 @@ def train_model_task(job_id: str, db: Session):
             job.progress = 80.0
             joblib.dump(model, model_path)
             
-            fi_log = extract_feature_importance(model, features)
-            if fi_log: add_log(fi_log)
+            if config.get("use_clustered_importance"):
+                try:
+                    from app.services.ml_feature_clustering import get_feature_clusters, clustered_mda
+                    add_log("Computing Clustered Feature Importance (MDA)...")
+                    _clusters = get_feature_clusters(X_train_df, features, threshold=0.5)
+                    _, fi_log = clustered_mda(model, X_test_df, y_test.ravel(), _clusters, is_classification=(prediction_target=="classification"), n_repeats=3)
+                    if fi_log: add_log(fi_log)
+                except Exception as e_clust:
+                    add_log(f"⚠️ Clustered MDA failed: {e_clust}. Falling back to default FI.")
+                    fi_log = extract_feature_importance(model, features)
+                    if fi_log: add_log(fi_log)
+            else:
+                fi_log = extract_feature_importance(model, features)
+                if fi_log: add_log(fi_log)
             add_log(f"XGBoost training complete.")
             
         elif job.algorithm == "LSTM":
@@ -1673,19 +1722,57 @@ def train_model_task(job_id: str, db: Session):
                 pos_weight = torch.tensor([num_neg / num_pos], dtype=torch.float32)
                 criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
             else:
-                criterion = nn.MSELoss()
+                from app.services.ml_custom_losses import get_custom_loss_fn
+                custom_loss = get_custom_loss_fn(eval_metric)
+                criterion = custom_loss if custom_loss else nn.MSELoss()
                 
             optimizer = torch.optim.Adam(model.parameters(), lr=_ft_lr)
             
+            # ── Continual Learning (EWC) Initialization ─────────────────
+            enable_ewc = config.get("enable_ewc", False)
+            ewc_lambda = float(config.get("ewc_lambda", 1.0))
+            ewc_instance = None
+            if enable_ewc and is_fine_tune:
+                try:
+                    add_log("Initializing EWC (Continual Learning) to preserve prior knowledge...")
+                    from app.services.ml_continual_learning import EWC, attach_ewc_to_loss
+                    from torch.utils.data import TensorDataset, DataLoader
+                    _ds = TensorDataset(X_train_t, y_train_t.view(-1, 1))
+                    _dl = DataLoader(_ds, batch_size=32, shuffle=True)
+                    ewc_instance = EWC(model, _dl, device="cpu", ew_weight=ewc_lambda)
+                except Exception as e_ewc:
+                    add_log(f"⚠️ Failed to initialize EWC: {e_ewc}")
+            
+            enable_adversarial = config.get("enable_adversarial", False)
+            adv_epsilon = float(config.get("adversarial_epsilon", 0.01))
+            if enable_adversarial:
+                add_log(f"Adversarial FGSM Training Enabled (Epsilon={adv_epsilon:.3f})")
+                
             add_log(f"Starting LSTM training for {epochs} epochs...")
             for epoch in range(epochs):
+                model.train()
+                # 1. Standard Forward Pass
                 outputs = model(X_train_t)
                 optimizer.zero_grad()
                 # FIX: ensure y and outputs have matching shapes (N,1) for BCEWithLogitsLoss
                 loss = criterion(outputs, y_train_t.view(-1, 1))
+                if ewc_instance:
+                    from app.services.ml_continual_learning import attach_ewc_to_loss
+                    loss = attach_ewc_to_loss(loss, model, ewc_instance)
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
                 optimizer.step()
+                
+                # 2. Adversarial Pass (FGSM)
+                if enable_adversarial:
+                    from app.services.ml_adversarial import generate_fgsm_attack
+                    X_adv = generate_fgsm_attack(model, criterion, X_train_t, y_train_t.view(-1, 1), epsilon=adv_epsilon)
+                    outputs_adv = model(X_adv)
+                    optimizer.zero_grad()
+                    loss_adv = criterion(outputs_adv, y_train_t.view(-1, 1))
+                    loss_adv.backward()
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                    optimizer.step()
                 
                 pct = 10.0 + (70.0 * (epoch+1)/epochs)
                 job.progress = pct
@@ -1745,8 +1832,20 @@ def train_model_task(job_id: str, db: Session):
             job.progress = 80.0
             joblib.dump(model, model_path)
             
-            fi_log = extract_feature_importance(model, features)
-            if fi_log: add_log(fi_log)
+            if config.get("use_clustered_importance"):
+                try:
+                    from app.services.ml_feature_clustering import get_feature_clusters, clustered_mda
+                    add_log("Computing Clustered Feature Importance (MDA)...")
+                    _clusters = get_feature_clusters(X_train_df, features, threshold=0.5)
+                    _, fi_log = clustered_mda(model, X_test_df, y_test.ravel(), _clusters, is_classification=(prediction_target=="classification"), n_repeats=3)
+                    if fi_log: add_log(fi_log)
+                except Exception as e_clust:
+                    add_log(f"⚠️ Clustered MDA failed: {e_clust}. Falling back to default FI.")
+                    fi_log = extract_feature_importance(model, features)
+                    if fi_log: add_log(fi_log)
+            else:
+                fi_log = extract_feature_importance(model, features)
+                if fi_log: add_log(fi_log)
             add_log("LightGBM training complete.")
 
         elif job.algorithm == "CatBoost":
@@ -1779,8 +1878,20 @@ def train_model_task(job_id: str, db: Session):
             job.progress = 80.0
             joblib.dump(model, model_path)
             
-            fi_log = extract_feature_importance(model, features)
-            if fi_log: add_log(fi_log)
+            if config.get("use_clustered_importance"):
+                try:
+                    from app.services.ml_feature_clustering import get_feature_clusters, clustered_mda
+                    add_log("Computing Clustered Feature Importance (MDA)...")
+                    _clusters = get_feature_clusters(X_train_df, features, threshold=0.5)
+                    _, fi_log = clustered_mda(model, X_test_df, y_test.ravel(), _clusters, is_classification=(prediction_target=="classification"), n_repeats=3)
+                    if fi_log: add_log(fi_log)
+                except Exception as e_clust:
+                    add_log(f"⚠️ Clustered MDA failed: {e_clust}. Falling back to default FI.")
+                    fi_log = extract_feature_importance(model, features)
+                    if fi_log: add_log(fi_log)
+            else:
+                fi_log = extract_feature_importance(model, features)
+                if fi_log: add_log(fi_log)
             add_log("CatBoost training complete.")
 
         elif job.algorithm == "GRU":
@@ -1827,7 +1938,9 @@ def train_model_task(job_id: str, db: Session):
                 pos_weight = torch.tensor([num_neg / num_pos], dtype=torch.float32)
                 criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
             else:
-                criterion = nn.MSELoss()
+                from app.services.ml_custom_losses import get_custom_loss_fn
+                custom_loss = get_custom_loss_fn(eval_metric)
+                criterion = custom_loss if custom_loss else nn.MSELoss()
                 
             optimizer = torch.optim.Adam(model.parameters(), lr=_ft_lr)
             
@@ -1909,7 +2022,9 @@ def train_model_task(job_id: str, db: Session):
                 pos_weight = torch.tensor([num_neg / num_pos], dtype=torch.float32)
                 criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
             else:
-                criterion = nn.MSELoss()
+                from app.services.ml_custom_losses import get_custom_loss_fn
+                custom_loss = get_custom_loss_fn(eval_metric)
+                criterion = custom_loss if custom_loss else nn.MSELoss()
                 
             optimizer = torch.optim.Adam(model.parameters(), lr=_ft_lr)
             
@@ -1984,18 +2099,56 @@ def train_model_task(job_id: str, db: Session):
                 pos_weight = torch.tensor([num_neg / num_pos], dtype=torch.float32)
                 criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
             else:
-                criterion = nn.MSELoss()
+                from app.services.ml_custom_losses import get_custom_loss_fn
+                custom_loss = get_custom_loss_fn(eval_metric)
+                criterion = custom_loss if custom_loss else nn.MSELoss()
                 
             optimizer = torch.optim.Adam(model.parameters(), lr=_ft_lr)
             
+            # ── Continual Learning (EWC) Initialization ─────────────────
+            enable_ewc = config.get("enable_ewc", False)
+            ewc_lambda = float(config.get("ewc_lambda", 1.0))
+            ewc_instance = None
+            if enable_ewc and is_fine_tune:
+                try:
+                    add_log("Initializing EWC (Continual Learning) to preserve prior knowledge...")
+                    from app.services.ml_continual_learning import EWC, attach_ewc_to_loss
+                    from torch.utils.data import TensorDataset, DataLoader
+                    _ds = TensorDataset(X_train_t, y_train_t.view(-1))
+                    _dl = DataLoader(_ds, batch_size=32, shuffle=True)
+                    ewc_instance = EWC(model, _dl, device="cpu", ew_weight=ewc_lambda)
+                except Exception as e_ewc:
+                    add_log(f"⚠️ Failed to initialize EWC: {e_ewc}")
+            
+            enable_adversarial = config.get("enable_adversarial", False)
+            adv_epsilon = float(config.get("adversarial_epsilon", 0.01))
+            if enable_adversarial:
+                add_log(f"Adversarial FGSM Training Enabled (Epsilon={adv_epsilon:.3f})")
+                
             for epoch in range(epochs):
+                model.train()
+                # 1. Standard Forward Pass
                 outputs = model(X_train_t)
                 optimizer.zero_grad()
                 # FIX: ensure y and outputs have matching shapes (N,1) for BCEWithLogitsLoss
                 loss = criterion(outputs.squeeze(-1), y_train_t.view(-1))
+                if ewc_instance:
+                    from app.services.ml_continual_learning import attach_ewc_to_loss
+                    loss = attach_ewc_to_loss(loss, model, ewc_instance)
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
                 optimizer.step()
+                
+                # 2. Adversarial Pass (FGSM)
+                if enable_adversarial:
+                    from app.services.ml_adversarial import generate_fgsm_attack
+                    X_adv = generate_fgsm_attack(model, criterion, X_train_t, y_train_t.view(-1), epsilon=adv_epsilon)
+                    outputs_adv = model(X_adv)
+                    optimizer.zero_grad()
+                    loss_adv = criterion(outputs_adv.squeeze(-1), y_train_t.view(-1))
+                    loss_adv.backward()
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                    optimizer.step()
                 
             model_filename = model_filename.replace(".pkl", ".pt")
             model_path = model_path.replace(".pkl", ".pt")

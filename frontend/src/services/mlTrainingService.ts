@@ -33,8 +33,18 @@ export interface TrainingConfig {
         missing_data_strategy?: string;
         outlier_removal?: string;
         scaling_method?: string;
+        fractional_diff?: boolean;
+        fractional_d_value?: number;
+        augmentation_strategy?: string;
+        augmentation_factor?: number;
+        use_clustered_importance?: boolean;
+        enable_ewc?: boolean;
+        ewc_lambda?: number;
+        enable_adversarial?: boolean;
+        adversarial_epsilon?: number;
         eval_metric?: string;
         split_method?: string;
+        purge_length?: number;
         train_ratio?: number;
         val_ratio?: number;
         test_ratio?: number;

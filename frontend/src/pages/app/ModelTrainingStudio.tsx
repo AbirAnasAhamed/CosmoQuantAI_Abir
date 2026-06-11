@@ -8,6 +8,11 @@ import DatasetSplitConfig from '@/components/ml/DatasetSplitConfig';
 import ForecastConfigurator from '@/components/ml/ForecastConfigurator';
 import EvaluationMetricSelector from '@/components/ml/EvaluationMetricSelector';
 import AdvancedHyperparameters from '@/components/ml/AdvancedHyperparameters';
+import FractionalDiffConfig from '@/components/ml/FractionalDiffConfig';
+import DataAugmentationConfig from '@/components/ml/DataAugmentationConfig';
+import ContinualLearningConfig from '@/components/ml/ContinualLearningConfig';
+import ClusterImportanceToggle from '@/components/ml/ClusterImportanceToggle';
+import AdversarialTrainingConfig from '@/components/ml/AdversarialTrainingConfig';
 import FeatureImportanceChart from '@/components/ml/FeatureImportanceChart';
 import { HeatmapSymbolSelector } from '../../components/features/market/HeatmapSymbolSelector';
 import LiveMarketPulse from '@/components/ml/LiveMarketPulse';
@@ -32,6 +37,8 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     const [dataSource, setDataSource] = useState('ohlcv');
     const [isAutoRetrain, setIsAutoRetrain] = useState(false);
     const [retrainInterval, setRetrainInterval] = useState(6);
+    const [enableEwc, setEnableEwc] = useState(false);
+    const [ewcLambda, setEwcLambda] = useState(1.0);
     const [dataLookback, setDataLookback] = useState(6);
     const [ohlcvStartDate, setOhlcvStartDate] = useState(() => {
         const d = new Date();
@@ -59,6 +66,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     const [valRatio, setValRatio] = useState(15);
     const [testRatio, setTestRatio] = useState(15);
     const [imbalanceStrategy, setImbalanceStrategy] = useState('none');
+    const [purgeLength, setPurgeLength] = useState(5);
     
     // Forecast Config
     const [forecastHorizon, setForecastHorizon] = useState(1); // Look-ahead
@@ -82,6 +90,15 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
     const [missingDataStrategy, setMissingDataStrategy] = useState('drop');
     const [outlierRemoval, setOutlierRemoval] = useState('none');
     const [scalingMethod, setScalingMethod] = useState('none');
+    
+    // New Advanced Preprocessing States
+    const [fractionalDiff, setFractionalDiff] = useState(false);
+    const [fractionalDValue, setFractionalDValue] = useState(0.5);
+    const [augmentationStrategy, setAugmentationStrategy] = useState('none');
+    const [augmentationFactor, setAugmentationFactor] = useState(2);
+    const [useClusteredImportance, setUseClusteredImportance] = useState(false);
+    const [enableAdversarial, setEnableAdversarial] = useState(false);
+    const [adversarialEpsilon, setAdversarialEpsilon] = useState(0.01);
     
     // AutoML States
     const [useAutoML, setUseAutoML] = useState(false);
@@ -633,7 +650,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
 
             const job = await mlTrainingService.startTraining({
                 symbol,
-                timeframe: dataSource === 'hybrid_deep' ? 'Tick' : actualTimeframe,
+                timeframe: (dataSource === 'hybrid_deep' && !isResampleL2) ? 'Tick' : actualTimeframe,
                 algorithm,
                 config: {
                     indicators: (dataSource === 'ohlcv' || dataSource === 'hybrid' || dataSource === 'historical_trades') ? selectedIndicators : [],
@@ -642,16 +659,26 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                     use_merged_file: (['l2_orderbook', 'hybrid_deep'].includes(dataSource) && isIncludeArchived && !!mergedResult),
                     is_auto_retrain: isAutoRetrain,
                     retrain_interval_hours: isAutoRetrain ? retrainInterval : undefined,
+                    enable_ewc: enableEwc,
+                    ewc_lambda: ewcLambda,
                     data_lookback_hours: dataLookback,
                     ohlcv_start_date: (dataSource === 'ohlcv' || dataSource === 'hybrid') ? ohlcvStartDate : undefined,
                     ohlcv_end_date: (dataSource === 'ohlcv' || dataSource === 'hybrid') ? ohlcvEndDate : undefined,
-                    resample_l2: dataSource === 'l2_orderbook' ? (l2ProcessingMode === 'bars') : (dataSource === 'hybrid' ? true : undefined),
+                    resample_l2: dataSource === 'hybrid_deep' ? isResampleL2 : (dataSource === 'l2_orderbook' ? (l2ProcessingMode === 'bars') : (dataSource === 'hybrid' ? true : undefined)),
                     prediction_target: predictionTarget,
                     missing_data_strategy: missingDataStrategy,
                     outlier_removal: outlierRemoval,
                     scaling_method: scalingMethod,
+                    fractional_diff: fractionalDiff,
+                    fractional_d_value: fractionalDValue,
+                    augmentation_strategy: augmentationStrategy,
+                    augmentation_factor: augmentationFactor,
+                    use_clustered_importance: useClusteredImportance,
+                    enable_adversarial: enableAdversarial,
+                    adversarial_epsilon: adversarialEpsilon,
                     eval_metric: evalMetric,
                     split_method: splitMethod,
+                    purge_length: purgeLength,
                     train_ratio: trainRatio,
                     val_ratio: valRatio,
                     test_ratio: testRatio,
@@ -917,7 +944,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                             setEvalMetric={setEvalMetric}
                         />
 
-                        {(dataSource === 'ohlcv' || dataSource === 'hybrid') && (
+                        {(dataSource === 'ohlcv' || dataSource === 'hybrid' || ((dataSource === 'l2_orderbook' || dataSource === 'hybrid_deep') && isResampleL2)) && (
                             <div>
                                 <label className="block text-sm font-medium text-slate-300 mb-1">Candle Interval</label>
                                 <div className="grid grid-cols-5 gap-2">
@@ -935,7 +962,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                         </div>
                         )}
 
-                        {dataSource === 'l2_orderbook' && (
+                        {(dataSource === 'l2_orderbook' && !isResampleL2) && (
                             <div>
                                 <label className="block text-sm font-medium text-slate-300 mb-1">Snapshot Interval (Sampling Rate)</label>
                                 <div className="grid grid-cols-5 gap-2">
@@ -1029,6 +1056,32 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                         💡 Note: Deep Learning models use MinMax automatically if none is selected.
                                     </p>
                                 </div>
+                                
+                                <FractionalDiffConfig 
+                                    fractionalDiff={fractionalDiff}
+                                    setFractionalDiff={setFractionalDiff}
+                                    fractionalDValue={fractionalDValue}
+                                    setFractionalDValue={setFractionalDValue}
+                                />
+                                
+                                <DataAugmentationConfig
+                                    augmentationStrategy={augmentationStrategy}
+                                    setAugmentationStrategy={setAugmentationStrategy}
+                                    augmentationFactor={augmentationFactor}
+                                    setAugmentationFactor={setAugmentationFactor}
+                                />
+                                
+                                <ClusterImportanceToggle 
+                                    useClusteredImportance={useClusteredImportance}
+                                    setUseClusteredImportance={setUseClusteredImportance}
+                                />
+                                
+                                <AdversarialTrainingConfig 
+                                    enableAdversarial={enableAdversarial}
+                                    setEnableAdversarial={setEnableAdversarial}
+                                    adversarialEpsilon={adversarialEpsilon}
+                                    setAdversarialEpsilon={setAdversarialEpsilon}
+                                />
                             </div>
                         </div>
 
@@ -1045,6 +1098,8 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                 setTestRatio={setTestRatio}
                                 imbalanceStrategy={imbalanceStrategy}
                                 setImbalanceStrategy={setImbalanceStrategy}
+                                purgeLength={purgeLength}
+                                setPurgeLength={setPurgeLength}
                             />
                         </div>
                         
@@ -2275,7 +2330,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                 </div>
                             )}
 
-                            {(dataSource === 'l2_orderbook' || dataSource === 'hybrid') && (
+                            {(dataSource === 'l2_orderbook' || dataSource === 'hybrid' || dataSource === 'hybrid_deep') && (
                                 <div className="flex items-center justify-between p-4 bg-purple-500/5 rounded-xl border border-purple-500/20 shadow-inner">
                                     <div>
                                         <h4 className="text-sm font-bold text-purple-400">Resample to Candle Interval</h4>
@@ -2640,6 +2695,17 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                         <option className="bg-gray-900 text-white" value={12}>Every 12 Hours</option>
                                         <option className="bg-gray-900 text-white" value={24}>Every 24 Hours</option>
                                     </select>
+                                </div>
+                            )}
+                            
+                            {isAutoRetrain && (
+                                <div className="mt-4">
+                                    <ContinualLearningConfig 
+                                        enableEwc={enableEwc}
+                                        setEnableEwc={setEnableEwc}
+                                        ewcLambda={ewcLambda}
+                                        setEwcLambda={setEwcLambda}
+                                    />
                                 </div>
                             )}
                         </div>

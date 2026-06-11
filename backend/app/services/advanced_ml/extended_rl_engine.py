@@ -565,7 +565,7 @@ class ExtendedRLEngine:
         callback = LiveStreamingCallback(
             check_interval=max(100, total_timesteps // 20),
             stream_interval=max(1, total_timesteps // 1000),
-            checkpoint_interval=max(1, total_timesteps // 20),
+            checkpoint_interval=min(25000, max(1, total_timesteps // 100)), # Save max every 25k steps
             checkpoint_path=checkpoint_path,
             state_path=state_path
         )
