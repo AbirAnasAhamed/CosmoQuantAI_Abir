@@ -28,6 +28,7 @@ from app.strategies.helpers.vwap_sd_tracker import VWAPSDTracker
 from app.strategies.helpers.vwap_sd_standalone_listener import VWAPSDStandaloneListener
 from app.strategies.helpers.advanced_risk_manager import AdvancedRiskManager
 from app.services.ta_snapshot_service import ta_snapshot_service
+from app.strategies.smart_chase_executor import execute_smart_chase
 
 try:
     from app.core.security import decrypt_key
@@ -107,6 +108,8 @@ class WallHunterBot:
         self.tsl_pct = config.get("trailing_stop", 0.2)
         self.sell_order_type = config.get("sell_order_type", "market")
         self.sl_order_type = config.get("sl_order_type", "market")
+        self.smart_chase_deviation_pct = config.get("smart_chase_deviation_pct", 1.0)
+        self.smart_chase_delay_ms = config.get("smart_chase_delay_ms", 1500)
         self.trading_mode = config.get("trading_mode", "spot").lower()
         self.strategy_mode = config.get("strategy_mode", "long").lower()
         
@@ -481,6 +484,14 @@ class WallHunterBot:
         if "tsl_activation_pct" in new_config and new_config["tsl_activation_pct"] != getattr(self, "tsl_activation_pct", 0.0):
             updates.append(f"TSL Activation: {getattr(self, 'tsl_activation_pct', 0.0)}% -> {new_config['tsl_activation_pct']}%")
             self.tsl_activation_pct = new_config.get("tsl_activation_pct")
+            
+        if "smart_chase_deviation_pct" in new_config and new_config["smart_chase_deviation_pct"] != getattr(self, "smart_chase_deviation_pct", 1.0):
+            if new_config.get("sl_order_type") == "smart_chase":
+                updates.append(f"Smart Chase Dev: {getattr(self, 'smart_chase_deviation_pct', 1.0)}% -> {new_config['smart_chase_deviation_pct']}%")
+            self.smart_chase_deviation_pct = new_config.get("smart_chase_deviation_pct")
+            
+        if "smart_chase_delay_ms" in new_config and new_config["smart_chase_delay_ms"] != getattr(self, "smart_chase_delay_ms", 1500):
+            self.smart_chase_delay_ms = new_config.get("smart_chase_delay_ms")
             
         if "risk_pct" in new_config and new_config["risk_pct"] != self.initial_risk_pct:
             updates.append(f"Risk Pct: {self.initial_risk_pct}% -> {new_config['risk_pct']}%")
@@ -3357,10 +3368,25 @@ class WallHunterBot:
                 res = await self.engine.execute_trade(close_side, sell_amount, bounded_price, order_type="limit")
                 if not res or not res.get('id'): # Failsafe
                     res = await self.engine.execute_trade(close_side, sell_amount, current_price, order_type="market")
+                    
+            elif sl_exec_type == 'smart_chase':
+                res = await execute_smart_chase(
+                    engine=self.engine,
+                    public_exchange=self.public_exchange,
+                    symbol=self.symbol,
+                    exit_side=close_side,
+                    sell_amount_raw=sell_amount_raw,
+                    current_price=current_price,
+                    original_sl=self.active_pos['sl'],
+                    max_deviation_pct=getattr(self, 'smart_chase_deviation_pct', 1.0),
+                    chase_delay_ms=getattr(self, 'smart_chase_delay_ms', 1500),
+                    exchange_id=self.exchange_id,
+                    is_futures=False
+                )
             # ----------------------------------------
             
             # If Strict Limit Maker was placed OR rejected, we exit here so we don't clear state!
-            if sl_exec_type == 'limit' and not res:
+            if sl_exec_type in ('limit', 'smart_chase') and not res:
                 if self.active_pos.get('sl_limit_order_id'):
                     self.logger.info("Strict Limit SL order placed. Ending loop tick to wait.")
                 self._save_state()

@@ -27,6 +27,8 @@ from app.strategies.helpers.vwap_sd_tracker import VWAPSDTracker
 from app.strategies.helpers.vwap_sd_standalone_listener import VWAPSDStandaloneListener
 from app.strategies.helpers.advanced_risk_manager import AdvancedRiskManager
 from app.services.ta_snapshot_service import ta_snapshot_service
+from app.strategies.smart_chase_executor import execute_smart_chase
+
 logger = logging.getLogger(__name__)
 
 # ----------------------------------------------------
@@ -105,6 +107,8 @@ class WallHunterFuturesStrategy:
         self.buy_order_type = self.config.get("buy_order_type", "market")
         self.sell_order_type = self.config.get("sell_order_type", "market")
         self.sl_order_type = self.config.get("sl_order_type", "market")
+        self.smart_chase_deviation_pct = self.config.get("smart_chase_deviation_pct", 1.0)
+        self.smart_chase_delay_ms = self.config.get("smart_chase_delay_ms", 1500)
         self.limit_buffer = self.config.get("limit_buffer", 0.05)  # % buffer for maker limit orders
         self.tsl_activation_pct = self.config.get("tsl_activation_pct", 0.0)
         # Soft Limit TP: how long (seconds) to wait for a postOnly maker TP order before market sweep
@@ -2445,8 +2449,23 @@ class WallHunterFuturesStrategy:
                     res = await self.engine.execute_trade(exit_side, sell_amount_raw, bounded_price, order_type="limit", params={'reduceOnly': True})
                     if not res or not res.get('id'):
                         res = await self.engine.execute_trade(exit_side, sell_amount_raw, current_price, order_type="market", params={'reduceOnly': True})
+                        
+                elif sl_exec_type == 'smart_chase':
+                    res = await execute_smart_chase(
+                        engine=self.engine,
+                        public_exchange=self.public_exchange,
+                        symbol=self.symbol,
+                        exit_side=exit_side,
+                        sell_amount_raw=sell_amount_raw,
+                        current_price=current_price,
+                        original_sl=self.active_pos['sl'],
+                        max_deviation_pct=getattr(self, 'smart_chase_deviation_pct', 1.0),
+                        chase_delay_ms=getattr(self, 'smart_chase_delay_ms', 1500),
+                        exchange_id=self.exchange_id,
+                        is_futures=True
+                    )
 
-                if sl_exec_type == 'limit' and not res:
+                if sl_exec_type in ('limit', 'smart_chase') and not res:
                     if self.active_pos.get('sl_limit_order_id'):
                         logger.info("Futures Strict Limit SL order placed. Ending loop tick to wait.")
                         self._save_state()
@@ -3095,6 +3114,14 @@ class WallHunterFuturesStrategy:
         if "tsl_activation_pct" in new_config and new_config["tsl_activation_pct"] != getattr(self, "tsl_activation_pct", 0.0):
             updates.append(f"TSL Activation: {getattr(self, 'tsl_activation_pct', 0.0)}% -> {new_config['tsl_activation_pct']}%")
             self.tsl_activation_pct = new_config.get("tsl_activation_pct")
+            
+        if "smart_chase_deviation_pct" in new_config and new_config["smart_chase_deviation_pct"] != getattr(self, "smart_chase_deviation_pct", 1.0):
+            if new_config.get("sl_order_type") == "smart_chase":
+                updates.append(f"Smart Chase Dev: {getattr(self, 'smart_chase_deviation_pct', 1.0)}% -> {new_config['smart_chase_deviation_pct']}%")
+            self.smart_chase_deviation_pct = new_config.get("smart_chase_deviation_pct")
+            
+        if "smart_chase_delay_ms" in new_config and new_config["smart_chase_delay_ms"] != getattr(self, "smart_chase_delay_ms", 1500):
+            self.smart_chase_delay_ms = new_config.get("smart_chase_delay_ms")
 
         if "leverage" in new_config:
             updates.append(f"Leverage: {self.leverage}x -> {new_config['leverage']}x")

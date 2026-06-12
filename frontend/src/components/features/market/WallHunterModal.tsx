@@ -63,6 +63,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         
         // --- NEW: Risk SL Order Type ---
         slOrderType: 'limit',
+        smartChaseDeviationPct: 1.0,
+        smartChaseDelayMs: 1500,
 
         enableWallTrigger: false,        
         maxWallDistancePct: 1.0,        
@@ -336,6 +338,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             amount: c.amount_per_trade || 100,
                             sellOrderType: c.sell_order_type || 'limit',
                             slOrderType: c.sl_order_type || 'limit',
+                            smartChaseDeviationPct: c.smart_chase_deviation_pct !== undefined ? c.smart_chase_deviation_pct : 1.0,
+                            smartChaseDelayMs: c.smart_chase_delay_ms !== undefined ? c.smart_chase_delay_ms : 1500,
                             spoofTime: c.min_wall_lifetime !== undefined ? c.min_wall_lifetime : 3.0,
                             enablePartialTp: c.partial_tp_pct !== undefined ? c.partial_tp_pct > 0 : false,
                             partialTp: c.partial_tp_pct !== undefined && c.partial_tp_pct > 0 ? c.partial_tp_pct : 20.0,
@@ -716,6 +720,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     risk_pct: form.enableRiskSl ? form.risk : 0.0,
                     sell_order_type: form.sellOrderType,
                     sl_order_type: form.slOrderType,
+                    smart_chase_deviation_pct: form.slOrderType === 'smart_chase' ? form.smartChaseDeviationPct : 0.0,
+                    smart_chase_delay_ms: form.slOrderType === 'smart_chase' ? form.smartChaseDelayMs : 1500,
                     min_wall_lifetime: form.spoofTime,
                     partial_tp_pct: form.enablePartialTp ? form.partialTp : 0.0,
                     partial_tp_trigger_pct: form.enablePartialTp ? form.partialTpTriggerPct : 0.0,
@@ -2576,8 +2582,28 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                     <option className="bg-[#000000]" value="stop_limit">Stop-Limit (Slippage Bound)</option>
                                     <option className="bg-[#000000]" value="soft_limit">Soft Limit (Maker Try)</option>
                                     <option className="bg-[#000000]" value="limit">Limit (Strict Maker)</option>
+                                    <option className="bg-[#000000]" value="smart_chase">Smart Chase Limit</option>
                                 </select>
                             </div>
+
+                            {/* --- SMART CHASE OPTIONS --- */}
+                            {form.slOrderType === 'smart_chase' && (
+                                <div className="bg-brand-primary/5 border border-brand-primary/20 rounded-xl p-4 flex gap-4 items-center mb-2 animate-fadeIn shadow-[0_4px_20px_rgba(0,0,0,0.1)]">
+                                    <div className="flex-1 space-y-1">
+                                        <div className="flex justify-between items-end mb-1">
+                                            <label className="text-[10px] text-brand-primary font-bold uppercase">Max Chase Deviation (%)</label>
+                                            <span className="text-xs font-mono font-bold text-brand-primary">{form.smartChaseDeviationPct}%</span>
+                                        </div>
+                                        <input type="range" min="0.1" max="5.0" step="0.1" className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-brand-primary bg-white/10" value={form.smartChaseDeviationPct} onChange={(e) => handleFormChange('smartChaseDeviationPct', parseFloat(e.target.value))} />
+                                        <p className="text-[8.5px] text-gray-500 mt-1 leading-tight">Circuit breaker limit. If market drops beyond this percentage from original SL, bot aborts chase and sweeps at Market to prevent deep losses.</p>
+                                    </div>
+                                    <div className="w-[120px] space-y-1">
+                                        <label className="text-[10px] text-brand-primary font-bold uppercase">Delay (ms)</label>
+                                        <input type="number" step="100" min="200" max="2000" className="w-full bg-black/40 border border-brand-primary/30 rounded-xl p-2 text-brand-primary text-center outline-none focus:border-brand-primary text-xs font-mono" value={form.smartChaseDelayMs} onChange={(e) => handleFormChange('smartChaseDelayMs', parseInt(e.target.value))} />
+                                        <p className="text-[8.5px] text-gray-500 mt-1 text-center">API throttling.</p>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* --- FUTURES SPECIFIC RISK SETTINGS --- */}
                             {tradingMode === 'futures' && (
