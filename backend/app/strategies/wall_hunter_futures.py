@@ -1834,21 +1834,43 @@ class WallHunterFuturesStrategy:
                 if getattr(self, 'initial_risk_pct', 0) > 0:
                     exit_side = "sell" if side == "buy" else "buy"
                     sl_type = getattr(self, 'sl_order_type', 'market')
-                    try:
-                        sl_params = {'reduceOnly': True, 'stopPrice': self.active_pos['sl']}
-                        if sl_type in ('limit', 'stop_limit'):
-                            # Native Stop-Limit — price-bounded stop order
-                            sl_params['price'] = self.active_pos['sl']
-                            sl_res = await self.engine.execute_trade(exit_side, base_amount, self.active_pos['sl'], order_type="STOP", params=sl_params)
-                        else:
-                            # market / soft_limit / default → stop_market (safest native fallback)
-                            sl_res = await self.engine.execute_trade(exit_side, base_amount, self.active_pos['sl'], order_type="stop_market", params=sl_params)
+                    
+                    native_sl_price = self.active_pos['sl']
+                    place_native_sl = True
+                    
+                    if sl_type == 'smart_chase':
+                        # Place a Disaster Native SL at the Circuit Breaker boundary!
+                        max_dev = getattr(self, 'smart_chase_deviation_pct', 1.0)
+                        if exit_side == "sell": # Long position, SL is below entry
+                            native_sl_price = self.active_pos['sl'] * (1 - (max_dev / 100))
+                        else: # Short position, SL is above entry
+                            native_sl_price = self.active_pos['sl'] * (1 + (max_dev / 100))
                             
-                        if sl_res and 'id' in sl_res:
-                            self.active_pos['sl_order_id'] = sl_res['id']
-                            self.logger.info(f"Placed Native Stop-Loss Order {sl_res['id']} at {self.active_pos['sl']}")
-                    except Exception as e:
-                        self.logger.error(f"Failed to place Native Stop-Loss order: {e}")
+                    elif sl_type == 'soft_limit':
+                        # Soft limit is handled by bot, place disaster SL 1% away
+                        if exit_side == "sell":
+                            native_sl_price = self.active_pos['sl'] * 0.99
+                        else:
+                            native_sl_price = self.active_pos['sl'] * 1.01
+
+                    if place_native_sl:
+                        try:
+                            # Apply tick size formatting to the price to avoid precision errors
+                            native_sl_price = float(self.engine.exchange.price_to_precision(self.symbol, native_sl_price)) if hasattr(self.engine.exchange, 'price_to_precision') else native_sl_price
+                            sl_params = {'reduceOnly': True, 'stopPrice': native_sl_price}
+                            if sl_type in ('limit', 'stop_limit'):
+                                # Native Stop-Limit — price-bounded stop order
+                                sl_params['price'] = native_sl_price
+                                sl_res = await self.engine.execute_trade(exit_side, base_amount, native_sl_price, order_type="STOP", params=sl_params)
+                            else:
+                                # market / soft_limit / smart_chase / default → stop_market (safest native fallback)
+                                sl_res = await self.engine.execute_trade(exit_side, base_amount, native_sl_price, order_type="stop_market", params=sl_params)
+                                
+                            if sl_res and 'id' in sl_res:
+                                self.active_pos['sl_order_id'] = sl_res['id']
+                                self.logger.info(f"Placed Native Disaster/Stop-Loss Order {sl_res['id']} at {native_sl_price}")
+                        except Exception as e:
+                            self.logger.error(f"Failed to place Native Stop-Loss order: {e}")
 
                 # --- PLACE LIMIT ORDER ---
                 exit_order_type = self.sell_order_type if side == "buy" else self.buy_order_type
