@@ -107,7 +107,7 @@ class WallHunterBot:
         self.initial_risk_pct = config.get("risk_pct", 0.5)
         self.tsl_pct = config.get("trailing_stop", 0.2)
         self.sell_order_type = config.get("sell_order_type", "market")
-        self.sl_order_type = config.get("sl_order_type", "market")
+        self.sl_order_type = config.get("sl_order_type", "smart_chase")
         self.smart_chase_deviation_pct = config.get("smart_chase_deviation_pct", 1.0)
         self.smart_chase_delay_ms = config.get("smart_chase_delay_ms", 1500)
         self.smart_chase_max_attempts = config.get("smart_chase_max_attempts", 15)

@@ -106,7 +106,7 @@ class WallHunterFuturesStrategy:
         self.amount_per_trade = self.config.get("amount_per_trade", 10.0)
         self.buy_order_type = self.config.get("buy_order_type", "market")
         self.sell_order_type = self.config.get("sell_order_type", "market")
-        self.sl_order_type = self.config.get("sl_order_type", "market")
+        self.sl_order_type = self.config.get("sl_order_type", "smart_chase")
         self.smart_chase_deviation_pct = self.config.get("smart_chase_deviation_pct", 1.0)
         self.smart_chase_delay_ms = self.config.get("smart_chase_delay_ms", 1500)
         self.smart_chase_max_attempts = self.config.get("smart_chase_max_attempts", 15)

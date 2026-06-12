@@ -62,7 +62,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         limitBuffer: 0.05,
         
         // --- NEW: Risk SL Order Type ---
-        slOrderType: 'limit',
+        slOrderType: 'smart_chase',
         smartChaseDeviationPct: 1.0,
         smartChaseDelayMs: 1500,
         smartChaseMaxAttempts: 15,

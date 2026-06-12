@@ -15,7 +15,7 @@ class StrategyConfig(BaseModel):
     vol_threshold: Optional[float] = None
     risk_pct: Optional[float] = 0.0
     sell_order_type: Optional[str] = "limit"
-    sl_order_type: Optional[str] = "limit"
+    sl_order_type: Optional[str] = "smart_chase"
     smart_chase_deviation_pct: Optional[float] = 1.0
     smart_chase_delay_ms: Optional[int] = 1500
     smart_chase_max_attempts: Optional[int] = 15
