@@ -2388,12 +2388,37 @@ class WallHunterFuturesStrategy:
                     return
 
             # Cancel open Native SL order if SL/TSL hits manually
+            native_sl_already_filled = False
             if self.active_pos.get('sl_order_id'):
                 try:
-                    await self.engine.cancel_order(self.active_pos['sl_order_id'])
+                    if hasattr(self.engine, 'cancel_order_with_status'):
+                        success, status = await self.engine.cancel_order_with_status(self.active_pos['sl_order_id'])
+                        if status == "already_filled":
+                            native_sl_already_filled = True
+                    else:
+                        await self.engine.cancel_order(self.active_pos['sl_order_id'])
                     logger.info("Successfully cancelled Native SL Order.")
                 except Exception as e:
                     pass
+
+            if native_sl_already_filled:
+                logger.info("✅ Native SL already filled/closed natively! Skipping bot exit routing.")
+                assumed_exit = self.active_pos['sl'] if reason == "Stop Loss" else self.active_pos['tp']
+                amount = self.active_pos['amount']
+                if self.active_pos.get('side', 'long') == "long":
+                    pnl_val = (assumed_exit - self.active_pos['entry']) * amount
+                else:
+                    pnl_val = (self.active_pos['entry'] - assumed_exit) * amount
+                self.total_realized_pnl += pnl_val
+                self.total_executed_orders += 1
+                if pnl_val > 0:
+                    self.total_wins += 1
+                else:
+                    self.total_losses += 1
+                await self._send_telegram(f"🏁 *{side.upper()} Closed Natively* ({reason})\nPair: {self.symbol}\n💰 Trade PnL: ${pnl_val:.2f}\n\n📊 Net PnL: ${self.total_realized_pnl:.2f}\n🏆 Wins: {self.total_wins} | 💔 Losses: {self.total_losses}")
+                await self._clear_state()
+                self.active_pos = None
+                return
             
             # ফিউচার ক্লোজের জন্য বিপরীত অর্ডার
             exit_side = "sell" if side == "long" else "buy"

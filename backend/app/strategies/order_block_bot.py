@@ -402,25 +402,30 @@ class OrderBlockExecutionEngine:
             return None
 
     async def cancel_order(self, order_id: str) -> bool:
-        """Cancels an existing limit order"""
+        """Cancels an existing limit order (Legacy boolean return)"""
+        success, _ = await self.cancel_order_with_status(order_id)
+        return success
+
+    async def cancel_order_with_status(self, order_id: str) -> tuple[bool, str]:
+        """Cancels an existing limit order and returns (success, status_string)"""
         if self.is_paper_trading:
             self.logger.info(f"[PAPER] Cancelled order {order_id}")
-            return True
+            return True, "cancelled"
             
         if not self.exchange:
-            return False
+            return False, "no_exchange"
             
         try:
             await self.exchange.cancel_order(order_id, self.pair)
             self.logger.info(f"[REAL] Cancelled order {order_id} on {self.exchange_id}")
-            return True
+            return True, "cancelled"
         except Exception as e:
             err_str = str(e).lower()
             if "unknown order" in err_str or "-2011" in err_str:
                 self.logger.debug(f"[REAL] Order {order_id} already closed/filled (Unknown Order).")
-                return True
+                return True, "already_filled"
             self.logger.error(f"[REAL] Failed to cancel order {order_id}: {e}")
-            return False
+            return False, "error"
 
 class OrderBlockBotTask:
     """

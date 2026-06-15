@@ -152,6 +152,21 @@ async def execute_smart_chase(
                 logger.error(f"Error checking/cancelling chase order: {e}")
         else:
             # Failed to place post-only (e.g. order would be taker immediately).
+            # EARLY EXIT: Check if position is actually 0 to prevent ghost chasing
+            if attempts == 1 and not is_paper_trading:
+                try:
+                    positions = await engine.exchange.fetch_positions([symbol])
+                    has_pos = False
+                    for p in positions:
+                        if float(p.get('contracts', 0) or 0) > 0:
+                            has_pos = True
+                            break
+                    if not has_pos:
+                        logger.info("✅ Smart Chase aborted: Position already closed natively!")
+                        break
+                except Exception as e:
+                    pass
+
             logger.debug("Post-Only order rejected (likely crossed the spread). Retrying after delay...")
             await asyncio.sleep(chase_delay_sec)
             
