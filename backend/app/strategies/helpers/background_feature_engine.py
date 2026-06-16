@@ -83,6 +83,8 @@ class BackgroundFeatureEngine:
         except Exception as e:
             logger.warning(f"BackgroundFeatureEngine: fetch_trades prefill failed: {e}")
 
+        last_calc_time = 0.0
+
         while self.is_running:
             try:
                 # 1. Watch trades via websocket (blocks until new trades)
@@ -111,6 +113,13 @@ class BackgroundFeatureEngine:
                 
                 if not trades:
                     continue
+                    
+                # THROTTLE: Only calculate heavy Pandas features at most once per second
+                # This prevents CPU/Memory overload from high-frequency websocket ticks
+                current_time = time.time()
+                if current_time - last_calc_time < 1.0:
+                    continue
+                last_calc_time = current_time
                     
                 t_data = []
                 for t in trades:

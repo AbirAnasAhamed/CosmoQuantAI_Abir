@@ -28,7 +28,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: cosmo_celery_worker_default
-    command: celery -A app.core.celery_app worker -Q celery --loglevel=warning --concurrency=8
+    command: celery -A app.core.celery_app worker -Q celery --loglevel=warning --concurrency=3
     volumes:
       - ./backend:/app
       - /var/run/docker.sock:/var/run/docker.sock  # Docker socket for log monitoring
@@ -50,7 +50,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: cosmo_celery_worker_heavy
-    command: celery -A app.core.celery_app worker -Q heavy --loglevel=warning --concurrency=2
+    command: celery -A app.core.celery_app worker -Q heavy --loglevel=warning --concurrency=1
     volumes:
       - ./backend:/app
     depends_on:
