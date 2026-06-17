@@ -211,6 +211,7 @@ class StrategyConfig(BaseModel):
     # --- AI Model Execution ---
     ai_model_id: Optional[str] = None
     enable_ml_filter: Optional[bool] = False
+    ml_execution_mode: Optional[str] = "basic"
     ml_bullish_threshold: Optional[float] = 0.5
     ml_bearish_threshold: Optional[float] = 0.5
 

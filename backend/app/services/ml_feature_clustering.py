@@ -12,6 +12,10 @@ def get_feature_clusters(df, features, threshold=0.5):
     # Calculate Spearman rank correlation
     corr = np.abs(df[features].corr(method='spearman').values)
     
+    # Handle NaN correlations (e.g. from constant features with 0 variance)
+    corr = np.nan_to_num(corr, nan=0.0)
+    np.fill_diagonal(corr, 1.0)
+    
     # Distance matrix
     # Clip correlations to avoid precision issues
     corr = np.clip(corr, 0, 1)

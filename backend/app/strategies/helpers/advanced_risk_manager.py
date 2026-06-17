@@ -199,6 +199,11 @@ class AdvancedRiskManager:
                     # Ensure trailing stop level never drops below the original fee buffer
                     stop_level = max(self.be_fee_buffer_val, stop_level)
 
+                # Prevent immediate exit due to misconfiguration (e.g. Fee Buffer >= Activation)
+                # Cap the stop level slightly below the peak so it doesn't trigger on the very tick it activates
+                if stop_level >= peak_val:
+                    stop_level = peak_val - (0.01 if self.be_type == "usd" else 0.001)
+
                 if current_val <= stop_level:
                     self.breakeven_triggered = True
                     self.cooldown_until = now + (self.be_cooldown_mins * 60)

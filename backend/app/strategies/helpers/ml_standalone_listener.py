@@ -55,7 +55,20 @@ class MLStandaloneListener:
                         current_mid, best_bid, best_ask, orderbook = await self._fetch_realtime_data()
                         if current_mid and orderbook:
                             # Evaluate ML Prediction
-                            is_ai_valid = ml_predictor.predict(orderbook, current_mid, target_trade_dir)
+                            ml_mode = getattr(self.bot, 'ml_execution_mode', 'basic')
+                            is_ai_valid = False
+                            override_sl = None
+                            override_tp = None
+                            
+                            if ml_mode == 'advanced':
+                                advanced_setup = ml_predictor.predict_advanced(orderbook, current_mid, target_trade_dir, self.bot)
+                                if advanced_setup and advanced_setup.get("is_valid", False):
+                                    is_ai_valid = True
+                                    override_sl = advanced_setup.get("sl_price")
+                                    override_tp = advanced_setup.get("tp_price")
+                                    self.bot.logger.info(f"🔮 [ML Advanced] Generated Setup: SL={override_sl}, TP={override_tp}, R:R={advanced_setup.get('rr_ratio')}")
+                            else:
+                                is_ai_valid = ml_predictor.predict(orderbook, current_mid, target_trade_dir)
                             
                             if is_ai_valid:
                                 # Confluence Checks
@@ -83,7 +96,9 @@ class MLStandaloneListener:
                                     current_mid_price=current_mid, 
                                     best_bid=best_bid, 
                                     best_ask=best_ask,
-                                    reason="AI Model Standalone Detection"
+                                    reason="AI Model Standalone Detection",
+                                    override_sl_price=override_sl,
+                                    override_tp_price=override_tp
                                 )
                                 
             except Exception as e:

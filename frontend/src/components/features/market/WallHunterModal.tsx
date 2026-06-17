@@ -18,7 +18,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
     const [useNativeTokenFee, setUseNativeTokenFee] = useState(false);
     const [liveFeeRate, setLiveFeeRate] = useState<number | null>(null);
     const [mlModels, setMlModels] = useState<CustomMLModel[]>([]);
-    
+
     // --- NEW: Trading Mode State ---
     const [tradingMode, setTradingMode] = useState<'spot' | 'futures'>('spot');
     const [strategyMode, setStrategyMode] = useState<'long' | 'short' | 'auto'>('long');
@@ -56,34 +56,34 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         atrEnabled: false,
         atrPeriod: 14,
         atrMultiplier: 2.0,
-        
+
         // --- NEW: Custom Buy Order Type & Buffer ---
         buyOrderType: 'limit',
         limitBuffer: 0.05,
-        
+
         // --- NEW: Risk SL Order Type ---
         slOrderType: 'smart_chase',
         smartChaseDeviationPct: 1.0,
         smartChaseDelayMs: 1500,
         smartChaseMaxAttempts: 15,
 
-        enableWallTrigger: false,        
-        maxWallDistancePct: 1.0,        
-        enableLiqTrigger: false,        
+        enableWallTrigger: false,
+        maxWallDistancePct: 1.0,
+        enableLiqTrigger: false,
         liqThreshold: 50000,
-        liqTargetSide: 'auto',            
-        enableMicroScalp: false,        
-        microScalpProfitTicks: 2,       
-        microScalpMinWall: 100000,      
-        
+        liqTargetSide: 'auto',
+        enableMicroScalp: false,
+        microScalpProfitTicks: 2,
+        microScalpMinWall: 100000,
+
         tradingSessions: ['None'],
 
-        enableLiqCascade: false,        
-        liqCascadeWindow: 5,            
-        enableDynamicLiq: false,        
-        dynamicLiqMultiplier: 1.0,      
-        enableObImbalance: false,       
-        obImbalanceRatio: 1.5,          
+        enableLiqCascade: false,
+        liqCascadeWindow: 5,
+        enableDynamicLiq: false,
+        dynamicLiqMultiplier: 1.0,
+        enableObImbalance: false,
+        obImbalanceRatio: 1.5,
 
         // --- NEW: WallHunter Smart L2 Filters ---
         enableOibFilter: false,
@@ -167,7 +167,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         utBotAtrPeriod: 10,
         utBotUseHeikinAshi: false,
         utBotTimeframe: '15m',
-        
+
         utBotCandleClose: false,
         utBotValidationSecs: 0,
         utBotRetestSnipe: false,
@@ -189,7 +189,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         enableProxyWall: false,
         proxyExchange: 'binance',
         proxySymbol: '',
-        
+
         // --- NEW: Smart Wick S/R ---
         enableWickSr: false,
         wickSrModes: ['bounce'],
@@ -202,7 +202,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         enableWickSrOib: false,
         enableDynamicWickTp: false,
         dynamicTpFrontrunPct: 0.0,
-        
+
         // --- NEW: Auto Fibo TP ---
         enableAutoFiboTp: true,
         autoFiboTargetLevel: 0.236,
@@ -226,7 +226,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         trailingBreakevenDistance: 0.0,
         enableBreakevenCooldown: false,
         breakevenCooldownMins: 15,
-        
+
         enableGlobalTp: false,
         globalTpTarget: 0.0,
         globalTpType: 'daily',
@@ -236,13 +236,14 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         trailingGlobalTpMode: 'auto',
         trailingGlobalTpType: 'pct',
         trailingGlobalTpDistance: 0.0,
-        
+
         // --- L2 ML Filter ---
         enableMlFilter: false,
+        mlExecutionMode: 'basic',
         mlModelId: '',
         mlBullishThreshold: 0.5,
         mlBearishThreshold: 0.5,
-        
+
         enableTaSnapshot: true,
         taSnapshotTimeframe: '15m'
     });
@@ -273,7 +274,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
             else if (initialPrice < 10) { dynamicStep = 0.001; displayDigits = 3; }
             else if (initialPrice < 100) { dynamicStep = 0.01; displayDigits = 2; }
             else if (initialPrice < 1000) { dynamicStep = 0.1; displayDigits = 1; }
-            
+
             // Set default ~0.1% or minimum 2 steps
             const idealSpread = Math.max(dynamicStep * 2, initialPrice * 0.001);
             const defaultSpread = parseFloat(idealSpread.toFixed(displayDigits));
@@ -298,7 +299,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
 
                 mlModelsService.getModels().then(models => {
                     setMlModels(models || []);
-                }).catch(() => {});
+                }).catch(() => { });
 
                 botService.getAllBots().then((bots: any) => {
                     const activeWallHunter = bots.find((b: any) => b.market === symbol && b.strategy === 'wall_hunter' && b.status === 'active');
@@ -306,7 +307,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                         setExistingBot(activeWallHunter);
                         setDeployMode('update'); // Default to update mode when existing bot detected
                         const c = activeWallHunter.config || {};
-                        
+
                         // Detect mode from existing config
                         if (c.trading_mode === 'futures') {
                             setTradingMode('futures');
@@ -380,7 +381,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
 
                             followBtcLiq: c.follow_btc_liq !== undefined ? c.follow_btc_liq : false,
                             btcLiqThreshold: c.btc_liq_threshold || 500000,
-                            
+
                             dualEngineTimeframe: c.dual_engine_timeframe || '1m',
 
                             // Futures existing configs
@@ -402,14 +403,14 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             btcCorrelationThreshold: c.btc_correlation_threshold || 0.7,
                             btcTimeWindow: c.btc_time_window || 15,
                             btcMinMovePct: c.btc_min_move_pct || 0.1,
-                            
+
                             enableTrendFilter: c.enable_trend_filter !== undefined ? c.enable_trend_filter : false,
                             trendFilterLookback: c.trend_filter_lookback || 200,
                             trendFilterThreshold: c.trend_filter_threshold || 'Strong',
                             trendFilterDev: c.trend_filter_dev || 2.0,
                             enableTrendVolume: c.enable_trend_volume !== undefined ? c.enable_trend_volume : false,
                             trendVolumeMultiplier: c.trend_volume_multiplier || 1.5,
-                            
+
                             enableUtBot: !!(c.enable_ut_trend_filter || c.enable_ut_entry_trigger || c.enable_ut_trailing_sl),
                             enableUtTrendFilter: c.enable_ut_trend_filter !== undefined ? c.enable_ut_trend_filter : false,
                             enableUtEntryTrigger: c.enable_ut_entry_trigger !== undefined ? c.enable_ut_entry_trigger : false,
@@ -419,11 +420,11 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             utBotAtrPeriod: c.ut_bot_atr_period || 10,
                             utBotUseHeikinAshi: c.ut_bot_use_heikin_ashi !== undefined ? c.ut_bot_use_heikin_ashi : false,
                             utBotTimeframe: c.ut_bot_timeframe || '15m',
-                            
+
                             utBotCandleClose: c.ut_bot_candle_close !== undefined ? c.ut_bot_candle_close : false,
                             utBotValidationSecs: c.ut_bot_validation_secs || 0,
                             utBotRetestSnipe: c.ut_bot_retest_snipe !== undefined ? c.ut_bot_retest_snipe : false,
-                            
+
                             // Load Modular Supertrend settings
                             enableSupertrendBot: !!(c.enable_supertrend_trend_filter || c.enable_supertrend_entry_trigger || c.enable_supertrend_trailing_sl || c.enable_supertrend_exit),
                             enableSupertrendTrendFilter: c.enable_supertrend_trend_filter !== undefined ? c.enable_supertrend_trend_filter : false,
@@ -436,7 +437,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             supertrendMultiplier: c.supertrend_multiplier || 3.0,
                             supertrendTimeframe: c.supertrend_timeframe || '15m',
                             supertrendCandleClose: c.supertrend_candle_close !== undefined ? c.supertrend_candle_close : false,
-                            
+
                             // Load custom buy order settings
                             buyOrderType: c.buy_order_type || 'limit',
                             limitBuffer: c.limit_buffer !== undefined ? c.limit_buffer : 0.05,
@@ -458,7 +459,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             enableWickSrOib: c.enable_wick_sr_oib !== undefined ? c.enable_wick_sr_oib : false,
                             enableDynamicWickTp: c.enable_dynamic_wick_tp !== undefined ? c.enable_dynamic_wick_tp : false,
                             dynamicTpFrontrunPct: c.dynamic_tp_frontrun_pct !== undefined ? c.dynamic_tp_frontrun_pct : 0.0,
-                            
+
                             // Auto Fibo TP
                             enableAutoFiboTp: c.enable_auto_fibo_tp !== undefined ? c.enable_auto_fibo_tp : true,
                             autoFiboTimeframe: c.auto_fibo_timeframe || '15m',
@@ -492,10 +493,11 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             trailingGlobalTpDistance: c.trailing_global_tp_distance !== undefined ? c.trailing_global_tp_distance : 0.0,
 
                             enableMlFilter: c.enable_ml_filter !== undefined ? c.enable_ml_filter : false,
+                            mlExecutionMode: c.ml_execution_mode || 'basic',
                             mlModelId: c.ai_model_id || '',
                             mlBullishThreshold: c.ml_bullish_threshold !== undefined ? c.ml_bullish_threshold : 0.5,
                             mlBearishThreshold: c.ml_bearish_threshold !== undefined ? c.ml_bearish_threshold : 0.5,
-                            
+
                             enableTaSnapshot: c.enable_ta_snapshot !== undefined ? c.enable_ta_snapshot : true,
                             taSnapshotTimeframe: c.ta_snapshot_timeframe || '15m'
                         }));
@@ -520,7 +522,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
     const handleAutoDetect = async () => {
         setIsLoading(true);
         setErrorMsg('Detecting optimal parameters...');
-        
+
         try {
             // 1. Fetch Deep Order Book (limit=200)
             const detectSymbol = form.enableProxyWall && form.proxySymbol ? form.proxySymbol : form.symbol;
@@ -531,7 +533,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
 
             // 2. Fetch OHLCV for ATR Calculation (1h timeframe, 30 candles)
             const ohlcv = await marketDepthService.getOHLCV(detectSymbol.toUpperCase(), detectExchange.toLowerCase(), '1h', 30);
-            
+
             // 3. Fetch Real Trading Fee (if API Key attached)
             if (!form.isPaper && form.apiKeyId) {
                 try {
@@ -559,7 +561,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                 const bestAsk = deepAsks[0].price;
                 const currentMarketSpread = bestAsk - bestBid;
                 const currentPrice = bestBid;
-                
+
                 // Determine dynamic precision based on price
                 let dynamicStep = 0.01;
                 let displayDigits = 2;
@@ -591,7 +593,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                 } else {
                     optimalSpread = currentMarketSpread + (bestAsk * 0.001);
                 }
-                
+
                 // Final formatting for spread
                 optimalSpread = parseFloat(Math.max(dynamicStep, Math.min(dynamicStep * 500, optimalSpread)).toFixed(displayDigits));
 
@@ -603,7 +605,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     // Use 90th percentile as the "Wall" threshold - this is a high volume level
                     const p90Idx = Math.floor(allSizes.length * 0.9);
                     const p90Size = allSizes[p90Idx];
-                    
+
                     // We want to trigger when a wall is detected, so our threshold should be large enough
                     // but not so large that it never triggers. 
                     const calculatedVol = p90Size * 1.2;
@@ -611,14 +613,14 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     if (calculatedVol > 10000) optimalVol = Math.round(calculatedVol / 1000) * 1000;
                     else if (calculatedVol > 100) optimalVol = Math.round(calculatedVol / 10) * 10;
                     else optimalVol = parseFloat(calculatedVol.toFixed(2));
-                    
+
                     optimalVol = Math.max(dynamicStep * 10, optimalVol);
 
                     // Amount based on 10% of typical depth size for safety
                     const avgSize = allSizes.reduce((s, a) => s + a, 0) / allSizes.length;
                     const avgQuoteValue = avgSize * currentPrice;
                     const targetUsdVal = Math.max(10, avgQuoteValue * 0.2);
-                    
+
                     if (tradingMode === 'spot' && strategyMode === 'short') {
                         optimalAmount = parseFloat((targetUsdVal / currentPrice).toFixed(displayDigits > 0 ? displayDigits : 2));
                     } else {
@@ -651,7 +653,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                 amount: optimalAmount,
                 icebergMinAbsorbedVol: optimalIcebergVol,
             }));
-            
+
             setErrorMsg("✅ Parameters auto-detected!");
             setTimeout(() => setErrorMsg(''), 3000);
 
@@ -708,12 +710,12 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     break_percentage: form.breakPercentage,
                     cascading_tp_mode: form.cascadingTpMode,
                     band_tolerance: form.bandTolerance,
-                    
+
                     // Proxy Orderbook Routing (Cross-Exchange Support)
                     enable_proxy_wall: form.enableProxyWall,
                     proxy_exchange: form.enableProxyWall ? form.proxyExchange : null,
                     proxy_symbol: form.enableProxyWall ? form.proxySymbol : null,
-                    
+
                     amount_per_trade: form.amount,
                     target_spread: form.spread,
                     trailing_stop: form.enableTsl ? form.tsl : 0.0,
@@ -793,7 +795,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     trend_filter_dev: form.trendFilterDev,
                     enable_trend_volume: form.enableTrendVolume,
                     trend_volume_multiplier: form.trendVolumeMultiplier,
-                    
+
                     // Dual Engine Command Center
                     enable_dual_engine: form.enableDualEngine,
                     dual_engine_mode: form.dualEngineMode,
@@ -867,7 +869,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     enable_wick_sr_oib: form.enableWickSrOib,
                     enable_dynamic_wick_tp: form.enableDynamicWickTp,
                     dynamic_tp_frontrun_pct: form.dynamicTpFrontrunPct,
-                    
+
                     enable_auto_fibo_tp: form.enableAutoFiboTp,
                     auto_fibo_target_level: form.autoFiboTargetLevel,
                     auto_fibo_timeframe: form.autoFiboTimeframe,
@@ -879,13 +881,16 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     vwap_sd_multiplier: form.vwapSDMultiplier,
                     vwap_sd_min_wall: form.vwapSDMinWall,
 
+                    // L2 ML Filter
                     enable_ml_filter: form.enableMlFilter,
+                    ml_execution_mode: form.mlExecutionMode,
+                    ai_model_id: form.mlModelId,
                     ml_bullish_threshold: form.mlBullishThreshold,
                     ml_bearish_threshold: form.mlBearishThreshold,
-                    
+
                     enable_ta_snapshot: form.enableTaSnapshot,
                     ta_snapshot_timeframe: form.taSnapshotTimeframe,
-                    
+
                     // Advanced Risk Management
                     enable_breakeven_stop: form.enableBreakevenStop,
                     breakeven_type: form.breakevenType,
@@ -906,9 +911,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     enable_trailing_global_tp: form.enableTrailingGlobalTp,
                     trailing_global_tp_mode: form.trailingGlobalTpMode,
                     trailing_global_tp_type: form.trailingGlobalTpType,
-                    trailing_global_tp_distance: form.trailingGlobalTpDistance,
-                    
-                    ai_model_id: form.mlModelId
+                    trailing_global_tp_distance: form.trailingGlobalTpDistance
                 }
             };
 
@@ -983,11 +986,11 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
             return;
         }
         if (field === 'enableDualEngine' && value === true) {
-            setForm(prev => ({ 
-                ...prev, 
-                enableDualEngine: true, 
-                dualEngineEmaFilter: true, 
-                dualEngineRsiFilter: true, 
+            setForm(prev => ({
+                ...prev,
+                enableDualEngine: true,
+                dualEngineEmaFilter: true,
+                dualEngineRsiFilter: true,
                 dualEngineCandleFilter: true,
                 dualEngineMacdFilter: true,
                 dualEngineSqueezeFilter: true
@@ -998,7 +1001,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
     };
 
     const currentPrice = bids.length > 0 ? bids[0].price : (asks.length > 0 ? asks[0].price : 1);
-    
+
     let dynamicStep = 0.01;
     let displayDigits = 2;
     if (currentPrice < 0.000000001) { dynamicStep = 0.00000000001; displayDigits = 11; }
@@ -1014,13 +1017,13 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
     else if (currentPrice < 1000) { dynamicStep = 0.1; displayDigits = 1; }
     else { dynamicStep = 1; displayDigits = 0; }
 
-    const dynamicMax = dynamicStep * 500; 
+    const dynamicMax = dynamicStep * 500;
 
     // --- FEE ESTIMATION LOGIC ---
     const getBaseFeeRate = () => {
         if (liveFeeRate !== null) return liveFeeRate;
         if (form.exchange === 'binance') return useNativeTokenFee ? 0.0015 : 0.002;
-        if (form.exchange === 'mexc') return useNativeTokenFee ? 0.0008 : 0.001; 
+        if (form.exchange === 'mexc') return useNativeTokenFee ? 0.0008 : 0.001;
         if (form.exchange === 'kucoin') return useNativeTokenFee ? 0.0032 : 0.004; // Altcoins often 0.2% M/T -> 0.4% RT (20% KCS discount = 0.32%)
         return 0.002; // default 0.2% RT
     };
@@ -1033,7 +1036,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
     const grossProfitUSD = tradeValue * spreadPct;
     const feeUSD = tradeValue * feeRate;
     const netProfitUSD = grossProfitUSD - feeUSD;
-    const netProfitPct = form.amount > 0 ? ((netProfitUSD / form.amount) * 100) : 0; 
+    const netProfitPct = form.amount > 0 ? ((netProfitUSD / form.amount) * 100) : 0;
 
     // --- CURRENCY & DIRECTION SETTINGS ---
     const isShortMode = tradingMode === 'spot' && strategyMode === 'short';
@@ -1087,10 +1090,10 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             <div className="flex gap-4">
                                 <div className="space-y-1 flex-1">
                                     <label className="text-[10px] text-gray-500 font-bold uppercase">Bot Name (Optional)</label>
-                                    <input 
-                                        className="w-full bg-white/5 p-2 rounded-xl text-yellow-500 outline-none border border-transparent focus:border-brand-primary focus:bg-black/40 text-sm transition-all font-mono" 
-                                        placeholder="Auto-generated if left empty" 
-                                        value={form.botName} 
+                                    <input
+                                        className="w-full bg-white/5 p-2 rounded-xl text-yellow-500 outline-none border border-transparent focus:border-brand-primary focus:bg-black/40 text-sm transition-all font-mono"
+                                        placeholder="Auto-generated if left empty"
+                                        value={form.botName}
                                         onChange={(e) => handleFormChange('botName', e.target.value)}
                                         maxLength={50}
                                     />
@@ -1100,14 +1103,14 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                 <div className={`space-y-1 ${form.selectedStrategy === 'cascading_bb' ? 'w-[30%]' : 'w-1/2'}`}>
                                     <label className="text-[10px] text-gray-500 font-bold uppercase">Trading Strategy</label>
                                     <div className="flex bg-black/40 rounded-xl p-1 border border-white/10 h-[36px]">
-                                        <button 
-                                            onClick={() => handleFormChange('selectedStrategy', 'wall_hunter')} 
+                                        <button
+                                            onClick={() => handleFormChange('selectedStrategy', 'wall_hunter')}
                                             className={`flex-1 h-full text-[10px] font-bold uppercase rounded-lg transition-all ${form.selectedStrategy === 'wall_hunter' ? 'bg-brand-primary text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
                                         >
                                             L2 Scalping
                                         </button>
-                                        <button 
-                                            onClick={() => handleFormChange('selectedStrategy', 'cascading_bb')} 
+                                        <button
+                                            onClick={() => handleFormChange('selectedStrategy', 'cascading_bb')}
                                             className={`flex-1 h-full text-[10px] font-bold uppercase rounded-lg transition-all ${form.selectedStrategy === 'cascading_bb' ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(147,51,234,0.3)]' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
                                         >
                                             Cascading BB
@@ -1118,29 +1121,29 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                     <>
                                         <div className="space-y-1 w-[20%]">
                                             <label className="text-[10px] text-gray-500 font-bold uppercase whitespace-nowrap">Break (%)</label>
-                                            <input 
+                                            <input
                                                 type="number"
                                                 step="0.1"
-                                                className="w-full bg-white/5 p-2 rounded-xl text-yellow-500 outline-none border border-transparent focus:border-brand-primary text-sm font-mono" 
-                                                value={form.breakPercentage} 
+                                                className="w-full bg-white/5 p-2 rounded-xl text-yellow-500 outline-none border border-transparent focus:border-brand-primary text-sm font-mono"
+                                                value={form.breakPercentage}
                                                 onChange={(e) => handleFormChange('breakPercentage', parseFloat(e.target.value) || 0)}
                                             />
                                         </div>
                                         <div className="space-y-1 w-[20%]">
                                             <label className="text-[10px] text-gray-500 font-bold uppercase whitespace-nowrap">Tolerance</label>
-                                            <input 
+                                            <input
                                                 type="number"
                                                 step="0.05"
-                                                className="w-full bg-white/5 p-2 rounded-xl text-yellow-500 outline-none border border-transparent focus:border-brand-primary text-sm font-mono" 
-                                                value={form.bandTolerance} 
+                                                className="w-full bg-white/5 p-2 rounded-xl text-yellow-500 outline-none border border-transparent focus:border-brand-primary text-sm font-mono"
+                                                value={form.bandTolerance}
                                                 onChange={(e) => handleFormChange('bandTolerance', parseFloat(e.target.value) || 0)}
                                             />
                                         </div>
                                         <div className="space-y-1 w-[30%]">
                                             <label className="text-[10px] text-gray-500 font-bold uppercase whitespace-nowrap">TP Mode</label>
-                                            <select 
-                                                className="w-full bg-white/5 p-2 rounded-xl text-white outline-none text-sm border border-transparent focus:border-brand-primary" 
-                                                value={form.cascadingTpMode} 
+                                            <select
+                                                className="w-full bg-white/5 p-2 rounded-xl text-white outline-none text-sm border border-transparent focus:border-brand-primary"
+                                                value={form.cascadingTpMode}
                                                 onChange={(e) => handleFormChange('cascadingTpMode', e.target.value)}
                                             >
                                                 <option className="bg-[#000000] text-white" value="dynamic">Dynamic BB</option>
@@ -1151,7 +1154,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                     </>
                                 )}
                             </div>
-                            
+
                             {form.selectedStrategy === 'cascading_bb' && tradingMode === 'futures' && (
                                 <div className="flex gap-4 animate-fadeIn">
                                     <div className="space-y-1 w-full">
@@ -1171,9 +1174,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                 </div>
                                 <div className="space-y-1 w-1/3">
                                     <label className="text-[10px] text-gray-500 font-bold uppercase">Exchange</label>
-                                    <select 
-                                        className="w-full bg-white/5 p-2 rounded-xl text-white outline-none text-sm" 
-                                        value={form.exchange} 
+                                    <select
+                                        className="w-full bg-white/5 p-2 rounded-xl text-white outline-none text-sm"
+                                        value={form.exchange}
                                         onChange={(e) => setForm({ ...form, exchange: e.target.value })}
                                     >
                                         {availableExchanges.length > 0 ? (
@@ -1203,7 +1206,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                     </select>
                                 </div>
                             </div>
-                            
+
                             {/* --- NEW: SPOT STRATEGY MODE / BASE ACCUMULATION FLAG --- */}
                             {tradingMode === 'spot' && (
                                 <div className="flex gap-4 p-3 bg-white/5 border border-white/10 rounded-2xl animate-fadeIn">
@@ -1228,9 +1231,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                     <label className="text-[10px] text-gray-400 font-black uppercase">
                                         {tradingMode === 'spot' && strategyMode === 'short' ? 'Buy Order (TP)' : 'Buy Order Type'}
                                     </label>
-                                    <select 
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-brand-primary text-sm font-bold" 
-                                        value={form.buyOrderType} 
+                                    <select
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-brand-primary text-sm font-bold"
+                                        value={form.buyOrderType}
                                         onChange={(e) => handleFormChange('buyOrderType', e.target.value)}
                                     >
                                         <option className="bg-[#000000]" value="market">Market (Normal)</option>
@@ -1241,12 +1244,12 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                 {(form.buyOrderType === 'marketable_limit' || form.sellOrderType === 'marketable_limit') && (
                                     <div className="w-1/3 space-y-1 animate-fadeIn">
                                         <label className="text-[10px] text-orange-400 font-black uppercase">Limit Buffer (%)</label>
-                                        <input 
-                                            type="number" 
-                                            step="0.01" 
-                                            className="w-full bg-orange-500/10 border border-orange-500/30 rounded-xl p-2.5 text-orange-400 outline-none text-center font-mono font-bold" 
-                                            value={form.limitBuffer} 
-                                            onChange={(e) => handleFormChange('limitBuffer', parseFloat(e.target.value))} 
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            className="w-full bg-orange-500/10 border border-orange-500/30 rounded-xl p-2.5 text-orange-400 outline-none text-center font-mono font-bold"
+                                            value={form.limitBuffer}
+                                            onChange={(e) => handleFormChange('limitBuffer', parseFloat(e.target.value))}
                                         />
                                     </div>
                                 )}
@@ -1296,9 +1299,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                         {form.selectedStrategy !== 'cascading_bb' && (
                                             <div className="space-y-1">
                                                 <label className="text-[10px] text-gray-400 font-bold uppercase">Position Direction</label>
-                                                <select 
-                                                    className="w-full bg-black/40 border border-white/10 p-2.5 rounded-lg text-white outline-none text-sm" 
-                                                    value={form.positionDirection} 
+                                                <select
+                                                    className="w-full bg-black/40 border border-white/10 p-2.5 rounded-lg text-white outline-none text-sm"
+                                                    value={form.positionDirection}
                                                     onChange={(e) => {
                                                         const val = e.target.value;
                                                         handleFormChange('positionDirection', val);
@@ -1320,21 +1323,21 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 <span className="text-xs font-mono font-bold text-white">{form.obImbalanceRatio}x</span>
                                             </div>
                                             <div className="flex gap-3 items-center">
-                                                <input 
-                                                    type="range" 
-                                                    min="1.1" 
-                                                    max="10.0" 
-                                                    step="0.1" 
-                                                    className="flex-1 h-1.5 accent-orange-500 bg-white/10 rounded-lg appearance-none cursor-pointer" 
-                                                    value={form.obImbalanceRatio} 
-                                                    onChange={(e) => handleFormChange('obImbalanceRatio', parseFloat(e.target.value))} 
+                                                <input
+                                                    type="range"
+                                                    min="1.1"
+                                                    max="10.0"
+                                                    step="0.1"
+                                                    className="flex-1 h-1.5 accent-orange-500 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                                                    value={form.obImbalanceRatio}
+                                                    onChange={(e) => handleFormChange('obImbalanceRatio', parseFloat(e.target.value))}
                                                 />
-                                                <input 
-                                                    type="number" 
-                                                    step="0.1" 
-                                                    className="w-16 bg-black/40 border border-white/10 rounded-lg p-1 text-white text-center font-mono text-xs" 
-                                                    value={form.obImbalanceRatio} 
-                                                    onChange={(e) => handleFormChange('obImbalanceRatio', parseFloat(e.target.value))} 
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    className="w-16 bg-black/40 border border-white/10 rounded-lg p-1 text-white text-center font-mono text-xs"
+                                                    value={form.obImbalanceRatio}
+                                                    onChange={(e) => handleFormChange('obImbalanceRatio', parseFloat(e.target.value))}
                                                 />
                                             </div>
                                             <p className="text-[9px] text-gray-500 mt-1 italic">Bot will only enter if one side has {form.obImbalanceRatio}x more volume than the other.</p>
@@ -1354,24 +1357,26 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                 </div>
                             )}
 
-                            <div>
-                                <div className="flex justify-between items-end mb-1">
-                                    <label className="text-[10px] font-bold text-gray-500 uppercase">Target Spread Profit</label>
-                                    <span className="text-xs font-mono font-bold text-brand-primary">{form.spread.toString().includes('e') ? form.spread.toFixed(12).replace(/\.?0+$/, '') : form.spread}</span>
-                                </div>
-                                <div className="flex gap-3 items-center">
-                                    <input type="range" min="0" max={dynamicMax} step={dynamicStep} className="flex-1 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-primary" value={form.spread} onChange={(e) => setForm({ ...form, spread: parseFloat(e.target.value) || 0 })} />
-                                    <input type="number" min="0" step={dynamicStep} className="w-24 bg-black/40 border border-white/10 rounded-xl p-1.5 text-white outline-none focus:border-brand-primary text-center font-mono text-sm" value={form.spread.toString().includes('e') ? form.spread.toFixed(12).replace(/\.?0+$/, '') : form.spread} onChange={(e) => setForm({ ...form, spread: e.target.value === '' ? 0 : parseFloat(e.target.value) })} />
+                            <div className={form.mlExecutionMode === 'advanced' ? 'opacity-30 pointer-events-none select-none relative grayscale transition-all' : ''}>
+                                <div>
+                                    <div className="flex justify-between items-end mb-1">
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase">Target Spread Profit</label>
+                                        <span className="text-xs font-mono font-bold text-brand-primary">{form.spread.toString().includes('e') ? form.spread.toFixed(12).replace(/\.?0+$/, '') : form.spread}</span>
+                                    </div>
+                                    <div className="flex gap-3 items-center">
+                                        <input type="range" min="0" max={dynamicMax} step={dynamicStep} className="flex-1 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-primary" value={form.spread} onChange={(e) => setForm({ ...form, spread: parseFloat(e.target.value) || 0 })} />
+                                        <input type="number" min="0" step={dynamicStep} className="w-24 bg-black/40 border border-white/10 rounded-xl p-1.5 text-white outline-none focus:border-brand-primary text-center font-mono text-sm" value={form.spread.toString().includes('e') ? form.spread.toFixed(12).replace(/\.?0+$/, '') : form.spread} onChange={(e) => setForm({ ...form, spread: e.target.value === '' ? 0 : parseFloat(e.target.value) })} />
+                                    </div>
                                 </div>
                             </div>
 
                             <InputField label={`Margin Allocation (${form.symbol ? (tradingMode === 'spot' && strategyMode === 'short' ? form.symbol.split('/')[0] : (form.symbol.split('/')[1] || 'USDT')) : 'USDT'})`} value={form.amount} onChange={(v: number) => setForm({ ...form, amount: v })} step={10} />
 
-                            
+
                             {/* --- NATIVE TOKEN FEE TOGGLE --- */}
                             {(form.exchange === 'binance' || form.exchange === 'mexc' || form.exchange === 'kucoin') && (
                                 <div className="flex items-center gap-2 mt-4 px-1">
-                                    <button 
+                                    <button
                                         onClick={() => setUseNativeTokenFee(!useNativeTokenFee)}
                                         className={`w-4 h-4 flex-shrink-0 rounded border flex items-center justify-center transition-colors ${useNativeTokenFee ? 'bg-brand-primary border-brand-primary' : 'border-gray-500'}`}
                                     >
@@ -1384,35 +1389,46 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             )}
 
                             {/* --- ESTIMATED PROFIT ANALYSIS --- */}
-                            <div className="mt-4 bg-[#000000] p-4 rounded-xl border border-brand-primary/20 shadow-[0_0_15px_rgba(59,130,246,0.05)]">
-                                <h4 className="text-[10px] font-black uppercase text-gray-500 mb-3 flex items-center gap-2">
-                                    <svg className="w-3 h-3 text-brand-primary" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
-                                    Estimated Profit Analysis
-                                </h4>
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-center text-xs">
-                                        <span className="text-gray-400">Trade Value {isFutures && '(Leveraged)'}</span>
-                                        <span className="font-mono text-gray-300">{currencyPrefix}{tradeValue.toFixed(isShortMode ? Math.max(2, displayDigits - 2) : 2)}{currencySuffix}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-xs">
-                                        <span className="text-gray-400">Gross Profit ({(spreadPct * 100).toFixed(2)}%)</span>
-                                        <span className="font-mono text-green-400">+{currencyPrefix}{grossProfitUSD.toFixed(isShortMode ? Math.max(2, displayDigits) : 2)}{currencySuffix}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-xs">
-                                        <span className="text-gray-400">
-                                            Estimated Fees ({(feeRate * 100).toFixed(3)}%)
-                                            {liveFeeRate !== null && <span className="ml-1 text-[9px] text-green-400 border border-green-500/30 bg-green-500/10 px-1 py-0.5 rounded cursor-help" title="Live VIP/Account fee fetched directly from exchange.">API TIER</span>}
-                                        </span>
-                                        <span className="font-mono text-red-400">-{currencyPrefix}{feeUSD.toFixed(isShortMode ? Math.max(3, displayDigits + 1) : 3)}{currencySuffix}</span>
-                                    </div>
-                                    <div className="pt-2 border-t border-white/5 flex justify-between items-center">
-                                        <span className="text-sm font-bold text-gray-300">Net Profit</span>
-                                        <span className={`text-sm font-mono font-bold ${netProfitUSD > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                            {netProfitUSD > 0 ? '+' : ''}{currencyPrefix}{netProfitUSD.toFixed(isShortMode ? Math.max(2, displayDigits) : 2)}{currencySuffix} ({netProfitPct > 0 ? '+' : ''}{netProfitPct.toFixed(2)}%)
-                                        </span>
+                            {form.mlExecutionMode !== 'advanced' ? (
+                                <div className="mt-4 bg-[#000000] p-4 rounded-xl border border-brand-primary/20 shadow-[0_0_15px_rgba(59,130,246,0.05)]">
+                                    <h4 className="text-[10px] font-black uppercase text-gray-500 mb-3 flex items-center gap-2">
+                                        <svg className="w-3 h-3 text-brand-primary" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
+                                        Estimated Profit Analysis
+                                    </h4>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-gray-400">Trade Value {isFutures && '(Leveraged)'}</span>
+                                            <span className="font-mono text-gray-300">{currencyPrefix}{tradeValue.toFixed(isShortMode ? Math.max(2, displayDigits - 2) : 2)}{currencySuffix}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-gray-400">Gross Profit ({(spreadPct * 100).toFixed(2)}%)</span>
+                                            <span className="font-mono text-green-400">+{currencyPrefix}{grossProfitUSD.toFixed(isShortMode ? Math.max(2, displayDigits) : 2)}{currencySuffix}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-gray-400">
+                                                Estimated Fees ({(feeRate * 100).toFixed(3)}%)
+                                                {liveFeeRate !== null && <span className="ml-1 text-[9px] text-green-400 border border-green-500/30 bg-green-500/10 px-1 py-0.5 rounded cursor-help" title="Live VIP/Account fee fetched directly from exchange.">API TIER</span>}
+                                            </span>
+                                            <span className="font-mono text-red-400">-{currencyPrefix}{feeUSD.toFixed(isShortMode ? Math.max(3, displayDigits + 1) : 3)}{currencySuffix}</span>
+                                        </div>
+                                        <div className="pt-2 border-t border-white/5 flex justify-between items-center">
+                                            <span className="text-sm font-bold text-gray-300">Net Profit</span>
+                                            <span className={`text-sm font-mono font-bold ${netProfitUSD > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                                {netProfitUSD > 0 ? '+' : ''}{currencyPrefix}{netProfitUSD.toFixed(isShortMode ? Math.max(2, displayDigits) : 2)}{currencySuffix} ({netProfitPct > 0 ? '+' : ''}{netProfitPct.toFixed(2)}%)
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="mt-4 bg-purple-500/5 p-4 rounded-xl border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.05)]">
+                                    <h4 className="text-[10px] font-black uppercase text-purple-400 mb-2 flex items-center gap-2">
+                                        <div className="text-sm animate-pulse">🤖</div> AI Managed Trade
+                                    </h4>
+                                    <p className="text-xs text-gray-400 leading-relaxed">
+                                        Fixed profit projection is hidden because the ML model will dynamically enforce TP/SL exits based on real-time order flow and structural volatility.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -1481,11 +1497,11 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                             Custom Time (UTC)
                                         </label>
                                     </div>
-                                    
+
                                     {form.tradingSessions.some(s => s.startsWith('Custom|')) && (
                                         <div className="pl-5 pt-1">
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white outline-none focus:border-brand-primary text-xs font-mono"
                                                 placeholder="e.g. 14:30-16:00"
                                                 value={form.tradingSessions.find(s => s.startsWith('Custom|'))?.split('|')[1] || ''}
@@ -1537,7 +1553,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 <input type="number" min="0.1" max="100" step="0.1" className="w-20 bg-black/40 border border-white/10 rounded-xl p-1.5 text-white outline-none focus:border-brand-primary text-center font-mono text-sm" value={form.maxWallDistancePct} onChange={(e) => setForm({ ...form, maxWallDistancePct: parseFloat(e.target.value) })} />
                                             </div>
                                         </div>
-                                        
+
                                         {/* --- NEW: PROXY ORDERBOOK ROUTING --- */}
                                         <div className={`mt-3 p-3 rounded-lg border transition-all ${form.enableProxyWall ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-black/20 border-white/5'}`}>
                                             <div className="flex items-center justify-between cursor-pointer" onClick={() => handleFormChange('enableProxyWall', !form.enableProxyWall)}>
@@ -1640,96 +1656,96 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                 )}
                             </div>
 
-                                        {/* VWAP SD SNIPE TRIGGER */}
-                                        <div className={`mt-3 p-3 rounded-lg border transition-all ${form.enableVWAPSDSnipe ? 'bg-pink-500/10 border-pink-500/50' : 'bg-black/20 border-white/5'}`}>
-                                            <div className="flex items-center justify-between cursor-pointer" onClick={() => handleFormChange('enableVWAPSDSnipe', !form.enableVWAPSDSnipe)}>
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`w-10 h-5 rounded-full p-1 transition-colors flex items-center ${form.enableVWAPSDSnipe ? 'bg-pink-500' : 'bg-gray-700'}`}>
-                                                        <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${form.enableVWAPSDSnipe ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                                                    </div>
-                                                    <span className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1">
-                                                        🎯 VWAP SD Confluence Snipe
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            {form.enableVWAPSDSnipe && (
-                                                <div className="mt-3 space-y-3 animate-fadeIn">
-                                                    <p className="text-[8px] text-gray-400 italic">Snipes extremely oversold/overbought prices at the 3rd SD band if an orderbook wall confluence exists.</p>
-                                                    <div className="flex gap-2">
-                                                        <div className="flex-1">
-                                                            <div className="flex justify-between items-end mb-1">
-                                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Anchor</label>
-                                                            </div>
-                                                            <select className="w-full bg-black/40 border border-white/10 p-1 rounded text-white text-xs" value={form.vwapSDAnchor} onChange={(e) => handleFormChange('vwapSDAnchor', e.target.value)}>
-                                                                <option value="Session">Session</option>
-                                                                <option value="Daily">Daily</option>
-                                                                <option value="Weekly">Weekly</option>
-                                                            </select>
-                                                        </div>
-                                                        <div className="flex-1">
-                                                            <div className="flex justify-between items-end mb-1">
-                                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Multiplier</label>
-                                                                <span className="text-[10px] font-mono text-pink-400">{form.vwapSDMultiplier}x</span>
-                                                            </div>
-                                                            <input type="number" min="1.0" max="5.0" step="0.1" className="w-full bg-black/40 border border-white/10 p-1 rounded text-white text-xs font-mono text-center" value={form.vwapSDMultiplier} onChange={(e) => handleFormChange('vwapSDMultiplier', parseFloat(e.target.value))} />
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="flex justify-between items-end mb-1">
-                                                            <label className="text-[9px] font-bold text-gray-400 uppercase">Min. Confluence Wall ($)</label>
-                                                            <span className="text-[10px] font-mono text-pink-400">${form.vwapSDMinWall.toLocaleString()}</span>
-                                                        </div>
-                                                        <input type="number" step="1000" className="w-full bg-black/40 border border-white/10 p-1 rounded text-white text-xs font-mono text-center" value={form.vwapSDMinWall} onChange={(e) => handleFormChange('vwapSDMinWall', parseInt(e.target.value))} />
-                                                    </div>
-                                                </div>
-                                            )}
+                            {/* VWAP SD SNIPE TRIGGER */}
+                            <div className={`mt-3 p-3 rounded-lg border transition-all ${form.enableVWAPSDSnipe ? 'bg-pink-500/10 border-pink-500/50' : 'bg-black/20 border-white/5'}`}>
+                                <div className="flex items-center justify-between cursor-pointer" onClick={() => handleFormChange('enableVWAPSDSnipe', !form.enableVWAPSDSnipe)}>
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-10 h-5 rounded-full p-1 transition-colors flex items-center ${form.enableVWAPSDSnipe ? 'bg-pink-500' : 'bg-gray-700'}`}>
+                                            <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${form.enableVWAPSDSnipe ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                         </div>
+                                        <span className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1">
+                                            🎯 VWAP SD Confluence Snipe
+                                        </span>
+                                    </div>
+                                </div>
+                                {form.enableVWAPSDSnipe && (
+                                    <div className="mt-3 space-y-3 animate-fadeIn">
+                                        <p className="text-[8px] text-gray-400 italic">Snipes extremely oversold/overbought prices at the 3rd SD band if an orderbook wall confluence exists.</p>
+                                        <div className="flex gap-2">
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-end mb-1">
+                                                    <label className="text-[9px] font-bold text-gray-400 uppercase">Anchor</label>
+                                                </div>
+                                                <select className="w-full bg-black/40 border border-white/10 p-1 rounded text-white text-xs" value={form.vwapSDAnchor} onChange={(e) => handleFormChange('vwapSDAnchor', e.target.value)}>
+                                                    <option value="Session">Session</option>
+                                                    <option value="Daily">Daily</option>
+                                                    <option value="Weekly">Weekly</option>
+                                                </select>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-end mb-1">
+                                                    <label className="text-[9px] font-bold text-gray-400 uppercase">Multiplier</label>
+                                                    <span className="text-[10px] font-mono text-pink-400">{form.vwapSDMultiplier}x</span>
+                                                </div>
+                                                <input type="number" min="1.0" max="5.0" step="0.1" className="w-full bg-black/40 border border-white/10 p-1 rounded text-white text-xs font-mono text-center" value={form.vwapSDMultiplier} onChange={(e) => handleFormChange('vwapSDMultiplier', parseFloat(e.target.value))} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between items-end mb-1">
+                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Min. Confluence Wall ($)</label>
+                                                <span className="text-[10px] font-mono text-pink-400">${form.vwapSDMinWall.toLocaleString()}</span>
+                                            </div>
+                                            <input type="number" step="1000" className="w-full bg-black/40 border border-white/10 p-1 rounded text-white text-xs font-mono text-center" value={form.vwapSDMinWall} onChange={(e) => handleFormChange('vwapSDMinWall', parseInt(e.target.value))} />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
-                                        {/* ICEBERG / HIDDEN WALL TRIGGER */}
-                                        <div className={`mt-3 p-3 rounded-lg border transition-all ${form.enableIcebergTrigger ? 'bg-purple-500/10 border-purple-500/50' : 'bg-black/20 border-white/5'}`}>
-                                            <div className="flex items-center justify-between cursor-pointer" onClick={() => handleFormChange('enableIcebergTrigger', !form.enableIcebergTrigger)}>
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`w-10 h-5 rounded-full p-1 transition-colors flex items-center ${form.enableIcebergTrigger ? 'bg-purple-500' : 'bg-gray-700'}`}>
-                                                        <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${form.enableIcebergTrigger ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                                                    </div>
-                                                    <span className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1">
-                                                        💎 Iceberg / Hidden Wall Trigger
-                                                        <div className="group relative">
-                                                            <svg className="w-3 h-3 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
-                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 p-2 bg-black border border-white/10 rounded-lg text-[9px] text-gray-300 hidden group-hover:block z-50 shadow-xl backdrop-blur-md">
-                                                                Detects hidden institutional limit orders ("Reloading Walls") by correlating high trade tape volume against persistent orderbook depth. Bypasses standard volume rules for highest-priority entry.
-                                                            </div>
-                                                        </div>
-                                                    </span>
-                                                </div>
-                                                {form.enableIcebergTrigger && (
-                                                    <span className="text-[9px] font-bold text-purple-400 bg-purple-500/20 px-2 py-0.5 rounded-full">HIGH PRIORITY</span>
-                                                )}
-                                            </div>
-                                            {form.enableIcebergTrigger && (
-                                                <div className="mt-3 space-y-3 animate-fadeIn">
-                                                    <div>
-                                                        <div className="flex justify-between items-end mb-1">
-                                                            <label className="text-[9px] font-bold text-gray-400 uppercase">Min. Absorbed Volume ($)</label>
-                                                            <span className="text-xs font-mono font-bold text-purple-400">${form.icebergMinAbsorbedVol.toLocaleString()}</span>
-                                                        </div>
-                                                        <div className="flex gap-3 items-center">
-                                                            <input type="range" min="5000" max="2000000" step="5000" className="flex-1 h-1.5 accent-purple-500 bg-white/10 rounded-lg appearance-none cursor-pointer" value={form.icebergMinAbsorbedVol} onChange={(e) => handleFormChange('icebergMinAbsorbedVol', parseFloat(e.target.value) || 0)} />
-                                                            <input type="number" min="0" className="w-28 bg-black/40 border border-white/10 rounded-xl p-1.5 text-white outline-none focus:border-purple-500 text-center font-mono text-sm" value={form.icebergMinAbsorbedVol} onChange={(e) => handleFormChange('icebergMinAbsorbedVol', parseFloat(e.target.value) || 0)} />
-                                                        </div>
-                                                        <p className="text-[8px] text-gray-500 mt-1">Total trade $ that must hit a price level before confirming the hidden wall.</p>
-                                                    </div>
-                                                    <div>
-                                                        <div className="flex justify-between items-end mb-1">
-                                                            <label className="text-[9px] font-bold text-gray-400 uppercase">Detection Window (sec)</label>
-                                                            <span className="text-xs font-mono font-bold text-purple-400">{form.icebergTimeWindowSecs}s</span>
-                                                        </div>
-                                                        <input type="range" min="2" max="60" step="1" className="w-full h-1.5 accent-purple-500 bg-white/10 rounded-lg appearance-none cursor-pointer" value={form.icebergTimeWindowSecs} onChange={(e) => handleFormChange('icebergTimeWindowSecs', parseInt(e.target.value))} />
-                                                        <p className="text-[8px] text-gray-500 mt-1">Rolling time window to accumulate and analyse trade tape data.</p>
-                                                    </div>
-                                                </div>
-                                            )}
+                            {/* ICEBERG / HIDDEN WALL TRIGGER */}
+                            <div className={`mt-3 p-3 rounded-lg border transition-all ${form.enableIcebergTrigger ? 'bg-purple-500/10 border-purple-500/50' : 'bg-black/20 border-white/5'}`}>
+                                <div className="flex items-center justify-between cursor-pointer" onClick={() => handleFormChange('enableIcebergTrigger', !form.enableIcebergTrigger)}>
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-10 h-5 rounded-full p-1 transition-colors flex items-center ${form.enableIcebergTrigger ? 'bg-purple-500' : 'bg-gray-700'}`}>
+                                            <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${form.enableIcebergTrigger ? 'translate-x-5' : 'translate-x-0'}`}></div>
                                         </div>
+                                        <span className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1">
+                                            💎 Iceberg / Hidden Wall Trigger
+                                            <div className="group relative">
+                                                <svg className="w-3 h-3 text-gray-400 cursor-help" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
+                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 p-2 bg-black border border-white/10 rounded-lg text-[9px] text-gray-300 hidden group-hover:block z-50 shadow-xl backdrop-blur-md">
+                                                    Detects hidden institutional limit orders ("Reloading Walls") by correlating high trade tape volume against persistent orderbook depth. Bypasses standard volume rules for highest-priority entry.
+                                                </div>
+                                            </div>
+                                        </span>
+                                    </div>
+                                    {form.enableIcebergTrigger && (
+                                        <span className="text-[9px] font-bold text-purple-400 bg-purple-500/20 px-2 py-0.5 rounded-full">HIGH PRIORITY</span>
+                                    )}
+                                </div>
+                                {form.enableIcebergTrigger && (
+                                    <div className="mt-3 space-y-3 animate-fadeIn">
+                                        <div>
+                                            <div className="flex justify-between items-end mb-1">
+                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Min. Absorbed Volume ($)</label>
+                                                <span className="text-xs font-mono font-bold text-purple-400">${form.icebergMinAbsorbedVol.toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex gap-3 items-center">
+                                                <input type="range" min="5000" max="2000000" step="5000" className="flex-1 h-1.5 accent-purple-500 bg-white/10 rounded-lg appearance-none cursor-pointer" value={form.icebergMinAbsorbedVol} onChange={(e) => handleFormChange('icebergMinAbsorbedVol', parseFloat(e.target.value) || 0)} />
+                                                <input type="number" min="0" className="w-28 bg-black/40 border border-white/10 rounded-xl p-1.5 text-white outline-none focus:border-purple-500 text-center font-mono text-sm" value={form.icebergMinAbsorbedVol} onChange={(e) => handleFormChange('icebergMinAbsorbedVol', parseFloat(e.target.value) || 0)} />
+                                            </div>
+                                            <p className="text-[8px] text-gray-500 mt-1">Total trade $ that must hit a price level before confirming the hidden wall.</p>
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between items-end mb-1">
+                                                <label className="text-[9px] font-bold text-gray-400 uppercase">Detection Window (sec)</label>
+                                                <span className="text-xs font-mono font-bold text-purple-400">{form.icebergTimeWindowSecs}s</span>
+                                            </div>
+                                            <input type="range" min="2" max="60" step="1" className="w-full h-1.5 accent-purple-500 bg-white/10 rounded-lg appearance-none cursor-pointer" value={form.icebergTimeWindowSecs} onChange={(e) => handleFormChange('icebergTimeWindowSecs', parseInt(e.target.value))} />
+                                            <p className="text-[8px] text-gray-500 mt-1">Rolling time window to accumulate and analyse trade tape data.</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
                             <div className={`border rounded-xl p-4 transition-colors cursor-pointer ${form.enableLiqTrigger ? 'bg-rose-500/5 border-rose-500/50' : 'bg-transparent border-white/10 hover:border-white/30'}`} onClick={() => handleFormChange('enableLiqTrigger', !form.enableLiqTrigger)}>
                                 <div className="flex items-center justify-between mb-2">
@@ -1753,30 +1769,30 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                             </div>
                                             <p className="text-[8px] text-gray-500 italic mt-1 leading-tight">Auto: Normal mode snipes Short liqs (pumps). Accumulate Mode snipes Long liqs (dumps).</p>
                                         </div>
-                                        
+
                                         <div className={form.followBtcLiq ? 'opacity-30 pointer-events-none grayscale transition-all' : 'transition-all'}>
                                             <div className="flex justify-between items-end mb-1">
                                                 <label className="text-[10px] font-bold text-gray-400 uppercase">Local Asset Liq. Threshold ($) {form.followBtcLiq && '(Ignored)'}</label>
                                                 <span className="text-xs font-mono font-bold text-rose-500">${form.liqThreshold.toLocaleString()}</span>
                                             </div>
                                             <div className="flex gap-3 items-center">
-                                                <input 
-                                                    type="range" 
-                                                    min="1000" 
-                                                    max="1000000" 
-                                                    step="1000" 
-                                                    className="flex-1 h-2 rounded-lg appearance-none cursor-pointer accent-rose-500 bg-white/10" 
-                                                    value={form.liqThreshold} 
+                                                <input
+                                                    type="range"
+                                                    min="1000"
+                                                    max="1000000"
+                                                    step="1000"
+                                                    className="flex-1 h-2 rounded-lg appearance-none cursor-pointer accent-rose-500 bg-white/10"
+                                                    value={form.liqThreshold}
                                                     disabled={form.followBtcLiq}
-                                                    onChange={(e) => setForm({ ...form, liqThreshold: parseFloat(e.target.value) || 0 })} 
+                                                    onChange={(e) => setForm({ ...form, liqThreshold: parseFloat(e.target.value) || 0 })}
                                                 />
-                                                <input 
-                                                    type="number" 
-                                                    min="0" 
-                                                    className="w-28 bg-black/40 border border-white/10 rounded-xl p-1.5 text-white outline-none focus:border-rose-500 text-center font-mono text-sm" 
-                                                    value={form.liqThreshold} 
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    className="w-28 bg-black/40 border border-white/10 rounded-xl p-1.5 text-white outline-none focus:border-rose-500 text-center font-mono text-sm"
+                                                    value={form.liqThreshold}
                                                     disabled={form.followBtcLiq}
-                                                    onChange={(e) => setForm({ ...form, liqThreshold: parseFloat(e.target.value) || 0 })} 
+                                                    onChange={(e) => setForm({ ...form, liqThreshold: parseFloat(e.target.value) || 0 })}
                                                 />
                                             </div>
                                         </div>
@@ -1821,7 +1837,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                     <span className="text-[9px] text-gray-500">Enable to detect liquidations in series</span>
                                                 )}
                                             </div>
-                                            
+
                                             <div className={`bg-black/20 p-3 rounded-lg border cursor-pointer transition-colors ${form.enableDynamicLiq ? 'border-cyan-500/30 bg-cyan-500/5' : 'border-white/5'}`} onClick={() => handleFormChange('enableDynamicLiq', !form.enableDynamicLiq)}>
                                                 <span className="text-[10px] font-bold text-white uppercase block mb-2">Dynamic Adapt</span>
                                                 {form.enableDynamicLiq ? (
@@ -1883,9 +1899,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                             {mlModels.length === 0 ? (
                                                 <p className="text-xs text-gray-500 italic">No models found in Registry. Train an AI model first.</p>
                                             ) : (
-                                                <select 
-                                                    className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-blue-500 text-sm font-bold" 
-                                                    value={form.mlModelId} 
+                                                <select
+                                                    className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-blue-500 text-sm font-bold"
+                                                    value={form.mlModelId}
                                                     onChange={(e) => handleFormChange('mlModelId', e.target.value)}
                                                 >
                                                     <option value="" disabled>-- Select a Model --</option>
@@ -1896,7 +1912,32 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                     ))}
                                                 </select>
                                             )}
-                                            
+
+                                            {/* ML Execution Mode Selector */}
+                                            <div className="mt-3 bg-black/60 p-3 rounded-lg border border-white/5">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <label className="text-[10px] font-bold text-gray-300 uppercase">
+                                                        Execution Mode
+                                                    </label>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div
+                                                        className={`p-2 rounded-lg cursor-pointer border text-center transition-all ${form.mlExecutionMode === 'basic' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-black/40 border-white/10 text-gray-400 hover:border-white/20'}`}
+                                                        onClick={() => handleFormChange('mlExecutionMode', 'basic')}
+                                                    >
+                                                        <p className="text-xs font-bold uppercase">Signal Only</p>
+                                                        <p className="text-[9px] mt-1 opacity-70 leading-tight">Bot handles SL/TP based on Spread/Wick config.</p>
+                                                    </div>
+                                                    <div
+                                                        className={`p-2 rounded-lg cursor-pointer border text-center transition-all ${form.mlExecutionMode === 'advanced' ? 'bg-fuchsia-500/20 border-fuchsia-500/50 text-fuchsia-400 shadow-[0_0_10px_rgba(217,70,239,0.2)]' : 'bg-black/40 border-white/10 text-gray-400 hover:border-white/20'}`}
+                                                        onClick={() => handleFormChange('mlExecutionMode', 'advanced')}
+                                                    >
+                                                        <p className="text-xs font-bold uppercase">Dynamic Setup</p>
+                                                        <p className="text-[9px] mt-1 opacity-70 leading-tight">AI enforces Dynamic SL/TP based on Confidence & ATR.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             {(tradingMode === 'spot' ? strategyMode !== 'short' : form.positionDirection !== 'short') && (
                                                 <div className="mt-3 bg-black/60 p-3 rounded-lg border border-white/5">
                                                     <div className="flex justify-between items-center mb-1">
@@ -1905,8 +1946,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                         </label>
                                                         <span className="text-xs font-mono text-blue-400">{(form.mlBullishThreshold * 100).toFixed(0)}%</span>
                                                     </div>
-                                                    <input 
-                                                        type="range" 
+                                                    <input
+                                                        type="range"
                                                         min="0.1" max="0.9" step="0.01"
                                                         value={form.mlBullishThreshold}
                                                         onChange={(e) => handleFormChange('mlBullishThreshold', parseFloat(e.target.value))}
@@ -1917,7 +1958,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                     </p>
                                                 </div>
                                             )}
-                                            
+
                                             {(tradingMode === 'spot' ? strategyMode === 'short' : form.positionDirection !== 'long') && (
                                                 <div className="mt-3 bg-black/60 p-3 rounded-lg border border-white/5">
                                                     <div className="flex justify-between items-center mb-1">
@@ -1926,8 +1967,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                         </label>
                                                         <span className="text-xs font-mono text-fuchsia-400">{(form.mlBearishThreshold * 100).toFixed(0)}%</span>
                                                     </div>
-                                                    <input 
-                                                        type="range" 
+                                                    <input
+                                                        type="range"
                                                         min="0.1" max="0.9" step="0.01"
                                                         value={form.mlBearishThreshold}
                                                         onChange={(e) => handleFormChange('mlBearishThreshold', parseFloat(e.target.value))}
@@ -1938,7 +1979,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                     </p>
                                                 </div>
                                             )}
-                                            
+
                                             <p className="text-[9px] text-gray-500 mt-2 italic leading-tight">
                                                 When enabled, the WallHunter will extract L2 state features (Bids/Asks, Imbalance, Spread) and pass them to your Custom AI. It will only fire if the AI predicts "BULLISH" for Longs or "BEARISH" for Shorts. This is the ultimate defense against spoofed walls.
                                             </p>
@@ -2004,9 +2045,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                             <div className="grid grid-cols-2 gap-4 animate-fadeIn bg-black/40 p-3 rounded-xl border border-fuchsia-500/20">
                                                 <div className="col-span-2">
                                                     <label className="text-[10px] font-bold text-fuchsia-400 uppercase mb-1 block">UT Timeframe</label>
-                                                    <select 
-                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-fuchsia-500 text-sm font-bold text-center" 
-                                                        value={form.utBotTimeframe} 
+                                                    <select
+                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-fuchsia-500 text-sm font-bold text-center"
+                                                        value={form.utBotTimeframe}
                                                         onChange={(e) => handleFormChange('utBotTimeframe', e.target.value)}
                                                     >
                                                         <option value="1m">1 Minute</option>
@@ -2021,10 +2062,10 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 </div>
                                                 <div>
                                                     <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Sensitivity (Key)</label>
-                                                    <input 
+                                                    <input
                                                         type="number"
-                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-fuchsia-500 text-sm font-bold text-center font-mono" 
-                                                        value={form.utBotSensitivity} 
+                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-fuchsia-500 text-sm font-bold text-center font-mono"
+                                                        value={form.utBotSensitivity}
                                                         onChange={(e) => handleFormChange('utBotSensitivity', parseFloat(e.target.value))}
                                                         min={0.1}
                                                         step={0.1}
@@ -2032,10 +2073,10 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 </div>
                                                 <div>
                                                     <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">ATR Period</label>
-                                                    <input 
+                                                    <input
                                                         type="number"
-                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-fuchsia-500 text-sm font-bold text-center font-mono" 
-                                                        value={form.utBotAtrPeriod} 
+                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-fuchsia-500 text-sm font-bold text-center font-mono"
+                                                        value={form.utBotAtrPeriod}
                                                         onChange={(e) => handleFormChange('utBotAtrPeriod', parseInt(e.target.value))}
                                                         min={1}
                                                         step={1}
@@ -2053,7 +2094,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                         {form.enableUtEntryTrigger && (
                                             <div className="mt-4 bg-black/40 border border-fuchsia-500/20 rounded-xl p-4 shadow-lg animate-fadeIn">
                                                 <h5 className="text-[11px] font-black text-fuchsia-400 uppercase tracking-widest mb-3 border-b border-fuchsia-500/20 pb-2">Entry Fakeout Protection</h5>
-                                                
+
                                                 <div className="space-y-4">
                                                     <div className="flex items-center justify-between cursor-pointer group" onClick={() => handleFormChange('utBotCandleClose', !form.utBotCandleClose)}>
                                                         <div>
@@ -2146,14 +2187,14 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                         <span className="text-xs font-mono text-white">{form.supertrendExitTimeout} Sec</span>
                                                     </label>
                                                 </div>
-                                                <input 
-                                                    type="range" 
-                                                    min="1" 
-                                                    max="60" 
-                                                    step="1" 
-                                                    className="w-full h-1.5 accent-red-500 bg-white/10 rounded-lg appearance-none cursor-pointer" 
-                                                    value={form.supertrendExitTimeout} 
-                                                    onChange={(e) => handleFormChange('supertrendExitTimeout', parseInt(e.target.value))} 
+                                                <input
+                                                    type="range"
+                                                    min="1"
+                                                    max="60"
+                                                    step="1"
+                                                    className="w-full h-1.5 accent-red-500 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                                                    value={form.supertrendExitTimeout}
+                                                    onChange={(e) => handleFormChange('supertrendExitTimeout', parseInt(e.target.value))}
                                                 />
                                             </div>
                                         )}
@@ -2179,9 +2220,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                             <div className="grid grid-cols-2 gap-4 animate-fadeIn bg-black/40 p-3 rounded-xl border border-sky-500/20">
                                                 <div className="col-span-2">
                                                     <label className="text-[10px] font-bold text-sky-400 uppercase mb-1 block">Supertrend Timeframe</label>
-                                                    <select 
-                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-sky-500 text-sm font-bold text-center" 
-                                                        value={form.supertrendTimeframe} 
+                                                    <select
+                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-sky-500 text-sm font-bold text-center"
+                                                        value={form.supertrendTimeframe}
                                                         onChange={(e) => handleFormChange('supertrendTimeframe', e.target.value)}
                                                     >
                                                         <option value="1m">1 Minute</option>
@@ -2196,10 +2237,10 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 </div>
                                                 <div>
                                                     <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">ATR Period</label>
-                                                    <input 
+                                                    <input
                                                         type="number"
-                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-sky-500 text-sm font-bold text-center font-mono" 
-                                                        value={form.supertrendPeriod} 
+                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-sky-500 text-sm font-bold text-center font-mono"
+                                                        value={form.supertrendPeriod}
                                                         onChange={(e) => handleFormChange('supertrendPeriod', parseInt(e.target.value))}
                                                         min={1}
                                                         step={1}
@@ -2207,10 +2248,10 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 </div>
                                                 <div>
                                                     <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">ATR Multiplier</label>
-                                                    <input 
+                                                    <input
                                                         type="number"
-                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-sky-500 text-sm font-bold text-center font-mono" 
-                                                        value={form.supertrendMultiplier} 
+                                                        className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-sky-500 text-sm font-bold text-center font-mono"
+                                                        value={form.supertrendMultiplier}
                                                         onChange={(e) => handleFormChange('supertrendMultiplier', parseFloat(e.target.value))}
                                                         min={0.1}
                                                         step={0.1}
@@ -2281,9 +2322,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                         <div className="grid grid-cols-2 gap-4 animate-fadeIn bg-black/40 p-3 rounded-xl border border-emerald-500/20">
                                             <div className="col-span-2">
                                                 <label className="text-[10px] font-bold text-emerald-400 uppercase mb-1 block">Calculation Timeframe</label>
-                                                <select 
-                                                    className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-emerald-500 text-sm font-bold text-center" 
-                                                    value={form.wickSrTimeframe} 
+                                                <select
+                                                    className="w-full bg-[#000000] border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-emerald-500 text-sm font-bold text-center"
+                                                    value={form.wickSrTimeframe}
                                                     onChange={(e) => handleFormChange('wickSrTimeframe', e.target.value)}
                                                 >
                                                     <option value="1m">1 Minute</option>
@@ -2293,19 +2334,19 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                     <option value="4h">4 Hours</option>
                                                 </select>
                                             </div>
-                                            
+
                                             {form.wickSrModes.includes('sweep') && (
                                                 <div className="col-span-2 bg-orange-500/5 p-2 rounded-lg border border-orange-500/20 mt-1">
                                                     <div className="flex justify-between items-end mb-1">
                                                         <label className="text-[10px] font-bold text-orange-400 uppercase">Sweep Fakeout Tolerance</label>
                                                         <span className="text-xs font-mono font-bold text-white">{form.wickSrSweepThreshold} Candles</span>
                                                     </div>
-                                                    <input 
-                                                        type="range" 
-                                                        min="1" max="10" step="1" 
-                                                        className="w-full h-1.5 accent-orange-500 bg-white/10 rounded-lg cursor-pointer appearance-none" 
-                                                        value={form.wickSrSweepThreshold} 
-                                                        onChange={(e) => handleFormChange('wickSrSweepThreshold', parseInt(e.target.value))} 
+                                                    <input
+                                                        type="range"
+                                                        min="1" max="10" step="1"
+                                                        className="w-full h-1.5 accent-orange-500 bg-white/10 rounded-lg cursor-pointer appearance-none"
+                                                        value={form.wickSrSweepThreshold}
+                                                        onChange={(e) => handleFormChange('wickSrSweepThreshold', parseInt(e.target.value))}
                                                     />
                                                 </div>
                                             )}
@@ -2374,211 +2415,221 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                 )}
                             </div>
 
-                                <div className="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-yellow-500/30 transition-colors shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
-                                    <div className="flex items-center justify-between cursor-pointer" onClick={(e) => { e.stopPropagation(); handleFormChange('enableDualEngine', !form.enableDualEngine); }}>
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${form.enableDualEngine ? 'bg-yellow-500/20 text-yellow-400' : 'bg-white/5 text-gray-500'}`}>
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                                            </div>
-                                            <div>
-                                                <h4 className="text-sm font-black text-white uppercase tracking-wider">⚡ Dual Engine Command Center</h4>
-                                                <p className="text-[10px] text-gray-400">Advanced multi-indicator confluence filters</p>
-                                            </div>
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-yellow-500/30 transition-colors shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
+                                <div className="flex items-center justify-between cursor-pointer" onClick={(e) => { e.stopPropagation(); handleFormChange('enableDualEngine', !form.enableDualEngine); }}>
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${form.enableDualEngine ? 'bg-yellow-500/20 text-yellow-400' : 'bg-white/5 text-gray-500'}`}>
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                         </div>
-                                        <div className={`w-12 h-6 rounded-full p-1 flex items-center transition-colors duration-300 ${form.enableDualEngine ? 'bg-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.5)]' : 'bg-gray-700'}`}>
-                                            <div className={`w-4 h-4 bg-white rounded-full transform transition-transform duration-300 ${form.enableDualEngine ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                                        <div>
+                                            <h4 className="text-sm font-black text-white uppercase tracking-wider">⚡ Dual Engine Command Center</h4>
+                                            <p className="text-[10px] text-gray-400">Advanced multi-indicator confluence filters</p>
                                         </div>
                                     </div>
-
-                                    {form.enableDualEngine && (
-                                        <div className="mt-4 animate-fadeIn" onClick={e => e.stopPropagation()}>
-                                            <div className="flex justify-between items-center gap-2 mb-4">
-                                                <div className="flex items-center gap-2 p-1 bg-black/20 rounded-lg border border-white/5 flex-1">
-                                                    {(['Classic', 'Hybrid', 'Legacy'] as const).map(mode => (
-                                                        <button
-                                                            key={mode}
-                                                            onClick={() => handleFormChange('dualEngineMode', mode)}
-                                                            className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded transition-all ${form.dualEngineMode === mode ? 'bg-yellow-500 text-black shadow-[0_0_10px_rgba(234,179,8,0.5)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
-                                                        >
-                                                            {mode}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                                <select
-                                                    value={form.dualEngineTimeframe}
-                                                    onChange={e => handleFormChange('dualEngineTimeframe', e.target.value)}
-                                                    className="bg-black/50 border border-white/10 text-yellow-500 font-mono text-[10px] rounded px-2 py-1.5 focus:border-yellow-500 outline-none w-20 text-center"
-                                                    title="Dual Engine Timeframe"
-                                                >
-                                                    <option value="1s">1s</option>
-                                                    <option value="1m">1m</option>
-                                                    <option value="3m">3m</option>
-                                                    <option value="5m">5m</option>
-                                                    <option value="15m">15m</option>
-                                                    <option value="1h">1h</option>
-                                                </select>
-                                            </div>
-                                            {form.dualEngineMode === 'Classic' ? (
-                                                <>
-                                                    <div className="flex justify-between items-center mb-3 bg-yellow-500/10 border border-yellow-500/30 p-2 rounded-lg cursor-pointer" onClick={() => handleFormChange('dualEngineConfluenceMode', !form.dualEngineConfluenceMode)}>
-                                                        <div>
-                                                            <span className="text-[10px] font-bold text-yellow-500 uppercase block">Majority Vote Confluence</span>
-                                                            <span className="text-[9px] text-gray-400">Trigger if min. required active filters align</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                                                            {form.dualEngineConfluenceMode && (
-                                                                <input type="number" min="1" max="8" className="bg-black/50 text-center text-yellow-400 font-mono text-[10px] w-10 border border-yellow-500/30 rounded py-1 outline-none" value={form.dualEngineMinConfluence} onChange={(e) => handleFormChange('dualEngineMinConfluence', parseInt(e.target.value))} title="Min Confluence Count" />
-                                                            )}
-                                                            <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors duration-200 ${form.dualEngineConfluenceMode ? 'bg-yellow-500' : 'bg-gray-700'}`} onClick={() => handleFormChange('dualEngineConfluenceMode', !form.dualEngineConfluenceMode)}>
-                                                                <div className={`w-3 h-3 bg-white rounded-full transform transition-transform duration-200 ${form.dualEngineConfluenceMode ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mb-4">
-                                                        <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineEmaFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineEmaFilter', !form.dualEngineEmaFilter)}>
-                                                            <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">SMA 100</p>
-                                                            <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineEmaFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
-                                                        </div>
-                                                        <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineTripleEmaFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineTripleEmaFilter', !form.dualEngineTripleEmaFilter)}>
-                                                            <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">Triple EMA</p>
-                                                            <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineTripleEmaFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
-                                                        </div>
-                                                        <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineRsiFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineRsiFilter', !form.dualEngineRsiFilter)}>
-                                                            <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">RSI Mom</p>
-                                                            <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineRsiFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
-                                                        </div>
-                                                        <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineMacdFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineMacdFilter', !form.dualEngineMacdFilter)}>
-                                                            <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">MACD Cross</p>
-                                                            <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineMacdFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
-                                                        </div>
-                                                        <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineAdxFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineAdxFilter', !form.dualEngineAdxFilter)}>
-                                                            <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">ADX Trend</p>
-                                                            <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineAdxFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
-                                                        </div>
-                                                        <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineVolFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineVolFilter', !form.dualEngineVolFilter)}>
-                                                            <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">Volume</p>
-                                                            <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineVolFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
-                                                        </div>
-                                                        <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineSqueezeFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineSqueezeFilter', !form.dualEngineSqueezeFilter)}>
-                                                            <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">Squeeze</p>
-                                                            <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineSqueezeFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
-                                                        </div>
-                                                        <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineCandleFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineCandleFilter', !form.dualEngineCandleFilter)}>
-                                                            <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">Candles</p>
-                                                            <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineCandleFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Settings Parameters Panel */}
-                                                    <div className="space-y-3 bg-black/30 p-4 rounded-xl border border-white/5">
-                                                        {form.dualEngineEmaFilter && (
-                                                            <div className="flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
-                                                                <span className="text-[10px] font-bold text-gray-300 uppercase">EMA Length</span>
-                                                                <input type="number" className="bg-transparent text-right text-yellow-400 font-mono text-xs w-16 outline-none" value={form.dualEngineEmaLength} onChange={(e) => handleFormChange('dualEngineEmaLength', e.target.value)} />
-                                                            </div>
-                                                        )}
-                                                        {form.dualEngineRsiFilter && (
-                                                            <div className="flex gap-2">
-                                                                <div className="flex-1 flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
-                                                                    <span className="text-[10px] font-bold text-gray-300 uppercase">RSI Len</span>
-                                                                    <input type="number" className="bg-transparent text-right text-yellow-400 font-mono text-xs w-12 outline-none" value={form.dualEngineRsiLength} onChange={(e) => handleFormChange('dualEngineRsiLength', e.target.value)} />
-                                                                </div>
-                                                                <div className="flex-1 flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
-                                                                    <span className="text-[10px] font-bold text-gray-300 uppercase">OB/OS</span>
-                                                                    <div className="flex items-center gap-1">
-                                                                        <input type="number" className="bg-transparent text-right text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineRsiOb} onChange={(e) => handleFormChange('dualEngineRsiOb', e.target.value)} />
-                                                                        <span className="text-gray-500 text-[10px]">/</span>
-                                                                        <input type="number" className="bg-transparent text-left text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineRsiOs} onChange={(e) => handleFormChange('dualEngineRsiOs', e.target.value)} />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        {form.dualEngineMacdFilter && (
-                                                            <div className="flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
-                                                                <span className="text-[10px] font-bold text-gray-300 uppercase">MACD Fast / Slow / Signal</span>
-                                                                <div className="flex items-center gap-2">
-                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineMacdFast} onChange={(e) => handleFormChange('dualEngineMacdFast', e.target.value)} />
-                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineMacdSlow} onChange={(e) => handleFormChange('dualEngineMacdSlow', e.target.value)} />
-                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineMacdSignal} onChange={(e) => handleFormChange('dualEngineMacdSignal', e.target.value)} />
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        {form.dualEngineSqueezeFilter && (
-                                                            <div className="flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
-                                                                <span className="text-[10px] font-bold text-gray-300 uppercase">Squeeze Len / BB / KC</span>
-                                                                <div className="flex items-center gap-2">
-                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineSqueezeLength} onChange={(e) => handleFormChange('dualEngineSqueezeLength', e.target.value)} />
-                                                                    <input type="number" step="0.1" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-10 outline-none" value={form.dualEngineSqueezeBbMult} onChange={(e) => handleFormChange('dualEngineSqueezeBbMult', e.target.value)} />
-                                                                    <input type="number" step="0.1" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-10 outline-none" value={form.dualEngineSqueezeKcMult} onChange={(e) => handleFormChange('dualEngineSqueezeKcMult', e.target.value)} />
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        {form.dualEngineTripleEmaFilter && (
-                                                            <div className="flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
-                                                                <span className="text-[10px] font-bold text-gray-300 uppercase">Fast / Med / Slow</span>
-                                                                <div className="flex items-center gap-2">
-                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineEmaFast} onChange={(e) => handleFormChange('dualEngineEmaFast', e.target.value)} />
-                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineEmaMed} onChange={(e) => handleFormChange('dualEngineEmaMed', e.target.value)} />
-                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineEmaSlow} onChange={(e) => handleFormChange('dualEngineEmaSlow', e.target.value)} />
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        {form.dualEngineAdxFilter && (
-                                                            <div className="flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
-                                                                <span className="text-[10px] font-bold text-gray-300 uppercase">ADX Length / Threshold</span>
-                                                                <div className="flex items-center gap-2">
-                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineAdxLength} onChange={(e) => handleFormChange('dualEngineAdxLength', e.target.value)} />
-                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineAdxThreshold} onChange={(e) => handleFormChange('dualEngineAdxThreshold', e.target.value)} />
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        {form.dualEngineVolFilter && (
-                                                            <div className="flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
-                                                                <span className="text-[10px] font-bold text-gray-300 uppercase">Vol Length / Multiplier</span>
-                                                                <div className="flex items-center gap-2">
-                                                                    <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineVolLength} onChange={(e) => handleFormChange('dualEngineVolLength', e.target.value)} />
-                                                                    <input type="number" step="0.1" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-10 outline-none" value={form.dualEngineVolMultiplier} onChange={(e) => handleFormChange('dualEngineVolMultiplier', e.target.value)} />
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        {!form.dualEngineEmaFilter && !form.dualEngineTripleEmaFilter && !form.dualEngineRsiFilter && !form.dualEngineMacdFilter && !form.dualEngineAdxFilter && !form.dualEngineVolFilter && !form.dualEngineSqueezeFilter && (
-                                                            <p className="text-center text-[10px] text-gray-500 uppercase">Enable filters to see parameters</p>
-                                                        )}
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <div className="bg-cyan-500/10 border border-cyan-500/20 p-3 rounded-lg flex items-start gap-3 mt-2 shadow-[0_0_15px_rgba(6,182,212,0.15)] animate-fadeIn">
-                                                    <span className="text-cyan-400 text-lg leading-none mt-0.5">🧠</span>
-                                                    <div>
-                                                        <h4 className="text-cyan-300 text-[10px] font-bold uppercase tracking-wider mb-1">Macro Brain Active</h4>
-                                                        <p className="text-[10px] text-cyan-200/80 leading-relaxed">
-                                                            Bot will ignore Classic inputs and automatically score <strong>OBV, Market Structure, Momentum, and HTF trends</strong>. It strictly takes entries when the Overall Insight Score hits <strong>+4 or -4</strong>.
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                        </div>
-                                    )}
+                                    <div className={`w-12 h-6 rounded-full p-1 flex items-center transition-colors duration-300 ${form.enableDualEngine ? 'bg-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.5)]' : 'bg-gray-700'}`}>
+                                        <div className={`w-4 h-4 bg-white rounded-full transform transition-transform duration-300 ${form.enableDualEngine ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                                    </div>
                                 </div>
+
+                                {form.enableDualEngine && (
+                                    <div className="mt-4 animate-fadeIn" onClick={e => e.stopPropagation()}>
+                                        <div className="flex justify-between items-center gap-2 mb-4">
+                                            <div className="flex items-center gap-2 p-1 bg-black/20 rounded-lg border border-white/5 flex-1">
+                                                {(['Classic', 'Hybrid', 'Legacy'] as const).map(mode => (
+                                                    <button
+                                                        key={mode}
+                                                        onClick={() => handleFormChange('dualEngineMode', mode)}
+                                                        className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded transition-all ${form.dualEngineMode === mode ? 'bg-yellow-500 text-black shadow-[0_0_10px_rgba(234,179,8,0.5)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                                                    >
+                                                        {mode}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <select
+                                                value={form.dualEngineTimeframe}
+                                                onChange={e => handleFormChange('dualEngineTimeframe', e.target.value)}
+                                                className="bg-black/50 border border-white/10 text-yellow-500 font-mono text-[10px] rounded px-2 py-1.5 focus:border-yellow-500 outline-none w-20 text-center"
+                                                title="Dual Engine Timeframe"
+                                            >
+                                                <option value="1s">1s</option>
+                                                <option value="1m">1m</option>
+                                                <option value="3m">3m</option>
+                                                <option value="5m">5m</option>
+                                                <option value="15m">15m</option>
+                                                <option value="1h">1h</option>
+                                            </select>
+                                        </div>
+                                        {form.dualEngineMode === 'Classic' ? (
+                                            <>
+                                                <div className="flex justify-between items-center mb-3 bg-yellow-500/10 border border-yellow-500/30 p-2 rounded-lg cursor-pointer" onClick={() => handleFormChange('dualEngineConfluenceMode', !form.dualEngineConfluenceMode)}>
+                                                    <div>
+                                                        <span className="text-[10px] font-bold text-yellow-500 uppercase block">Majority Vote Confluence</span>
+                                                        <span className="text-[9px] text-gray-400">Trigger if min. required active filters align</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                                                        {form.dualEngineConfluenceMode && (
+                                                            <input type="number" min="1" max="8" className="bg-black/50 text-center text-yellow-400 font-mono text-[10px] w-10 border border-yellow-500/30 rounded py-1 outline-none" value={form.dualEngineMinConfluence} onChange={(e) => handleFormChange('dualEngineMinConfluence', parseInt(e.target.value))} title="Min Confluence Count" />
+                                                        )}
+                                                        <div className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors duration-200 ${form.dualEngineConfluenceMode ? 'bg-yellow-500' : 'bg-gray-700'}`} onClick={() => handleFormChange('dualEngineConfluenceMode', !form.dualEngineConfluenceMode)}>
+                                                            <div className={`w-3 h-3 bg-white rounded-full transform transition-transform duration-200 ${form.dualEngineConfluenceMode ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mb-4">
+                                                    <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineEmaFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineEmaFilter', !form.dualEngineEmaFilter)}>
+                                                        <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">SMA 100</p>
+                                                        <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineEmaFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
+                                                    </div>
+                                                    <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineTripleEmaFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineTripleEmaFilter', !form.dualEngineTripleEmaFilter)}>
+                                                        <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">Triple EMA</p>
+                                                        <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineTripleEmaFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
+                                                    </div>
+                                                    <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineRsiFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineRsiFilter', !form.dualEngineRsiFilter)}>
+                                                        <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">RSI Mom</p>
+                                                        <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineRsiFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
+                                                    </div>
+                                                    <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineMacdFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineMacdFilter', !form.dualEngineMacdFilter)}>
+                                                        <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">MACD Cross</p>
+                                                        <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineMacdFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
+                                                    </div>
+                                                    <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineAdxFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineAdxFilter', !form.dualEngineAdxFilter)}>
+                                                        <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">ADX Trend</p>
+                                                        <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineAdxFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
+                                                    </div>
+                                                    <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineVolFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineVolFilter', !form.dualEngineVolFilter)}>
+                                                        <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">Volume</p>
+                                                        <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineVolFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
+                                                    </div>
+                                                    <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineSqueezeFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineSqueezeFilter', !form.dualEngineSqueezeFilter)}>
+                                                        <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">Squeeze</p>
+                                                        <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineSqueezeFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
+                                                    </div>
+                                                    <div className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${form.dualEngineCandleFilter ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-black/20 border-white/10'}`} onClick={() => handleFormChange('dualEngineCandleFilter', !form.dualEngineCandleFilter)}>
+                                                        <p className="text-[9px] font-bold text-white uppercase text-center xl:whitespace-nowrap">Candles</p>
+                                                        <div className={`w-2.5 h-2.5 rounded-full ${form.dualEngineCandleFilter ? 'bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-gray-600'}`}></div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Settings Parameters Panel */}
+                                                <div className="space-y-3 bg-black/30 p-4 rounded-xl border border-white/5">
+                                                    {form.dualEngineEmaFilter && (
+                                                        <div className="flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
+                                                            <span className="text-[10px] font-bold text-gray-300 uppercase">EMA Length</span>
+                                                            <input type="number" className="bg-transparent text-right text-yellow-400 font-mono text-xs w-16 outline-none" value={form.dualEngineEmaLength} onChange={(e) => handleFormChange('dualEngineEmaLength', e.target.value)} />
+                                                        </div>
+                                                    )}
+                                                    {form.dualEngineRsiFilter && (
+                                                        <div className="flex gap-2">
+                                                            <div className="flex-1 flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
+                                                                <span className="text-[10px] font-bold text-gray-300 uppercase">RSI Len</span>
+                                                                <input type="number" className="bg-transparent text-right text-yellow-400 font-mono text-xs w-12 outline-none" value={form.dualEngineRsiLength} onChange={(e) => handleFormChange('dualEngineRsiLength', e.target.value)} />
+                                                            </div>
+                                                            <div className="flex-1 flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
+                                                                <span className="text-[10px] font-bold text-gray-300 uppercase">OB/OS</span>
+                                                                <div className="flex items-center gap-1">
+                                                                    <input type="number" className="bg-transparent text-right text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineRsiOb} onChange={(e) => handleFormChange('dualEngineRsiOb', e.target.value)} />
+                                                                    <span className="text-gray-500 text-[10px]">/</span>
+                                                                    <input type="number" className="bg-transparent text-left text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineRsiOs} onChange={(e) => handleFormChange('dualEngineRsiOs', e.target.value)} />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {form.dualEngineMacdFilter && (
+                                                        <div className="flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
+                                                            <span className="text-[10px] font-bold text-gray-300 uppercase">MACD Fast / Slow / Signal</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineMacdFast} onChange={(e) => handleFormChange('dualEngineMacdFast', e.target.value)} />
+                                                                <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineMacdSlow} onChange={(e) => handleFormChange('dualEngineMacdSlow', e.target.value)} />
+                                                                <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineMacdSignal} onChange={(e) => handleFormChange('dualEngineMacdSignal', e.target.value)} />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {form.dualEngineSqueezeFilter && (
+                                                        <div className="flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
+                                                            <span className="text-[10px] font-bold text-gray-300 uppercase">Squeeze Len / BB / KC</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineSqueezeLength} onChange={(e) => handleFormChange('dualEngineSqueezeLength', e.target.value)} />
+                                                                <input type="number" step="0.1" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-10 outline-none" value={form.dualEngineSqueezeBbMult} onChange={(e) => handleFormChange('dualEngineSqueezeBbMult', e.target.value)} />
+                                                                <input type="number" step="0.1" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-10 outline-none" value={form.dualEngineSqueezeKcMult} onChange={(e) => handleFormChange('dualEngineSqueezeKcMult', e.target.value)} />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {form.dualEngineTripleEmaFilter && (
+                                                        <div className="flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
+                                                            <span className="text-[10px] font-bold text-gray-300 uppercase">Fast / Med / Slow</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineEmaFast} onChange={(e) => handleFormChange('dualEngineEmaFast', e.target.value)} />
+                                                                <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineEmaMed} onChange={(e) => handleFormChange('dualEngineEmaMed', e.target.value)} />
+                                                                <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineEmaSlow} onChange={(e) => handleFormChange('dualEngineEmaSlow', e.target.value)} />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {form.dualEngineAdxFilter && (
+                                                        <div className="flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
+                                                            <span className="text-[10px] font-bold text-gray-300 uppercase">ADX Length / Threshold</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineAdxLength} onChange={(e) => handleFormChange('dualEngineAdxLength', e.target.value)} />
+                                                                <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineAdxThreshold} onChange={(e) => handleFormChange('dualEngineAdxThreshold', e.target.value)} />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {form.dualEngineVolFilter && (
+                                                        <div className="flex justify-between items-center bg-white/5 rounded-lg p-2 px-3 border border-yellow-500/10">
+                                                            <span className="text-[10px] font-bold text-gray-300 uppercase">Vol Length / Multiplier</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <input type="number" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-8 outline-none" value={form.dualEngineVolLength} onChange={(e) => handleFormChange('dualEngineVolLength', e.target.value)} />
+                                                                <input type="number" step="0.1" className="bg-transparent text-center text-yellow-400 font-mono text-xs w-10 outline-none" value={form.dualEngineVolMultiplier} onChange={(e) => handleFormChange('dualEngineVolMultiplier', e.target.value)} />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {!form.dualEngineEmaFilter && !form.dualEngineTripleEmaFilter && !form.dualEngineRsiFilter && !form.dualEngineMacdFilter && !form.dualEngineAdxFilter && !form.dualEngineVolFilter && !form.dualEngineSqueezeFilter && (
+                                                        <p className="text-center text-[10px] text-gray-500 uppercase">Enable filters to see parameters</p>
+                                                    )}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="bg-cyan-500/10 border border-cyan-500/20 p-3 rounded-lg flex items-start gap-3 mt-2 shadow-[0_0_15px_rgba(6,182,212,0.15)] animate-fadeIn">
+                                                <span className="text-cyan-400 text-lg leading-none mt-0.5">🧠</span>
+                                                <div>
+                                                    <h4 className="text-cyan-300 text-[10px] font-bold uppercase tracking-wider mb-1">Macro Brain Active</h4>
+                                                    <p className="text-[10px] text-cyan-200/80 leading-relaxed">
+                                                        Bot will ignore Classic inputs and automatically score <strong>OBV, Market Structure, Momentum, and HTF trends</strong>. It strictly takes entries when the Overall Insight Score hits <strong>+4 or -4</strong>.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                    </div>
+                                )}
                             </div>
+                        </div>
                     )}
 
                     {activeTab === 'risk' && (
                         <div className="animate-fadeIn space-y-4">
 
+                            {form.mlExecutionMode === 'advanced' && (
+                                <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-6 flex flex-col items-center justify-center text-center space-y-3 mb-2 shadow-[0_0_20px_rgba(168,85,247,0.1)]">
+                                    <div className="text-4xl animate-bounce">🤖</div>
+                                    <h3 className="text-purple-400 font-black tracking-widest uppercase text-sm">AI Auto-Pilot Active</h3>
+                                    <p className="text-xs text-gray-400 max-w-sm leading-relaxed">
+                                        The <b>Advanced ML Engine</b> is controlling your Initial SL and Final TP based on L2 order flow. Conflicting manual options below are disabled.
+                                    </p>
+                                </div>
+                            )}
+                            
                             {/* ADVANCED RISK MANAGER (AUTO-STOP LIMITS) */}
                             <AdvancedRiskManager form={form} setForm={setForm} quoteAsset={form.symbol ? form.symbol.split('/')[1] || 'USDT' : 'USDT'} />
-                            
+
                             {/* --- RISK SL ORDER TYPE --- */}
                             <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex gap-4 items-center mb-2 shadow-[0_4px_20px_rgba(0,0,0,0.1)]">
                                 <div className="flex-1 space-y-1">
                                     <label className="text-[10px] text-gray-400 font-bold uppercase">Risk Exit Execution Type (SL, TSL, Breakeven)</label>
                                     <p className="text-[9px] text-gray-500">How should stop losses execute? Note: Market is safest.</p>
                                 </div>
-                                <select 
-                                    className="w-[200px] bg-black/40 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-brand-primary text-xs font-bold" 
-                                    value={form.slOrderType} 
+                                <select
+                                    className="w-[200px] bg-black/40 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-brand-primary text-xs font-bold"
+                                    value={form.slOrderType}
                                     onChange={(e) => handleFormChange('slOrderType', e.target.value)}
                                 >
                                     <option className="bg-[#000000]" value="market">Market (Safest)</option>
@@ -2627,7 +2678,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div>
                                         <div className="flex justify-between items-end mb-1">
                                             <label className="text-[10px] font-bold text-orange-400/80 uppercase">Liquidation Distance Safety (%)</label>
@@ -2640,7 +2691,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             )}
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col justify-center shadow-[0_4px_20px_rgba(0,0,0,0.1)]">
+                                <div className={`bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col justify-center shadow-[0_4px_20px_rgba(0,0,0,0.1)] ${form.mlExecutionMode === 'advanced' ? 'opacity-30 pointer-events-none select-none grayscale' : ''}`}>
                                     <div className="flex items-center justify-between mb-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); handleFormChange('enableRiskSl', !form.enableRiskSl); }}>
                                         <label className="text-[10px] font-bold text-gray-400 uppercase">Initial Stop-Loss</label>
                                         <div className={`w-8 h-4 rounded-full p-0.5 flex items-center ${form.enableRiskSl ? 'bg-brand-primary' : 'bg-gray-700'}`}>
@@ -2663,12 +2714,12 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                         <div className="text-[10px] text-gray-500 text-center py-4 font-mono">Disabled</div>
                                     )}
                                 </div>
-                                
+
                                 <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col justify-center shadow-[0_4px_20px_rgba(0,0,0,0.1)]">
                                     <div className="flex items-center justify-between mb-3">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase">Trailing SL</label>
                                         <div className={`w-8 h-4 rounded-full p-0.5 flex items-center cursor-pointer ${form.enableTsl ? 'bg-brand-primary' : 'bg-gray-700'}`}
-                                             onClick={(e) => { e.stopPropagation(); handleFormChange('enableTsl', !form.enableTsl); }}>
+                                            onClick={(e) => { e.stopPropagation(); handleFormChange('enableTsl', !form.enableTsl); }}>
                                             <div className={`w-3 h-3 bg-white rounded-full transform transition-transform ${form.enableTsl ? 'translate-x-4' : 'translate-x-0'}`}></div>
                                         </div>
                                     </div>
@@ -2695,7 +2746,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             </div>
 
                             {/* --- NEW: AUTO-FIBO TARGET TP --- */}
-                            <div className={`border rounded-xl p-4 transition-colors cursor-pointer mb-4 ${form.enableAutoFiboTp ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-white/5 border-white/10 hover:border-white/30'}`} onClick={() => handleFormChange('enableAutoFiboTp', !form.enableAutoFiboTp)}>
+                            <div className={`border rounded-xl p-4 transition-colors cursor-pointer mb-4 ${form.enableAutoFiboTp ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-white/5 border-white/10 hover:border-white/30'} ${form.mlExecutionMode === 'advanced' ? 'opacity-30 pointer-events-none select-none grayscale' : ''}`} onClick={() => handleFormChange('enableAutoFiboTp', !form.enableAutoFiboTp)}>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-12 h-6 rounded-full p-1 flex items-center transition-colors duration-200 ${form.enableAutoFiboTp ? 'bg-indigo-500' : 'bg-gray-700'}`}>
@@ -2716,9 +2767,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                     <div onClick={(e) => e.stopPropagation()} className="mt-4 pt-4 border-t border-indigo-500/20 grid grid-cols-3 gap-4">
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Timeframe</label>
-                                            <select 
+                                            <select
                                                 className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-indigo-500 font-mono text-sm"
-                                                value={form.autoFiboTimeframe} 
+                                                value={form.autoFiboTimeframe}
                                                 onChange={(e) => handleFormChange('autoFiboTimeframe', e.target.value)}
                                             >
                                                 <option value="1m">1m</option>
@@ -2731,20 +2782,20 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Lookback</label>
-                                            <input 
+                                            <input
                                                 type="number"
                                                 min="10"
                                                 max="150"
                                                 className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-indigo-500 font-mono text-sm text-center"
-                                                value={form.autoFiboLookback} 
+                                                value={form.autoFiboLookback}
                                                 onChange={(e) => handleFormChange('autoFiboLookback', parseInt(e.target.value) || 30)}
                                             />
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Extension Level</label>
-                                            <select 
+                                            <select
                                                 className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-indigo-500 font-mono text-sm"
-                                                value={form.autoFiboTargetLevel} 
+                                                value={form.autoFiboTargetLevel}
                                                 onChange={(e) => handleFormChange('autoFiboTargetLevel', parseFloat(e.target.value))}
                                             >
                                                 {/* Retracement / Pullback Targets */}
@@ -2753,7 +2804,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 <option value={0.500}>0.500x (Fair Value / 50%)</option>
                                                 <option value={0.618}>0.618x (Golden Pocket Zone)</option>
                                                 <option value={0.786}>0.786x (Deep Reversal Zone)</option>
-                                                
+
                                                 {/* Extension Targets */}
                                                 <option value={1.000}>1.000x (Measured Move / High)</option>
                                                 <option value={1.272}>1.272x (Conservative Extension)</option>
@@ -2866,7 +2917,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 <input type="number" step="10000" min="10000" className="w-full border rounded-xl p-2.5 text-center transition-all outline-none bg-black/40 border-white/10 text-white focus:border-cyan-500" value={form.microScalpMinWall} onChange={(e) => handleFormChange('microScalpMinWall', parseInt(e.target.value))} />
                                             </div>
                                         </div>
-                                        
+
                                         <div className={`p-3 rounded-lg border transition-all ${form.enableDynamicAtrScalp ? 'bg-cyan-500/10 border-cyan-500/50' : 'bg-black/40 border-white/5 hover:border-white/20'}`}>
                                             <div className="flex items-center justify-between cursor-pointer" onClick={(e) => { e.stopPropagation(); handleFormChange('enableDynamicAtrScalp', !form.enableDynamicAtrScalp); }}>
                                                 <div className="flex items-center gap-2">
@@ -2897,7 +2948,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <InputField label="Spoof Detect Time (Seconds)" value={form.spoofTime} onChange={(v: number) => setForm({ ...form, spoofTime: v })} step={0.5} />
-                                
+
                                 {/* TA Snapshot Configuration */}
                                 <div className="bg-black/20 border border-white/5 rounded-xl p-3">
                                     <div className="flex items-center justify-between mb-3">
@@ -2911,7 +2962,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                     {form.enableTaSnapshot && (
                                         <div className="animate-fadeIn">
                                             <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Chart Timeframe</label>
-                                            <select 
+                                            <select
                                                 className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500/50"
                                                 value={form.taSnapshotTimeframe}
                                                 onChange={(e) => setForm({ ...form, taSnapshotTimeframe: e.target.value })}
@@ -2975,10 +3026,10 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                     <div className="mt-3 pl-1 grid grid-cols-2 gap-4 animate-fadeIn" onClick={e => e.stopPropagation()}>
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Lookback Period</label>
-                                            <input 
+                                            <input
                                                 type="number"
-                                                className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-indigo-500 text-sm font-bold text-center font-mono" 
-                                                value={form.trendFilterLookback} 
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-indigo-500 text-sm font-bold text-center font-mono"
+                                                value={form.trendFilterLookback}
                                                 onChange={(e) => handleFormChange('trendFilterLookback', parseInt(e.target.value))}
                                                 min={20}
                                                 max={2000}
@@ -2987,9 +3038,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Min. Confidence</label>
-                                            <select 
-                                                className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-indigo-500 text-sm font-bold" 
-                                                value={form.trendFilterThreshold} 
+                                            <select
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-white outline-none focus:border-indigo-500 text-sm font-bold"
+                                                value={form.trendFilterThreshold}
                                                 onChange={(e) => handleFormChange('trendFilterThreshold', e.target.value)}
                                             >
                                                 <option className="bg-[#000000]" value="Moderate">Moderate (0.7+)</option>
@@ -3009,7 +3060,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                             </div>
                                             <p className="text-[8px] text-gray-500 mt-1 italic">Maximum allowed deviation from the regression line. Higher values allow more volatility.</p>
                                         </div>
-                                        
+
                                         <div className={`col-span-2 p-3 rounded-lg border transition-all cursor-pointer ${form.enableTrendVolume ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-black/40 border-white/5 hover:border-white/20'}`} onClick={(e) => { e.stopPropagation(); handleFormChange('enableTrendVolume', !form.enableTrendVolume); }}>
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
@@ -3034,7 +3085,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 </div>
                                             )}
                                         </div>
-                                        
+
                                         <p className="col-span-2 text-[9px] text-gray-500 mt-1 italic">Only enter trades if log-scaled linear regression trend supports the trade direction.</p>
                                     </div>
                                 )}
@@ -3107,21 +3158,19 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             <div className="flex gap-2 pl-6">
                                 <button
                                     onClick={() => setDeployMode('update')}
-                                    className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all border ${
-                                        deployMode === 'update'
+                                    className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all border ${deployMode === 'update'
                                             ? 'bg-blue-500/20 border-blue-500/60 text-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.2)]'
                                             : 'bg-black/30 border-white/10 text-gray-500 hover:text-gray-300 hover:border-white/20'
-                                    }`}
+                                        }`}
                                 >
                                     ⚙️ Update Existing
                                 </button>
                                 <button
                                     onClick={() => setDeployMode('new')}
-                                    className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all border ${
-                                        deployMode === 'new'
+                                    className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all border ${deployMode === 'new'
                                             ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.2)]'
                                             : 'bg-black/30 border-white/10 text-gray-500 hover:text-gray-300 hover:border-white/20'
-                                    }`}
+                                        }`}
                                 >
                                     🚀 Deploy New Bot
                                 </button>
@@ -3142,15 +3191,14 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                         <button
                             onClick={handleDeploy}
                             disabled={isLoading}
-                            className={`flex-1 h-12 rounded-xl font-black text-white text-sm transition-all shadow-[0_0_15px_rgba(245,158,11,0.2)] ${
-                                isLoading
+                            className={`flex-1 h-12 rounded-xl font-black text-white text-sm transition-all shadow-[0_0_15px_rgba(245,158,11,0.2)] ${isLoading
                                     ? 'bg-gray-600 cursor-not-allowed opacity-70'
                                     : (existingBot && deployMode === 'update')
                                         ? 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:scale-[1.02]'
                                         : tradingMode === 'futures'
                                             ? 'bg-gradient-to-r from-orange-500 to-red-600 hover:scale-[1.02]'
                                             : 'bg-gradient-to-r from-yellow-400 to-orange-600 hover:scale-[1.02]'
-                            }`}
+                                }`}
                         >
                             {isLoading
                                 ? 'PROCESSING...'
@@ -3175,14 +3223,14 @@ const InputField = ({ label, value, onChange, step = 1 }: any) => (
     </div>
 );
 
-const DualInput = ({ 
-    label, 
-    valuePct, 
-    onChangePct, 
-    currentPrice, 
-    direction, 
-    mode, 
-    precision = 4 
+const DualInput = ({
+    label,
+    valuePct,
+    onChangePct,
+    currentPrice,
+    direction,
+    mode,
+    precision = 4
 }: any) => {
     // Internal state for the price input to avoid jitter
     const [priceStr, setPriceStr] = useState('');
@@ -3194,7 +3242,7 @@ const DualInput = ({
         const newDistance = (valuePct / 100) * currentPrice;
 
         if (mode === 'stop_loss') {
-            newPrice = direction === 'long' 
+            newPrice = direction === 'long'
                 ? currentPrice * (1 - valuePct / 100)
                 : currentPrice * (1 + valuePct / 100);
         } else {
@@ -3202,7 +3250,7 @@ const DualInput = ({
                 ? currentPrice * (1 + valuePct / 100)
                 : currentPrice * (1 - valuePct / 100);
         }
-        
+
         const forceUpdate = inputType !== lastInputType;
         if (forceUpdate) setLastInputType(inputType);
 
@@ -3237,10 +3285,10 @@ const DualInput = ({
             // It's gap/distance
             newPct = (p / currentPrice) * 100;
         }
-        
+
         if (newPct < 0.01) newPct = 0.01;
         if (newPct > 100 && mode === 'stop_loss') newPct = 100;
-        
+
         onChangePct(parseFloat(newPct.toFixed(2)));
     };
 
@@ -3261,33 +3309,33 @@ const DualInput = ({
             </div>
             <div className="flex gap-2 items-center">
                 <div className="relative flex-1 group">
-                    <span 
+                    <span
                         className="absolute z-10 left-1 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-[9px] cursor-pointer hover:text-white bg-black/50 hover:bg-black/80 px-1.5 py-1 rounded transition-all select-none border border-white/10 shadow-sm"
                         onClick={toggleInputType}
                         title={`Toggle input: currently entering ${inputType === 'price' ? 'Asset Price' : 'Spread Gap'}`}
                     >
                         {inputType === 'price' ? '$' : 'GAP'}
                     </span>
-                    <input 
-                        type="number" 
+                    <input
+                        type="number"
                         step={1 / Math.pow(10, precision)}
-                        className={`w-full bg-black/40 border border-white/5 rounded-lg py-2 ${inputType === 'price' ? 'pl-8' : 'pl-10'} pr-2 text-white outline-none font-mono text-xs focus:border-brand-primary focus:bg-black transition-all`} 
-                        value={priceStr} 
-                        onChange={handlePriceChange} 
+                        className={`w-full bg-black/40 border border-white/5 rounded-lg py-2 ${inputType === 'price' ? 'pl-8' : 'pl-10'} pr-2 text-white outline-none font-mono text-xs focus:border-brand-primary focus:bg-black transition-all`}
+                        value={priceStr}
+                        onChange={handlePriceChange}
                         placeholder={inputType === 'price' ? 'Price' : 'Gap/Distance'}
                     />
                 </div>
                 <div className="text-gray-600 font-black">≈</div>
                 <div className="relative w-24 group">
-                    <input 
-                        type="number" 
-                        step="0.1" 
-                        className="w-full bg-brand-primary/10 border border-brand-primary/30 rounded-lg py-2 pr-6 pl-2 text-brand-primary outline-none font-mono text-xs text-right focus:bg-brand-primary/20 focus:border-brand-primary transition-all" 
-                        value={valuePct} 
+                    <input
+                        type="number"
+                        step="0.1"
+                        className="w-full bg-brand-primary/10 border border-brand-primary/30 rounded-lg py-2 pr-6 pl-2 text-brand-primary outline-none font-mono text-xs text-right focus:bg-brand-primary/20 focus:border-brand-primary transition-all"
+                        value={valuePct}
                         onChange={(e) => {
                             const val = parseFloat(e.target.value);
                             onChangePct(isNaN(val) ? 0 : val);
-                            
+
                             // Re-sync Price String immediately
                             const valNum = isNaN(val) ? 0 : val;
                             if (inputType === 'price') {
@@ -3302,7 +3350,7 @@ const DualInput = ({
                                 const newDistance = (valNum / 100) * currentPrice;
                                 setPriceStr(newDistance.toFixed(precision));
                             }
-                        }} 
+                        }}
                     />
                     <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-brand-primary font-mono text-xs group-focus-within:text-white transition-colors">%</span>
                 </div>

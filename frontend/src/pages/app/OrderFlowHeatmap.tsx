@@ -6,6 +6,7 @@ import { useLevel2MarketData } from '@/hooks/useLevel2MarketData';
 import { useOrderFlowData } from '../../hooks/useOrderFlowData';
 import { useHeatmapData } from '../../hooks/useHeatmapData';
 import { useIcebergEvents } from '../../hooks/useIcebergEvents.tsx';
+import { useMLSetupEvents } from '../../hooks/useMLSetupEvents';
 import { useVolumeFilter } from '../../hooks/useVolumeFilter';
 import { marketDepthService } from '../../services/marketDepthService';
 import { HeatmapSymbolSelector } from '../../components/features/market/HeatmapSymbolSelector';
@@ -99,6 +100,8 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
     const patternMarkersRef = useRef<any[]>([]);
     const wallLinesRef = useRef<Map<string, any>>(new Map());
     const currentPriceLineRef = useRef<any>(null);
+    const mlSlLineRef = useRef<any>(null);
+    const mlTpLineRef = useRef<any>(null);
     const lastCandleRef = useRef<CandlestickData | null>(null);
     const allCandlesRef = useRef<any[]>([]);
     const lastTradeEventRef = useRef<any>(null);
@@ -112,6 +115,7 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
     const { vpvrData, cvdData, footprintData } = useOrderFlowData(symbol, exchange, interval);
     const { heatmapData: realHeatmapData } = useHeatmapData(symbol, exchange);
     useIcebergEvents(symbol);
+    const mlSetup = useMLSetupEvents(symbol);
     const godModeData = useGodModeData(symbol);
     const [sessionsData, setSessionsData] = useState<{ a: SessionData[]; b: SessionData[]; c: SessionData[]; d: SessionData[]; }>({
         a: [], b: [], c: [], d: []
@@ -513,6 +517,8 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
             // Cleanup refs so they respawn on the newly created chart instance
             candlestickSeriesRef.current = null;
             currentPriceLineRef.current = null;
+            mlSlLineRef.current = null;
+            mlTpLineRef.current = null;
             wallLinesRef.current.clear();
             lastCandleRef.current = null;
             allCandlesRef.current = [];
@@ -1464,6 +1470,67 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
         }
 
     }, [walls, botStatus]);
+
+    // ML Setup Ghost Lines
+    useEffect(() => {
+        if (!candlestickSeriesRef.current) return;
+
+        if (mlSetup && mlSetup.symbol === symbol) {
+            // Draw ML SL Line
+            if (mlSetup.sl_price && mlSetup.sl_price > 0) {
+                if (!mlSlLineRef.current) {
+                    mlSlLineRef.current = candlestickSeriesRef.current.createPriceLine({
+                        price: mlSetup.sl_price,
+                        color: '#a855f7', // Purple
+                        lineWidth: 2,
+                        lineStyle: 3, // Large Dashed
+                        axisLabelVisible: true,
+                        title: `🤖 AI SL (${mlSetup.confidence * 100}%)`,
+                    });
+                } else {
+                    mlSlLineRef.current.applyOptions({ 
+                        price: mlSetup.sl_price,
+                        title: `🤖 AI SL (${mlSetup.confidence * 100}%)`
+                    });
+                }
+            } else if (mlSlLineRef.current) {
+                candlestickSeriesRef.current.removePriceLine(mlSlLineRef.current);
+                mlSlLineRef.current = null;
+            }
+
+            // Draw ML TP Line
+            if (mlSetup.tp_price && mlSetup.tp_price > 0) {
+                if (!mlTpLineRef.current) {
+                    mlTpLineRef.current = candlestickSeriesRef.current.createPriceLine({
+                        price: mlSetup.tp_price,
+                        color: '#a855f7', // Purple
+                        lineWidth: 2,
+                        lineStyle: 3, // Large Dashed
+                        axisLabelVisible: true,
+                        title: `🤖 AI TP (RR: ${mlSetup.rr_ratio})`,
+                    });
+                } else {
+                    mlTpLineRef.current.applyOptions({ 
+                        price: mlSetup.tp_price,
+                        title: `🤖 AI TP (RR: ${mlSetup.rr_ratio})`
+                    });
+                }
+            } else if (mlTpLineRef.current) {
+                candlestickSeriesRef.current.removePriceLine(mlTpLineRef.current);
+                mlTpLineRef.current = null;
+            }
+        } else {
+            // Remove lines if mlSetup is null
+            if (mlSlLineRef.current) {
+                candlestickSeriesRef.current.removePriceLine(mlSlLineRef.current);
+                mlSlLineRef.current = null;
+            }
+            if (mlTpLineRef.current) {
+                candlestickSeriesRef.current.removePriceLine(mlTpLineRef.current);
+                mlTpLineRef.current = null;
+            }
+        }
+    }, [mlSetup, symbol]);
 
     // Open Limit Orders — color-coded horizontal price lines
     useEffect(() => {

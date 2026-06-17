@@ -17,6 +17,7 @@ from app.db.session import SessionLocal
 from app.models.ml_model import CustomMLModel, ModelVersion
 from app.services.ml_architectures import SimpleLSTM, SimpleGRU, CNN1D, DeepLOB, TimeSeriesTransformer
 from app.services.auto_feature_selector import calculate_l2_advanced_features
+from app.strategies.helpers.ml_advanced_setup_generator import MLAdvancedSetupGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -526,3 +527,34 @@ class MLL2Predictor:
         except Exception as e:
             logger.error(f"MLL2Predictor: Prediction error: {e}")
             return True # Fail open
+
+    def predict_advanced(self, orderbook: dict, current_price: float, side: str, bot_instance: Any) -> Dict[str, Any]:
+        """
+        Executes the basic prediction, and if successful, returns an advanced setup dictionary
+        using the MLAdvancedSetupGenerator. Returns None if the prediction fails (i.e. DO NOT TRADE).
+        """
+        # 1. First get the basic directional validation
+        # We temporarily hijack the logging so we don't spam if we don't want to, 
+        # but calling predict() is fine as it already handles feature extraction and scaling.
+        is_valid = self.predict(orderbook, current_price, side)
+        
+        # 2. If valid, generate advanced setup
+        if is_valid:
+            try:
+                confidence = getattr(self, 'last_prediction_score', 0.5)
+                generator = MLAdvancedSetupGenerator(bot_instance)
+                setup = generator.generate_setup(current_price, side, confidence)
+                return setup
+            except Exception as e:
+                logger.error(f"MLL2Predictor: Advanced Setup Generation Error: {e}")
+                # Fallback basic dictionary
+                return {
+                    "is_valid": True,
+                    "sl_price": 0.0,
+                    "tp_price": 0.0,
+                    "rr_ratio": 0.0,
+                    "confidence": getattr(self, 'last_prediction_score', 0.5)
+                }
+        else:
+            return None # Invalid trade
+

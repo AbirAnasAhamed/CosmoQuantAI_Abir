@@ -321,6 +321,7 @@ class WallHunterBot:
         
         # --- ML L2 Filter ---
         self.enable_ml_filter = config.get("enable_ml_filter", False)
+        self.ml_execution_mode = config.get("ml_execution_mode", "basic")
         self.ai_model_id = config.get("ai_model_id", "")
         self.ml_predictor = None
         if self.enable_ml_filter and self.ai_model_id:
@@ -880,6 +881,10 @@ class WallHunterBot:
         if "enable_ml_filter" in new_config:
             self.enable_ml_filter = new_config["enable_ml_filter"]
             updates.append(f"ML L2 Filter: {'ON' if self.enable_ml_filter else 'OFF'}")
+            
+        if "ml_execution_mode" in new_config:
+            self.ml_execution_mode = new_config["ml_execution_mode"]
+            updates.append(f"ML Mode: {self.ml_execution_mode.upper()}")
         
         if "ai_model_id" in new_config:
             self.ai_model_id = new_config["ai_model_id"]
@@ -2078,8 +2083,22 @@ class WallHunterBot:
                                     self.logger.info(f"📈 [OIB Filter] Orderbook supports {side.upper()} with {support*100:.1f}% dominance.")
 
                             # --- AI Model Filter (L2 Predictor) ---
+                            override_sl = None
+                            override_tp = None
                             if getattr(self, 'enable_ml_filter', False) and getattr(self, 'ml_predictor', None):
-                                is_ai_valid = self.ml_predictor.predict(orderbook, mid_price, side)
+                                ml_mode = getattr(self, 'ml_execution_mode', 'basic')
+                                is_ai_valid = False
+                                
+                                if ml_mode == 'advanced':
+                                    advanced_setup = self.ml_predictor.predict_advanced(orderbook, mid_price, side, self)
+                                    if advanced_setup and advanced_setup.get("is_valid", False):
+                                        is_ai_valid = True
+                                        override_sl = advanced_setup.get("sl_price")
+                                        override_tp = advanced_setup.get("tp_price")
+                                        self.logger.info(f"🔮 [ML Advanced] Instant Setup Generated: SL={override_sl}, TP={override_tp}, R:R={advanced_setup.get('rr_ratio')}")
+                                else:
+                                    is_ai_valid = self.ml_predictor.predict(orderbook, mid_price, side)
+                                    
                                 if not is_ai_valid:
                                     if current_time - getattr(self, '_last_ai_log_time', 0) > 10.0:
                                         self.logger.info(f"🚫 [AI Filter] Instant Snipe at {price} rejected! L2 Model predicts adverse movement.")
@@ -2098,12 +2117,12 @@ class WallHunterBot:
                                     native_best_bid = native_book['bids'][0][0]
                                     native_best_ask = native_book['asks'][0][0]
                                     native_mid = (native_best_bid + native_best_ask) / 2
-                                    await self.execute_snipe(price, side, native_mid, native_best_bid, native_best_ask)
+                                    await self.execute_snipe(price, side, native_mid, native_best_bid, native_best_ask, override_sl_price=override_sl, override_tp_price=override_tp)
                                 except Exception as e:
                                     self.logger.warning(f"Error fetching native execution book for proxy snipe: {e}. Falling back to proxy price.")
-                                    await self.execute_snipe(price, side, mid_price, best_bid, best_ask)
+                                    await self.execute_snipe(price, side, mid_price, best_bid, best_ask, override_sl_price=override_sl, override_tp_price=override_tp)
                             else:
-                                await self.execute_snipe(price, side, mid_price, best_bid, best_ask)
+                                await self.execute_snipe(price, side, mid_price, best_bid, best_ask, override_sl_price=override_sl, override_tp_price=override_tp)
                             self.tracked_walls.clear()
                             current_walls.clear()
                             break
@@ -2265,8 +2284,22 @@ class WallHunterBot:
                                         self.logger.info(f"📈 [OIB Filter] Confirmed! Orderbook supports {side.upper()} with {support*100:.1f}% dominance.")
 
                                 # --- AI Model Filter (L2 Predictor) ---
+                                override_sl = None
+                                override_tp = None
                                 if getattr(self, 'enable_ml_filter', False) and getattr(self, 'ml_predictor', None):
-                                    is_ai_valid = self.ml_predictor.predict(orderbook, mid_price, side)
+                                    ml_mode = getattr(self, 'ml_execution_mode', 'basic')
+                                    is_ai_valid = False
+                                    
+                                    if ml_mode == 'advanced':
+                                        advanced_setup = self.ml_predictor.predict_advanced(orderbook, mid_price, side, self)
+                                        if advanced_setup and advanced_setup.get("is_valid", False):
+                                            is_ai_valid = True
+                                            override_sl = advanced_setup.get("sl_price")
+                                            override_tp = advanced_setup.get("tp_price")
+                                            self.logger.info(f"🔮 [ML Advanced] Confirmed Setup Generated: SL={override_sl}, TP={override_tp}, R:R={advanced_setup.get('rr_ratio')}")
+                                    else:
+                                        is_ai_valid = self.ml_predictor.predict(orderbook, mid_price, side)
+                                        
                                     if not is_ai_valid:
                                         if current_time - getattr(self, '_last_ai_log_time', 0) > 10.0:
                                             self.logger.info(f"🚫 [AI Filter] Confirmed Snipe at {price} rejected! L2 Model predicts adverse movement.")
@@ -2285,12 +2318,12 @@ class WallHunterBot:
                                         native_best_bid = native_book['bids'][0][0]
                                         native_best_ask = native_book['asks'][0][0]
                                         native_mid = (native_best_bid + native_best_ask) / 2
-                                        await self.execute_snipe(price, side, native_mid, native_best_bid, native_best_ask)
+                                        await self.execute_snipe(price, side, native_mid, native_best_bid, native_best_ask, override_sl_price=override_sl, override_tp_price=override_tp)
                                     except Exception as e:
                                         self.logger.warning(f"Error fetching native execution book for proxy snipe: {e}. Falling back to proxy price.")
-                                        await self.execute_snipe(price, side, mid_price, best_bid, best_ask)
+                                        await self.execute_snipe(price, side, mid_price, best_bid, best_ask, override_sl_price=override_sl, override_tp_price=override_tp)
                                 else:
-                                    await self.execute_snipe(price, side, mid_price, best_bid, best_ask)
+                                    await self.execute_snipe(price, side, mid_price, best_bid, best_ask, override_sl_price=override_sl, override_tp_price=override_tp)
                                 self.tracked_walls.clear() # এন্ট্রি নেওয়ার পর ট্র্যাকিং ক্লিয়ার
                                 break
                         else:
@@ -2350,7 +2383,7 @@ class WallHunterBot:
             self.logger.warning(f"Error calculating OIB: {e}")
             return 0.5
 
-    async def execute_snipe(self, wall_price: float, side: str, current_mid_price: float, best_bid: float = None, best_ask: float = None, override_order_type: str = None, override_limit_price: float = None):
+    async def execute_snipe(self, wall_price: float, side: str, current_mid_price: float, best_bid: float = None, best_ask: float = None, override_order_type: str = None, override_limit_price: float = None, override_sl_price: float = None, override_tp_price: float = None):
         # Select correct entry order type depending on the strategy mode
         # User explicitly requested STRICT POST-ONLY limit entry mode for all WallHunter Bot trades.
         snipe_order_type = override_order_type if override_order_type else "limit"
@@ -2472,8 +2505,11 @@ class WallHunterBot:
                         self.logger.error(f"Failed to compute Auto-Fibo TP! Falling back to spread. Err: {e}")
 
                 if getattr(self, 'strategy_mode', 'long') == 'short':
-                    sl_price = initial_entry * (1 + (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else float('inf')
-                    if dynamic_tp_price and dynamic_tp_price < initial_entry:
+                    sl_price = override_sl_price if override_sl_price else (initial_entry * (1 + (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else float('inf'))
+                    if override_tp_price:
+                        tp_price = override_tp_price
+                        self.logger.info(f"🎯 [Advanced ML Setup] TP Set to {tp_price:.6f} dynamically!")
+                    elif dynamic_tp_price and dynamic_tp_price < initial_entry:
                         tp_price = dynamic_tp_price
                         self.logger.info(f"🎯 [Dynamic TP] Set to {tp_price:.6f} dynamically!")
                     else:
@@ -2481,8 +2517,11 @@ class WallHunterBot:
                         if getattr(self, 'enable_dynamic_wick_tp', False) or getattr(self, 'enable_auto_fibo_tp', False):
                             self.logger.info(f"⚠️ [Dynamic TP] Fallback Spread TP activated: {tp_price:.6f}")
                 else:
-                    sl_price = initial_entry * (1 - (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else 0.0
-                    if dynamic_tp_price and dynamic_tp_price > initial_entry:
+                    sl_price = override_sl_price if override_sl_price else (initial_entry * (1 - (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else 0.0)
+                    if override_tp_price:
+                        tp_price = override_tp_price
+                        self.logger.info(f"🎯 [Advanced ML Setup] TP Set to {tp_price:.6f} dynamically!")
+                    elif dynamic_tp_price and dynamic_tp_price > initial_entry:
                         tp_price = dynamic_tp_price
                         self.logger.info(f"🎯 [Dynamic TP] Set to {tp_price:.6f} dynamically!")
                     else:
