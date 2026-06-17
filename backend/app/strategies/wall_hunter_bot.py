@@ -3210,6 +3210,7 @@ class WallHunterBot:
             else:
                 close_amount_raw = sell_amount_raw
             
+            sell_amount_raw = close_amount_raw
             sell_amount = float(self.engine.exchange.amount_to_precision(self.symbol, close_amount_raw)) if hasattr(self.engine.exchange, 'amount_to_precision') else close_amount_raw
             
             # Cancel open limit order if SL/TSL hits (handles both limit sell orders and micro_scalp)
