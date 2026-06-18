@@ -29,6 +29,7 @@ from app.strategies.helpers.vwap_sd_standalone_listener import VWAPSDStandaloneL
 from app.strategies.helpers.advanced_risk_manager import AdvancedRiskManager
 from app.services.ta_snapshot_service import ta_snapshot_service
 from app.strategies.smart_chase_executor import execute_smart_chase
+from app.strategies.helpers.zero_tolerance_tracker import ZeroToleranceTracker
 
 try:
     from app.core.security import decrypt_key
@@ -348,6 +349,10 @@ class WallHunterBot:
         self.total_losses = 0
         self.auto_stop_manager = AutoStopManager(config)
         self.advanced_risk_manager = AdvancedRiskManager(config)
+        self.zero_tolerance_tracker = ZeroToleranceTracker(
+            config.get("enable_zero_tolerance", False),
+            config.get("zero_tolerance_ticks", 0)
+        )
         self.total_gross_pnl = 0.0
         self.total_fees_paid = 0.0
         self.maker_fee = 0.001
@@ -1105,6 +1110,13 @@ class WallHunterBot:
 
         # Update internal config dictionary
         self.config.update(new_config)
+        
+        if "enable_zero_tolerance" in new_config or "zero_tolerance_ticks" in new_config:
+            new_enable = new_config.get("enable_zero_tolerance", getattr(self.zero_tolerance_tracker, "enable_zero_tolerance", False))
+            new_ticks = new_config.get("zero_tolerance_ticks", getattr(self.zero_tolerance_tracker, "zero_tolerance_ticks", 0))
+            if new_enable != getattr(self.zero_tolerance_tracker, "enable_zero_tolerance", False) or new_ticks != getattr(self.zero_tolerance_tracker, "zero_tolerance_ticks", 0):
+                updates.append(f"Zero Tolerance: {'ON' if new_enable else 'OFF'} ({new_ticks} Ticks)")
+                self.zero_tolerance_tracker.update_params(new_enable, new_ticks)
         
 
         # --- Live Auto-Stop Config Update ---
@@ -2666,6 +2678,25 @@ class WallHunterBot:
                     
                 self._save_state()
                 self.active_pos['entry_time'] = time.time()
+                self.active_pos['zero_tolerance_hit'] = False
+                
+                # --- Activate Zero Tolerance if Risk is 0 ---
+                if self.initial_risk_pct == 0 and self.zero_tolerance_tracker.enable_zero_tolerance:
+                    tick_size = 0.0
+                    try:
+                        if self.engine and self.engine.exchange and self.symbol in self.engine.exchange.markets:
+                            mkt = self.engine.exchange.markets[self.symbol]
+                            precision = mkt.get('precision', {}).get('price')
+                            if precision:
+                                tick_size = float(precision)
+                    except Exception:
+                        pass
+                    if not tick_size:
+                        tick_size = round(actual_entry * 1e-5, 10) if actual_entry else 1e-5
+                    
+                    self.zero_tolerance_tracker.activate(actual_entry, side, tick_size)
+                    self.logger.info(f"🛡️ Zero Tolerance Tracker Activated! Trigger Price: {self.zero_tolerance_tracker.trigger_price:.6f}")
+                # ------------------------------------------
                 trade_type = "Long"
                 await self._send_telegram(
                     f"⚡ Micro-Scalp Entered!\n"
@@ -2717,6 +2748,25 @@ class WallHunterBot:
                 self.logger.info(f"Entered Trade at {actual_entry}. SL: {self.active_pos['sl']}")
                 self._save_state()
                 self.active_pos['entry_time'] = time.time()
+                self.active_pos['zero_tolerance_hit'] = False
+                
+                # --- Activate Zero Tolerance if Risk is 0 ---
+                if self.initial_risk_pct == 0 and self.zero_tolerance_tracker.enable_zero_tolerance:
+                    tick_size = 0.0
+                    try:
+                        if self.engine and self.engine.exchange and self.symbol in self.engine.exchange.markets:
+                            mkt = self.engine.exchange.markets[self.symbol]
+                            precision = mkt.get('precision', {}).get('price')
+                            if precision:
+                                tick_size = float(precision)
+                    except Exception:
+                        pass
+                    if not tick_size:
+                        tick_size = round(actual_entry * 1e-5, 10) if actual_entry else 1e-5
+                    
+                    self.zero_tolerance_tracker.activate(actual_entry, side, tick_size)
+                    self.logger.info(f"🛡️ Zero Tolerance Tracker Activated! Trigger Price: {self.zero_tolerance_tracker.trigger_price:.6f}")
+                # ------------------------------------------
                 trade_type = "Long"
                 
                 ml_health_str = ""
@@ -3226,9 +3276,21 @@ class WallHunterBot:
                 self.logger.warning("❌ Partial TP execution failed on exchange. Skipping partial TP size reduction to stay in sync with exchange.")
                 self.active_pos['tp1_hit'] = True
 
-        elif is_risk_triggered or (current_price >= self.active_pos['sl'] if getattr(self, 'strategy_mode', 'long') == 'short' else current_price <= self.active_pos['sl']):
+        # --- Zero Tolerance Breakeven Check ---
+        is_zero_tolerance_triggered = False
+        if getattr(self, 'zero_tolerance_tracker', None) and not self.active_pos.get('zero_tolerance_hit', False):
+            side = 'buy' if getattr(self, 'strategy_mode', 'long') == 'long' else 'sell'
+            if self.zero_tolerance_tracker.check_trigger(current_price, side):
+                is_zero_tolerance_triggered = True
+                self.active_pos['zero_tolerance_hit'] = True
+                self.logger.info(f"🚨 Zero Tolerance Triggered! Price hit {current_price:.6f}")
+        # ------------------------------------
+
+        elif is_risk_triggered or is_zero_tolerance_triggered or (current_price >= self.active_pos['sl'] if getattr(self, 'strategy_mode', 'long') == 'short' else current_price <= self.active_pos['sl']):
             if is_risk_triggered:
                 self.logger.info(f"⚠️ Triggering Advanced Risk Exit: {risk_reason}")
+            elif is_zero_tolerance_triggered:
+                self.logger.info(f"⚠️ Triggering Zero Tolerance Breakeven Exit at {current_price:.6f}")
             else:
                 self.logger.info(f"⚠️ Triggering SL: Current Price ({current_price:.6f}) hit SL ({self.active_pos['sl']:.6f})")
             
@@ -3335,6 +3397,11 @@ class WallHunterBot:
             
             # --- NEW: Advanced SL Execution Routing ---
             sl_exec_type = getattr(self, 'sl_order_type', 'market')
+            chase_sl = self.active_pos['sl']
+            
+            if is_zero_tolerance_triggered:
+                sl_exec_type = 'smart_chase'
+                chase_sl = self.active_pos['entry']
             
             res = None
             if sl_exec_type == 'market':
@@ -3421,7 +3488,7 @@ class WallHunterBot:
                     exit_side=close_side,
                     sell_amount_raw=sell_amount_raw,
                     current_price=current_price,
-                    original_sl=self.active_pos['sl'],
+                    original_sl=chase_sl,
                     max_deviation_pct=getattr(self, 'smart_chase_deviation_pct', 1.0),
                     chase_delay_ms=getattr(self, 'smart_chase_delay_ms', 1500),
                     max_attempts=getattr(self, 'smart_chase_max_attempts', 15),

@@ -492,8 +492,8 @@ def train_model_task(job_id: str, db: Session):
         start_time = time.time()
         while not stop_heartbeat.is_set():
             elapsed = int(time.time() - start_time)
-            prog = getattr(job, 'progress', 0.0)
-            print(f"[CELERY-HEARTBEAT] ⏳ Job {job_id} is running... Elapsed: {elapsed}s | Progress: {prog:.1f}%")
+            # Avoid accessing ORM 'job' object here to prevent SQLAlchemy concurrent session errors
+            print(f"[CELERY-HEARTBEAT] ⏳ Job {job_id} is running... Elapsed: {elapsed}s")
             stop_heartbeat.wait(10)
             
     heartbeat_thread = threading.Thread(target=heartbeat_worker, daemon=True)

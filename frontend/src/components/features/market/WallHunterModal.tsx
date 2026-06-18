@@ -56,6 +56,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         atrEnabled: false,
         atrPeriod: 14,
         atrMultiplier: 2.0,
+        enableZeroTolerance: false,
+        zeroToleranceTicks: 0,
 
         // --- NEW: Custom Buy Order Type & Buffer ---
         buyOrderType: 'limit',
@@ -350,6 +352,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             enableBreakevenSl: c.sl_breakeven_trigger_pct !== undefined ? c.sl_breakeven_trigger_pct > 0 : false,
                             breakevenTriggerPct: c.sl_breakeven_trigger_pct !== undefined && c.sl_breakeven_trigger_pct > 0 ? c.sl_breakeven_trigger_pct : 0.1,
                             breakevenTargetPct: c.sl_breakeven_target_pct !== undefined ? c.sl_breakeven_target_pct : 0.02,
+                            enableZeroTolerance: c.enable_zero_tolerance !== undefined ? c.enable_zero_tolerance : false,
+                            zeroToleranceTicks: c.zero_tolerance_ticks !== undefined ? c.zero_tolerance_ticks : 0,
                             vpvrEnabled: c.vpvr_enabled !== undefined ? c.vpvr_enabled : false,
                             vpvrTolerance: c.vpvr_tolerance !== undefined ? c.vpvr_tolerance : 0.2,
                             atrEnabled: c.atr_sl_enabled !== undefined ? c.atr_sl_enabled : false,
@@ -732,6 +736,8 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     partial_tp_trigger_pct: form.enablePartialTp ? form.partialTpTriggerPct : 0.0,
                     sl_breakeven_trigger_pct: form.enableBreakevenSl ? form.breakevenTriggerPct : 0.0,
                     sl_breakeven_target_pct: form.enableBreakevenSl ? form.breakevenTargetPct : 0.0,
+                    enable_zero_tolerance: form.enableRiskSl && form.risk === 0 ? form.enableZeroTolerance : false,
+                    zero_tolerance_ticks: form.zeroToleranceTicks,
                     vpvr_enabled: form.vpvrEnabled,
                     vpvr_tolerance: form.vpvrTolerance,
                     atr_sl_enabled: form.atrEnabled,
@@ -2709,6 +2715,30 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                                 mode="stop_loss"
                                                 precision={displayDigits}
                                             />
+                                            {form.risk === 0 && (
+                                                <div className="mx-3 mt-3 mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                                                    <div className="flex items-center justify-between cursor-pointer" onClick={(e) => { e.stopPropagation(); handleFormChange('enableZeroTolerance', !form.enableZeroTolerance); }}>
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-red-400 uppercase flex items-center gap-1">
+                                                                Zero Tolerance Breakeven
+                                                            </p>
+                                                            <p className="text-[8px] text-gray-400 leading-tight mt-0.5">Cancel TP & exit instantly at breakeven if price rejects.</p>
+                                                        </div>
+                                                        <div className={`w-8 h-4 rounded-full p-0.5 flex items-center ${form.enableZeroTolerance ? 'bg-red-500' : 'bg-gray-700'}`}>
+                                                            <div className={`w-3 h-3 bg-white rounded-full transform transition-transform ${form.enableZeroTolerance ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                                        </div>
+                                                    </div>
+                                                    {form.enableZeroTolerance && (
+                                                        <div className="mt-2 pt-2 border-t border-red-500/20">
+                                                            <div className="flex justify-between items-end mb-1">
+                                                                <label className="text-[9px] text-gray-400">Tolerance Buffer (Ticks)</label>
+                                                                <span className="text-[10px] font-mono text-red-400">{form.zeroToleranceTicks}</span>
+                                                            </div>
+                                                            <input type="range" min="0" max="20" step="1" className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-red-500 bg-white/10" value={form.zeroToleranceTicks} onChange={(e) => handleFormChange('zeroToleranceTicks', parseInt(e.target.value) || 0)} />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="text-[10px] text-gray-500 text-center py-4 font-mono">Disabled</div>
