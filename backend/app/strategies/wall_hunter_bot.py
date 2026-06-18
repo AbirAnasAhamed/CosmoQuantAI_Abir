@@ -2507,7 +2507,7 @@ class WallHunterBot:
                     )
 
                 # --- NEW: AUTO FIBO MAX TP EXTENSION ---
-                if not dynamic_tp_price and getattr(self, 'enable_auto_fibo_tp', False):
+                if not dynamic_tp_price and getattr(self, 'enable_auto_fibo_tp', False) and not override_tp_price:
                     try:
                         fibo_tf = getattr(self, 'auto_fibo_timeframe', '5m')
                         fibo_level = getattr(self, 'auto_fibo_target_level', 1.618)
