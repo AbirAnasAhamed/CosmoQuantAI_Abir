@@ -159,9 +159,14 @@ class BackgroundFeatureEngine:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error(f"BackgroundFeatureEngine error for {self.symbol}: {e}")
+                err_msg = str(e)
+                if any(x in err_msg for x in ["1006", "1008", "1011", "1012", "closed by remote server", "Connection closed", "timeout", "timed out"]):
+                    logger.warning(f"BackgroundFeatureEngine websocket disconnected for {self.symbol}: {e}. Reconnecting...")
+                else:
+                    logger.error(f"BackgroundFeatureEngine error for {self.symbol}: {e}")
+                
                 # Fallback for ccxt symbol mapping issues
-                if "does not have market" in str(e) or "BadSymbol" in str(e):
+                if "does not have market" in err_msg or "BadSymbol" in err_msg:
                     if ":" in self.symbol:
                         new_sym = self.symbol.split(":")[0]
                         logger.warning(f"BackgroundFeatureEngine: Retrying watch_trades with fallback symbol {new_sym}")

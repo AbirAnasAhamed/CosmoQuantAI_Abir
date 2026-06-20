@@ -608,22 +608,25 @@ def build_hybrid_deep_dataset(job, db: Session, config: dict, add_log, check_can
     # ── Step 4.8: Optional Resampling ─────────────────────────────────────────
     resample_l2 = config.get("resample_l2", False)
     if resample_l2:
-        pd_tf = job.timeframe.replace('m', 'min').replace('h', 'h').replace('d', 'D')
-        add_log(f"[HybridDeep] Resampling tick data to {job.timeframe} candles...")
-        numeric_cols = df.select_dtypes(include=['number', 'bool']).columns
-        agg_dict = {}
-        for col in df.columns:
-            if col == 'Close':
-                agg_dict[col] = 'last'
-            elif col in ['buy_volume', 'sell_volume', 'trade_count']:
-                agg_dict[col] = 'sum'
-            elif col in numeric_cols:
-                agg_dict[col] = 'mean'
-            else:
-                agg_dict[col] = 'last'
-        
-        df = df.resample(pd_tf).agg(agg_dict).dropna()
-        add_log(f"[HybridDeep] Resampling complete. Final rows: {len(df)}")
+        if job.timeframe.lower() == 'tick':
+            add_log("[HybridDeep] Timeframe is 'Tick', skipping resampling.")
+        else:
+            pd_tf = job.timeframe.replace('m', 'min').replace('h', 'h').replace('d', 'D')
+            add_log(f"[HybridDeep] Resampling tick data to {job.timeframe} candles...")
+            numeric_cols = df.select_dtypes(include=['number', 'bool']).columns
+            agg_dict = {}
+            for col in df.columns:
+                if col == 'Close':
+                    agg_dict[col] = 'last'
+                elif col in ['buy_volume', 'sell_volume', 'trade_count']:
+                    agg_dict[col] = 'sum'
+                elif col in numeric_cols:
+                    agg_dict[col] = 'mean'
+                else:
+                    agg_dict[col] = 'last'
+            
+            df = df.resample(pd_tf).agg(agg_dict).dropna()
+            add_log(f"[HybridDeep] Resampling complete. Final rows: {len(df)}")
 
     # High frequency data needs a larger shift to capture price movement
     future_shift = config.get("prediction_horizon", 5)

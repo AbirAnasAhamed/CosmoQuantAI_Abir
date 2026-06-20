@@ -45,8 +45,8 @@ class BinanceLiquidationStream:
             except Exception as e:
                 if self.running:
                     err_msg = str(e) or type(e).__name__
-                    if "1006" in err_msg or "closed by remote server" in err_msg or "Connection closed" in err_msg or "ConnectionClosedError" in err_msg:
-                        logger.warning(f"WebSocket Connection Closed: {err_msg}. Reconnecting in {reconnect_delay}s...")
+                    if any(x in err_msg for x in ["1006", "1008", "1011", "1012", "closed by remote server", "Connection closed", "ConnectionClosedError", "timed out", "timeout", "keepalive ping"]):
+                        logger.warning(f"WebSocket Connection Closed/Timeout: {err_msg}. Reconnecting in {reconnect_delay}s...")
                     else:
                         logger.error(f"WebSocket Error: {err_msg}. Reconnecting in {reconnect_delay}s...")
                     await asyncio.sleep(reconnect_delay)

@@ -448,8 +448,22 @@ async def fetch_market_data_background():
 
 # --- Lifecycle Events ---
 
+def custom_asyncio_exception_handler(loop, context):
+    msg = context.get("exception", context.get("message"))
+    if isinstance(msg, Exception):
+        err_msg = str(msg)
+        if "Cannot write to closing transport" in err_msg:
+            # Ignore this specific aiohttp internal error to prevent log spam
+            return
+    # Log other unhandled exceptions normally
+    loop.default_exception_handler(context)
+
 @app.on_event("startup")
 async def startup_event():
+    # Set custom asyncio exception handler
+    loop = asyncio.get_event_loop()
+    loop.set_exception_handler(custom_asyncio_exception_handler)
+
     # 0. Schema Auto-Patch
     try:
         from app.db.session import engine
