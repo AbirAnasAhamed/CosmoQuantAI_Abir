@@ -22,8 +22,7 @@ _pool: Dict[str, Tuple[Any, float]] = {}
 _pool_lock = asyncio.Lock()
 
 # একটি Exchange Instance কতক্ষণ Cache এ থাকবে (seconds)
-CACHE_TTL_SECONDS = 300  # 5 মিনিট
-
+CACHE_TTL_SECONDS = 3600  # ১ ঘন্টা
 
 def _make_cache_key(api_key_id: int, is_futures: bool) -> str:
     """api_key_id এবং mode (spot/futures) দিয়ে unique key তৈরি করে।"""
@@ -72,6 +71,7 @@ async def get_or_create_exchange(
             'apiKey': decrypted_api_key,
             'secret': decrypted_secret,
             'enableRateLimit': True,
+            'timeout': 30000,
             'options': {
                 'adjustForTimeDifference': True,
                 'recvWindow': 60000 if exchange_name.lower() == 'mexc' else 10000,

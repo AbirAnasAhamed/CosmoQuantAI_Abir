@@ -103,19 +103,25 @@ class DatasetArchiver:
             # Convert to dictionary format
             data = []
             for s in snapshots:
+                import json
+                bids_val = json.dumps(s.bids) if not isinstance(s.bids, str) else s.bids
+                asks_val = json.dumps(s.asks) if not isinstance(s.asks, str) else s.asks
+                
                 data.append({
                     "id": s.id,
                     "exchange": s.exchange,
                     "symbol": s.symbol,
                     "timestamp": s.timestamp,
-                    "bids": s.bids,
-                    "asks": s.asks,
+                    "bids": bids_val,
+                    "asks": asks_val,
                     "obi": s.obi,
                     "spread": s.spread,
                     "microprice": s.microprice
                 })
 
             df = pd.DataFrame(data)
+            df["bids"] = df["bids"].astype(str)
+            df["asks"] = df["asks"].astype(str)
             
             # Group by symbol and save separately
             for symbol, group_df in df.groupby("symbol"):

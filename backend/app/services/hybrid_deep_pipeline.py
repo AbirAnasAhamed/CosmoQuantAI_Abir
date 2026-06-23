@@ -82,7 +82,7 @@ def merge_tick_with_l2(df_trades: pd.DataFrame, df_l2: pd.DataFrame) -> pd.DataF
     # Normalise indices to tz-naive datetime64[ns]
     def _norm_index(df):
         df = df.copy()
-        df.index = pd.to_datetime(df.index).tz_localize(None).astype('datetime64[ns]')
+        df.index = pd.to_datetime(df.index, format='mixed').tz_localize(None).astype('datetime64[ns]')
         return df.sort_index()
 
     df_trades = _norm_index(df_trades)
@@ -97,8 +97,8 @@ def merge_tick_with_l2(df_trades: pd.DataFrame, df_l2: pd.DataFrame) -> pd.DataF
     trades_r = df_trades.reset_index().rename(columns={df_trades.index.name or 'index': 'timestamp'})
     l2_r     = df_l2.reset_index().rename(columns={df_l2.index.name or 'index': 'timestamp'})
 
-    trades_r['timestamp'] = pd.to_datetime(trades_r['timestamp']).astype('datetime64[ns]')
-    l2_r['timestamp']     = pd.to_datetime(l2_r['timestamp']).astype('datetime64[ns]')
+    trades_r['timestamp'] = pd.to_datetime(trades_r['timestamp'], format='mixed').astype('datetime64[ns]')
+    l2_r['timestamp']     = pd.to_datetime(l2_r['timestamp'], format='mixed').astype('datetime64[ns]')
 
     # As-of merge: each trade tick ← nearest past L2 snapshot (max 500ms gap)
     merged = pd.merge_asof(
@@ -332,7 +332,7 @@ async def _async_hybrid_deep_scraper(
                             pct = min(100.0, (l2_count / target_rows) * 100.0)
                             job.progress = pct
                             db.commit()
-                            add_log_func(f"⬇️ Collected {l2_count}/{target_rows} L2 frames | Trade Ticks: {trade_count}")
+                            add_log_func(f"⬇️ Collected {l2_count}/{target_rows} L2 frames ({pct:.1f}%) | Trade Ticks: {trade_count}")
 
                     stop_event.set()
                     break
@@ -369,7 +369,7 @@ async def _async_hybrid_deep_scraper(
 
     df_merged = pd.DataFrame(merged_buffer)
     if not df_merged.empty:
-        df_merged['timestamp'] = pd.to_datetime(df_merged['timestamp'])
+        df_merged['timestamp'] = pd.to_datetime(df_merged['timestamp'], format='mixed')
         df_merged.set_index('timestamp', inplace=True)
 
     return df_merged
@@ -483,7 +483,7 @@ def build_hybrid_deep_dataset(job, db: Session, config: dict, add_log, check_can
         
         # Ensure timestamp is the index
         if 'timestamp' in df.columns:
-            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df['timestamp'] = pd.to_datetime(df['timestamp'], format='mixed')
             df.set_index('timestamp', inplace=True)
             
     elif hybrid_snapshot_file:
@@ -497,7 +497,7 @@ def build_hybrid_deep_dataset(job, db: Session, config: dict, add_log, check_can
         
         # Ensure timestamp is the index
         if 'timestamp' in df.columns:
-            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df['timestamp'] = pd.to_datetime(df['timestamp'], format='mixed')
             df.set_index('timestamp', inplace=True)
             
     if (use_merged_file and merged_file) or hybrid_snapshot_file:

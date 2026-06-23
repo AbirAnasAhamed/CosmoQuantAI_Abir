@@ -675,11 +675,20 @@ class AdvancedMLEngine:
                     if job.status == models.TrainingStatus.FAILED and job.error_message and "cancelled" in job.error_message.lower():
                         raise Exception("Training cancelled by user.")
                         
-                    # Update progress every 5 seconds
-                    current_progress = (self.num_timesteps / total_timesteps) * 100
+                        # Update progress every 5 seconds
+                    current_progress = min(100.0, (self.num_timesteps / total_timesteps) * 100)
                     job.progress = current_progress
                     db.commit()
                     self.last_db_check_time = now
+                    
+                    # Log to terminal roughly every 10% or just rely on the step interval
+                    if not hasattr(self, "last_logged_progress"):
+                        self.last_logged_progress = 0.0
+                    
+                    if current_progress - self.last_logged_progress >= 5.0 or current_progress >= 100.0:
+                        add_log(f"RL Training Progress: {self.num_timesteps}/{total_timesteps} steps ({current_progress:.1f}%)")
+                        self.last_logged_progress = current_progress
+
                 # 2. Stream Data to Frontend
                 now = time.time()
                 # Stream data at most once per second
@@ -714,11 +723,12 @@ class AdvancedMLEngine:
                             }
                         }
                         
+                        capped_progress = min(100.0, (self.num_timesteps / total_timesteps) * 100)
                         message = {
                             "task_type": "RL_TRAINING_STEP",
                             "task_id": job.id,
                             "status": "processing",
-                            "progress": int((self.num_timesteps / total_timesteps) * 100),
+                            "progress": int(capped_progress),
                             "data": payload,
                             "features": features
                         }
@@ -746,7 +756,7 @@ class AdvancedMLEngine:
         )
         
         # Set initial progress immediately before learning
-        job.progress = (start_timestep / total_timesteps) * 100
+        job.progress = min(100.0, (start_timestep / total_timesteps) * 100)
         db.commit()
         
         model.learn(total_timesteps=remaining_timesteps, callback=callback, reset_num_timesteps=False)

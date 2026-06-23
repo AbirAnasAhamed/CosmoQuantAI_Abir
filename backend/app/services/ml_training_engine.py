@@ -303,7 +303,7 @@ async def _async_live_scraper(symbol: str, target_rows: int, db: Session, job: m
                         pct = min(100.0, (scraped_count / target_rows) * 100.0)
                         job.progress = pct
                         db.commit()
-                        add_log_func(f"[Scraper] Collected {scraped_count} / {target_rows} rows...")
+                        add_log_func(f"[Scraper] Collected {scraped_count} / {target_rows} rows ({pct:.1f}%)...")
                         
         except asyncio.TimeoutError:
             add_log_func("WebSocket timeout. Reconnecting...")
