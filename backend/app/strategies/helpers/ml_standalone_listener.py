@@ -61,14 +61,14 @@ class MLStandaloneListener:
                             override_tp = None
                             
                             if ml_mode == 'advanced':
-                                advanced_setup = ml_predictor.predict_advanced(orderbook, current_mid, target_trade_dir, self.bot)
+                                advanced_setup = await ml_predictor.predict_advanced(orderbook, current_mid, target_trade_dir, self.bot)
                                 if advanced_setup and advanced_setup.get("is_valid", False):
                                     is_ai_valid = True
                                     override_sl = advanced_setup.get("sl_price")
                                     override_tp = advanced_setup.get("tp_price")
                                     self.bot.logger.info(f"🔮 [ML Advanced] Generated Setup: SL={override_sl}, TP={override_tp}, R:R={advanced_setup.get('rr_ratio')}")
                             else:
-                                is_ai_valid = ml_predictor.predict(orderbook, current_mid, target_trade_dir)
+                                is_ai_valid = await ml_predictor.predict(orderbook, current_mid, target_trade_dir)
                             
                             if is_ai_valid:
                                 # Confluence Checks

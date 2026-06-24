@@ -121,37 +121,11 @@ class BackgroundFeatureEngine:
                     continue
                 last_calc_time = current_time
                     
-                t_data = []
-                for t in trades:
-                    t_data.append({
-                        'timestamp': pd.to_datetime(t['timestamp'], unit='ms'),
-                        'price': float(t['price']),
-                        'qty': float(t['amount']),
-                        'is_buyer_maker': t['side'] == 'sell'
-                    })
-                    
-                df = pd.DataFrame(t_data)
-                df.set_index('timestamp', inplace=True)
+                # Run the heavy Pandas feature calculation in a background thread to prevent blocking
+                last_row = await asyncio.to_thread(self._calculate_features_sync, trades)
                 
-                # Provide a Close proxy for PLP calculations
-                df['Close'] = df['price']
-
-                # 2. Calculate Trade features
-                if self.needs_trade_features:
-                    df = calculate_trade_tick_features(df, self.required_features)
-                    
-                # 3. Calculate PLP features
-                if self.needs_plp_features:
-                    try:
-                        from app.services.predatory_liquidity_pipeline import calculate_plp_features
-                        plp_df = calculate_plp_features(df, self.required_features)
-                        for col in plp_df.columns:
-                            df[col] = plp_df[col]
-                    except Exception as e:
-                        logger.warning(f"BackgroundFeatureEngine: PLP calculation error: {e}")
-
-                # 4. Extract the last row and update atomic cache
-                last_row = df.iloc[-1].to_dict()
+                if last_row is None:
+                    continue
                 
                 async with self._lock:
                     self.latest_features_cache = last_row
@@ -180,3 +154,46 @@ class BackgroundFeatureEngine:
                     await asyncio.sleep(5.0)
             
         await exchange.close()
+
+    def _calculate_features_sync(self, trades: list) -> dict:
+        """
+        Synchronous method to calculate heavy Pandas features. 
+        Runs in a background thread.
+        """
+        try:
+            from app.services.hybrid_deep_pipeline import calculate_trade_tick_features
+            
+            t_data = []
+            for t in trades:
+                t_data.append({
+                    'timestamp': pd.to_datetime(t['timestamp'], unit='ms'),
+                    'price': float(t['price']),
+                    'qty': float(t['amount']),
+                    'is_buyer_maker': t['side'] == 'sell'
+                })
+                
+            df = pd.DataFrame(t_data)
+            df.set_index('timestamp', inplace=True)
+            
+            # Provide a Close proxy for PLP calculations
+            df['Close'] = df['price']
+
+            # 2. Calculate Trade features
+            if self.needs_trade_features:
+                df = calculate_trade_tick_features(df, self.required_features)
+                
+            # 3. Calculate PLP features
+            if self.needs_plp_features:
+                try:
+                    from app.services.predatory_liquidity_pipeline import calculate_plp_features
+                    plp_df = calculate_plp_features(df, self.required_features)
+                    for col in plp_df.columns:
+                        df[col] = plp_df[col]
+                except Exception as e:
+                    logger.warning(f"BackgroundFeatureEngine: PLP calculation error: {e}")
+
+            # 4. Extract the last row and update atomic cache
+            return df.iloc[-1].to_dict()
+        except Exception as e:
+            logger.error(f"BackgroundFeatureEngine: Sync feature calc error: {e}")
+            return None

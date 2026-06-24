@@ -1487,14 +1487,14 @@ class WallHunterFuturesStrategy:
                                 is_ai_valid = False
                                 
                                 if ml_mode == 'advanced':
-                                    advanced_setup = self.ml_predictor.predict_advanced(orderbook, mid_price, target_side, self)
+                                    advanced_setup = await self.ml_predictor.predict_advanced(orderbook, mid_price, target_side, self)
                                     if advanced_setup and advanced_setup.get("is_valid", False):
                                         is_ai_valid = True
                                         override_sl_price = advanced_setup.get("sl_price")
                                         override_tp_price = advanced_setup.get("tp_price")
                                         self.logger.info(f"🔮 [ML Advanced] Confirmed Setup Generated: SL={override_sl_price}, TP={override_tp_price}, R:R={advanced_setup.get('rr_ratio')}")
                                 else:
-                                    is_ai_valid = self.ml_predictor.predict(orderbook, mid_price, target_side)
+                                    is_ai_valid = await self.ml_predictor.predict(orderbook, mid_price, target_side)
                                     
                                 if not is_ai_valid:
                                     if should_log_alert:

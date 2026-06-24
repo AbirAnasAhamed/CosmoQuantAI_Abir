@@ -21,6 +21,12 @@ from app.strategies.helpers.ml_advanced_setup_generator import MLAdvancedSetupGe
 
 logger = logging.getLogger(__name__)
 
+# --- Global Caches for Singleton Model Pattern ---
+_MODEL_CACHE = {}
+_SCALER_CACHE = {}
+_METADATA_CACHE = {}
+# -------------------------------------------------
+
 class MLL2Predictor:
     """
     Standalone predictor for Custom L2 Machine Learning Models.
@@ -71,6 +77,15 @@ class MLL2Predictor:
     def _load_model(self):
         if not self.ai_model_id:
             logger.error("MLL2Predictor: No ai_model_id provided.")
+            return
+
+        # Check Cache First
+        if self.ai_model_id in _MODEL_CACHE:
+            self.model = _MODEL_CACHE[self.ai_model_id]
+            self.scaler = _SCALER_CACHE.get(self.ai_model_id)
+            self.model_features = _METADATA_CACHE.get(self.ai_model_id)
+            self.is_loaded = True
+            logger.info(f"⚡ [Cache Hit] Loaded L2 AI Model {self.ai_model_id} from RAM instantly.")
             return
 
         db = SessionLocal()
@@ -183,7 +198,11 @@ class MLL2Predictor:
                     self.model = None
 
             if self.is_loaded:
-                logger.info(f"✅ L2 AI Model {self.model_type} loaded successfully.")
+                # Save to cache
+                _MODEL_CACHE[self.ai_model_id] = self.model
+                _SCALER_CACHE[self.ai_model_id] = self.scaler
+                _METADATA_CACHE[self.ai_model_id] = self.model_features
+                logger.info(f"✅ L2 AI Model {self.model_type} loaded successfully and cached.")
                 
         except Exception as e:
             logger.error(f"MLL2Predictor: Failed to load model: {e}")
@@ -266,7 +285,15 @@ class MLL2Predictor:
         if len(self.l2_history) > 15:
             self.l2_history.pop(0)
 
-    def predict(self, orderbook: dict, current_price: float, side: str) -> bool:
+    async def predict(self, orderbook: dict, current_price: float, side: str) -> bool:
+        """
+        Asynchronous wrapper to prevent blocking the event loop.
+        Validates if the target_side (long/short) aligns with the AI's prediction.
+        """
+        import asyncio
+        return await asyncio.to_thread(self._predict_sync, orderbook, current_price, side)
+
+    def _predict_sync(self, orderbook: dict, current_price: float, side: str) -> bool:
         """
         Validates if the target_side (long/short) aligns with the AI's prediction.
         Returns True if valid, False if rejected by AI.
@@ -548,12 +575,19 @@ class MLL2Predictor:
             logger.error(f"MLL2Predictor: Prediction error: {e}")
             return True # Fail open
 
-    def predict_advanced(self, orderbook: dict, current_price: float, side: str, bot_instance: Any) -> Dict[str, Any]:
+    async def predict_advanced(self, orderbook: dict, current_price: float, side: str, bot_instance: Any) -> Dict[str, Any]:
+        """
+        Asynchronous wrapper for advanced predictions.
+        """
+        import asyncio
+        return await asyncio.to_thread(self._predict_advanced_sync, orderbook, current_price, side, bot_instance)
+
+    def _predict_advanced_sync(self, orderbook: dict, current_price: float, side: str, bot_instance: Any) -> Dict[str, Any]:
         """
         Executes the basic prediction, and if successful, returns an advanced setup dictionary
         using the ML models directly (if advanced_setup target) or MLAdvancedSetupGenerator (if fallback).
         """
-        is_valid = self.predict(orderbook, current_price, side)
+        is_valid = self._predict_sync(orderbook, current_price, side)
         
         if is_valid:
             try:
