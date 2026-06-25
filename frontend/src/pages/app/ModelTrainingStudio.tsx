@@ -1195,7 +1195,7 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
                                 >
                                     <p className="text-[10px] text-purple-300 font-medium leading-relaxed">
                                         <span className="font-bold">Transfer Learning Hub:</span> You are transferring weights/knowledge from <strong className="text-white">{initialAlgorithm}</strong> to a new architecture. Select your target engine below.
-                                        Supported pairs: PPO ↔ SAC, LSTM ↔ GRU, TCN ↔ 1D-CNN, XGBoost ↔ LightGBM.
+                                        Supported pairs: PPO ↔ SAC, LSTM ↔ GRU, TCN ↔ 1D-CNN, XGBoost ↔ LightGBM, CQL ↔ SAC, A2C ↔ PPO, DDPG ↔ TD3.
                                     </p>
                                 </motion.div>
                             )}
