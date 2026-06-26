@@ -297,6 +297,14 @@ def calculate_plp_features(df: pd.DataFrame, selected_features: list) -> pd.Data
         vol_accel = qty > qty.shift(1)
         df['momentum_ignition'] = np.where(consecutive & vol_accel, 1.0, 0.0)
 
+    # ── Candlestick Morphology & Psychology ──
+    try:
+        from app.services.feature_engines.candle_psychology import CandlePsychologyEngine
+        df = CandlePsychologyEngine.compute_psychology_features(df, selected_features)
+    except ImportError as e:
+        logger.error(f"Could not import CandlePsychologyEngine: {e}")
+        pass
+
     # ── ICT Purist Macro Concepts ──
     try:
         from app.services.feature_engines.ict_features import ICTFeatureEngine
