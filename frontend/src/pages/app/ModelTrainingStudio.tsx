@@ -31,6 +31,7 @@ import { CustomFeatureBuilder } from '@/components/ml/CustomFeatureBuilder';
 
 import { mlModelsService } from '@/services/mlModelsService';
 
+import { ALL_L2_FEATURES, BASIC_L2_INTERNAL_NAMES, BASIC_L2_FEATURES, ADV_L2_FEATURES, ALL_TRADE_FEATURES, ALL_HYBRID_DEEP_TRADE_FEATURES } from '@/constants/mlFeatures';
 const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ retrainModelId }) => {
     const [symbol, setSymbol] = useState('BTC/USDT');
     const [exchange, setExchange] = useState('binance');
@@ -396,110 +397,6 @@ const ModelTrainingStudio: React.FC<{ retrainModelId?: string | null }> = ({ ret
         }
     ];
     const TIMEFRAMES = ['1s', '5s', '1m', '5m', '15m', '1h', '4h', '1d'];
-    const ALL_L2_FEATURES = [
-        { internal: "Effective_Spread", name: "Effective Spread" },
-        { internal: "Spread_ROC", name: "Spread ROC" },
-        { internal: "Mid_Price_Acceleration", name: "Mid-Price Acceleration" },
-        { internal: "Spread_Asymmetry", name: "Spread Asymmetry" },
-        { internal: "WAP_Top_5", name: "WAP Top 5" },
-        { internal: "WAP_Top_10", name: "WAP Top 10" },
-        { internal: "Multi_Level_Imbalance_Top5", name: "Multi-Level Imbalance (Top 5)" },
-        { internal: "Multi_Level_Imbalance_Top10", name: "Multi-Level Imbalance (Top 10)" },
-        { internal: "Depth_Ratio", name: "Depth Ratio (Bid/Ask)" },
-        { internal: "Ask_Wall_Distance", name: "Wall Distance (Ask)" },
-        { internal: "Bid_Wall_Distance", name: "Wall Distance (Bid)" },
-        { internal: "Order_Book_Skewness", name: "Order Book Skewness (Sk)" },
-        { internal: "Level_1_Imbalance", name: "Level-1 Imbalance" },
-        { internal: "Imbalance_Momentum", name: "Imbalance Momentum" },
-        { internal: "Order_Flow_Imbalance", name: "Order Flow Imbalance (OFI)" },
-        { internal: "CVD_Proxy", name: "Cumulative Volume Delta (CVD)" },
-        { internal: "CVD_Acceleration", name: "CVD Acceleration" },
-        { internal: "Realized_Micro_Volatility", name: "Realized Micro-Volatility" },
-        { internal: "Tick_Test_Roll", name: "Tick Test Roll (Auto-correlation)" },
-        { internal: "obi", name: "Order Book Imbalance (OBI)" },
-        { internal: "spread", name: "Quoted Spread" },
-        { internal: "microprice", name: "Micro-Price" },
-        { internal: "obi_delta", name: "OBI Delta ✨ (NEW)", desc: "Rate of change of Order Book Imbalance" },
-        { internal: "microprice_deviation", name: "Microprice Deviation ✨ (NEW)", desc: "Deviation of volume-weighted microprice from midprice" },
-        { internal: "quote_stuffing_ratio", name: "Quote Stuffing Ratio ✨ (NEW)", desc: "Proxy for spam (rapid placement vs execution)" },
-        { internal: "depth_variance", name: "Order Book Depth Variance ✨ (NEW)", desc: "Rolling variance of bid/ask depth at top levels" },
-        { internal: "slippage_proxy", name: "Slippage Proxy ✨ (NEW)", desc: "Estimated cost of a simulated 10 units market order" },
-        { internal: "spread_reversion_rate", name: "Spread Reversion Rate ✨ (NEW)", desc: "Speed at which a widened spread contracts" },
-        { internal: "smart_money_divergence", name: "Smart Money Divergence ✨ (NEW)", desc: "Divergence between price momentum and depth momentum" },
-        { internal: "bid_ask_absorption", name: "Bid/Ask Absorption Rate ✨ (NEW)", desc: "Rate at which limit orders are absorbing aggressive market flow" },
-        { internal: "liquidity_replenishment_rate", name: "Liquidity Replenishment Rate ✨ (NEW)", desc: "Time-proxy for liquidity refilling after level clearance" },
-        { internal: "bbo_flicker_rate", name: "BBO Flicker Rate ✨ (NEW)", desc: "Volatility of the top-of-book levels" },
-        { internal: "order_flow_toxicity", name: "Order Flow Toxicity (VPIN) ✨ (NEW)", desc: "Probability of Informed Trading based on depth" },
-        { internal: "order_flow_toxicity", name: "Order Flow Toxicity (VPIN) ✨ (NEW)", desc: "Probability of Informed Trading based on depth" },
-        { internal: "hidden_volume_proxy", name: "Hidden Volume Proxy ✨ (NEW)", desc: "Detection of abnormally low slippage despite large volume" }
-    ];
-
-    const BASIC_L2_INTERNAL_NAMES = [
-        "obi", "spread", "microprice", "Imbalance_Momentum", "Depth_Ratio", 
-        "CVD_Proxy", "Multi_Level_Imbalance_Top5", "OFI_Acceleration", "Level_1_Imbalance"
-    ];
-
-    const BASIC_L2_FEATURES = ALL_L2_FEATURES.filter(f => BASIC_L2_INTERNAL_NAMES.includes(f.internal));
-    const ADV_L2_FEATURES = ALL_L2_FEATURES.filter(f => !BASIC_L2_INTERNAL_NAMES.includes(f.internal));
-
-    const ALL_TRADE_FEATURES = [
-        { internal: "cvd", name: "Cumulative Volume Delta (CVD)" },
-        { internal: "buy_volume", name: "Buy Volume Profile" },
-        { internal: "sell_volume", name: "Sell Volume Profile" },
-        { internal: "trade_count", name: "Trade Count (Tick Velocity)" },
-        { internal: "rolling_vol_imbalance", name: "Rolling Volume Imbalance ✨ (NEW)", desc: "Buy vs Sell dominance (100 ticks)" },
-        { internal: "trade_velocity", name: "Trade Velocity (Hz) ✨ (NEW)", desc: "Trades executed per second" },
-        { internal: "vwap_deviation", name: "VWAP Deviation", desc: "Distance of current price from rolling VWAP" },
-        { internal: "consecutive_runs", name: "Consecutive Runs ✨ (NEW)", desc: "Streak length of trades in the same direction" },
-        { internal: "aggressor_ratio", name: "Aggressor Ratio", desc: "Percentage of trades initiated by buyers" },
-        { internal: "avg_trade_size", name: "Average Trade Size (ATS) ✨ (NEW)", desc: "Mean size of last 100 trades" },
-        { internal: "whale_trade_freq", name: "Whale Trade Frequency 🐋 ✨ (NEW)", desc: "Frequency of trades > 95th percentile" },
-        { internal: "retail_participation_ratio", name: "Retail Participation ✨ (NEW)", desc: "Frequency of trades < 25th percentile" },
-        { internal: "trade_size_variance", name: "Trade Size Variance ✨ (NEW)", desc: "Volatility in order flow sizes" },
-        { internal: "iceberg_proxy_count", name: "Iceberg Order Proxy 🧊 ✨ (NEW)", desc: "Consecutive trades executed exactly at same price" },
-        { internal: "up_down_tick_ratio", name: "Up/Down Tick Volume Ratio ✨ (NEW)", desc: "Volume traded on up-ticks vs down-ticks" },
-        { internal: "micro_volatility", name: "Micro-Volatility ✨ (NEW)", desc: "Standard deviation of tick returns" },
-        { internal: "amihud_illiquidity", name: "Amihud Illiquidity ✨ (NEW)", desc: "Price impact per unit volume traded" },
-        { internal: "tick_speed", name: "Tick Speed (ms)", desc: "Average milliseconds between trades" },
-        { internal: "tick_acceleration", name: "Tick Acceleration ✨ (NEW)", desc: "Rate of change of tick speed (Momentum of momentum)" },
-        { internal: "zero_tick_ratio", name: "Zero-Tick Ratio ✨ (NEW)", desc: "Percentage of trades causing zero price movement" },
-        { internal: "realized_variance", name: "Realized Variance ✨ (NEW)", desc: "Sum of squared tick returns" },
-        { internal: "kyles_lambda", name: "Kyle's Lambda ✨ (NEW)", desc: "Regression slope of price change on volume (Market impact)" },
-        { internal: "autocorr_signs", name: "Order Sign Auto-correlation ✨ (NEW)", desc: "Predictability of order direction (Lag-1)" },
-        { internal: "entropy_of_signs", name: "Order Flow Entropy ✨ (NEW)", desc: "Shannon entropy of trade directions (Predictability)" },
-        { internal: "roll_measure_spread", name: "Roll Measure Spread ✨ (NEW)", desc: "Implicit spread estimated from tick covariance" },
-        { internal: "vpin_proxy", name: "VPIN Proxy ✨ (NEW)", desc: "Volume-Synchronized Probability of Informed Trading" }
-    ];
-
-    // ── Hybrid Deep: 12 Trade Tick Features ────────────────────────────────────
-    const ALL_HYBRID_DEEP_TRADE_FEATURES = [
-        { internal: "cvd",                   name: "CVD (Real aggTrade)",             desc: "Cumulative Volume Delta from actual executed trades" },
-        { internal: "buy_volume",            name: "Buy Volume",                       desc: "Aggressive buy volume per tick" },
-        { internal: "sell_volume",           name: "Sell Volume",                      desc: "Aggressive sell volume per tick" },
-        { internal: "trade_count",           name: "Trade Count",                      desc: "Number of trades (tick velocity)" },
-        { internal: "rolling_vol_imbalance", name: "Rolling Volume Imbalance ✨ (NEW)", desc: "Buy vs Sell dominance (100 ticks)" },
-        { internal: "trade_velocity", name: "Trade Velocity (Hz) ✨ (NEW)", desc: "Trades executed per second" },
-        { internal: "vwap_deviation",        name: "VWAP Deviation",                   desc: "Price distance from running VWAP" },
-        { internal: "consecutive_runs", name: "Consecutive Runs ✨ (NEW)", desc: "Streak length of trades in the same direction" },
-        { internal: "aggressor_ratio",       name: "Aggressor Ratio",                  desc: "Rolling buy aggressor rate (100-tick window)" },
-        { internal: "avg_trade_size", name: "Average Trade Size (ATS) ✨ (NEW)", desc: "Mean size of last 100 trades" },
-        { internal: "whale_trade_freq", name: "Whale Trade Frequency 🐋 ✨ (NEW)", desc: "Frequency of trades > 95th percentile" },
-        { internal: "retail_participation_ratio", name: "Retail Participation ✨ (NEW)", desc: "Frequency of trades < 25th percentile" },
-        { internal: "trade_size_variance", name: "Trade Size Variance ✨ (NEW)", desc: "Volatility in order flow sizes" },
-        { internal: "iceberg_proxy_count", name: "Iceberg Order Proxy 🧊 ✨ (NEW)", desc: "Consecutive trades executed exactly at same price" },
-        { internal: "up_down_tick_ratio", name: "Up/Down Tick Volume Ratio ✨ (NEW)", desc: "Volume traded on up-ticks vs down-ticks" },
-        { internal: "micro_volatility", name: "Micro-Volatility ✨ (NEW)", desc: "Standard deviation of tick returns" },
-        { internal: "amihud_illiquidity", name: "Amihud Illiquidity ✨ (NEW)", desc: "Price impact per unit volume traded" },
-        { internal: "tick_speed",            name: "Tick Speed (ms/trade)",            desc: "Average milliseconds between consecutive trades" },
-        { internal: "tick_acceleration", name: "Tick Acceleration ✨ (NEW)", desc: "Rate of change of tick speed" },
-        { internal: "zero_tick_ratio", name: "Zero-Tick Ratio ✨ (NEW)", desc: "Percentage of trades causing zero price movement" },
-        { internal: "realized_variance", name: "Realized Variance ✨ (NEW)", desc: "Sum of squared tick returns" },
-        { internal: "kyles_lambda", name: "Kyle's Lambda ✨ (NEW)", desc: "Regression slope of price change on volume (Market impact)" },
-        { internal: "autocorr_signs", name: "Order Sign Auto-correlation ✨ (NEW)", desc: "Predictability of order direction (Lag-1)" },
-        { internal: "entropy_of_signs", name: "Order Flow Entropy ✨ (NEW)", desc: "Shannon entropy of trade directions (Predictability)" },
-        { internal: "roll_measure_spread", name: "Roll Measure Spread ✨ (NEW)", desc: "Implicit spread estimated from tick covariance" },
-        { internal: "vpin_proxy", name: "VPIN Proxy ✨ (NEW)", desc: "Volume-Synchronized Probability of Informed Trading" }
-    ];
 
     // Auto-scroll logs
     useEffect(() => {
