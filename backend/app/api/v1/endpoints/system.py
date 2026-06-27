@@ -60,8 +60,8 @@ def get_auto_archiver_status():
     """
     r = get_redis_client()
     status = r.get("global_auto_archiver_enabled")
-    # Default is true if not explicitly set to false
-    is_active = status != "false"
+    # Default is false if not explicitly set to true
+    is_active = status in ("true", b"true")
     return {"active": is_active}
 
 @router.post("/auto-archiver", response_model=AutoArchiverSwitchSchema)

@@ -153,7 +153,7 @@ const Settings: React.FC<{ initialSection?: string | null }> = ({ initialSection
     const [isTestingNotification, setIsTestingNotification] = useState(false);
 
     // Auto-Archiver State
-    const [isAutoArchiverEnabled, setIsAutoArchiverEnabled] = useState(true);
+    const [isAutoArchiverEnabled, setIsAutoArchiverEnabled] = useState(false);
     const [isSavingAutoArchiver, setIsSavingAutoArchiver] = useState(false);
 
     useEffect(() => {

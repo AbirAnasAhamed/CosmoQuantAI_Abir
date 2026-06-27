@@ -1006,7 +1006,7 @@ def prune_l2_data():
         from app.utils import get_redis_client
         r = get_redis_client()
         status = r.get("global_auto_archiver_enabled")
-        auto_archiver_enabled = status not in (b"false", "false")
+        auto_archiver_enabled = status in (b"true", "true")
 
         # 2. Archive records to Parquet (includes 10GB smart management)
         if auto_archiver_enabled:
