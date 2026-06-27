@@ -12,6 +12,7 @@ class StrategyConfig(BaseModel):
     leverage: Optional[int] = 1
     timeframe: str = "1h"
     amount_per_trade: float
+    amount_base_per_trade: Optional[float] = None
     vol_threshold: Optional[float] = None
     risk_pct: Optional[float] = 0.0
     sell_order_type: Optional[str] = "limit"

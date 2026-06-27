@@ -43,6 +43,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
         tsl: 0.03,
         tslActivationPct: 0.13,
         amount: 100,
+        amount_base: '',
         sellOrderType: 'limit',
         spoofTime: 3.0,
         enablePartialTp: false,
@@ -339,8 +340,9 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                             enableTsl: c.trailing_stop !== undefined ? c.trailing_stop > 0 : false,
                             tsl: c.trailing_stop !== undefined && c.trailing_stop > 0 ? c.trailing_stop : 0.03,
                             tslActivationPct: c.tsl_activation_pct !== undefined ? c.tsl_activation_pct : 0.13,
-                            amount: c.amount_per_trade || 100,
-                            sellOrderType: c.sell_order_type || 'limit',
+                            amount: activeWallHunter.amount_per_trade || 100,
+                            amount_base: activeWallHunter.amount_base_per_trade || '',
+                            sellOrderType: activeWallHunter.sell_order_type || 'limit',
                             slOrderType: c.sl_order_type || 'limit',
                             smartChaseDeviationPct: c.smart_chase_deviation_pct !== undefined ? c.smart_chase_deviation_pct : 1.0,
                             smartChaseDelayMs: c.smart_chase_delay_ms !== undefined ? c.smart_chase_delay_ms : 1500,
@@ -721,6 +723,7 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                     proxy_symbol: form.enableProxyWall ? form.proxySymbol : null,
 
                     amount_per_trade: form.amount,
+                    amount_base_per_trade: form.amount_base ? parseFloat(form.amount_base as any) : null,
                     target_spread: form.spread,
                     trailing_stop: form.enableTsl ? form.tsl : 0.0,
                     tsl_activation_pct: form.tslActivationPct,
@@ -1215,19 +1218,36 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
 
                             {/* --- NEW: SPOT STRATEGY MODE / BASE ACCUMULATION FLAG --- */}
                             {tradingMode === 'spot' && (
-                                <div className="flex gap-4 p-3 bg-white/5 border border-white/10 rounded-2xl animate-fadeIn">
+                                <div className="flex flex-col gap-4 p-3 bg-white/5 border border-white/10 rounded-2xl animate-fadeIn">
                                     <div className="flex flex-col w-full space-y-2">
                                         <div className="flex justify-between items-center">
                                             <label className="text-[10px] text-brand-primary font-black uppercase">Spot Strategy Mode</label>
                                         </div>
-                                        <div className="flex bg-black/40 rounded-lg p-1 border border-white/10">
-                                            <button onClick={() => setStrategyMode('long')} className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded transition-all ${strategyMode === 'long' ? 'bg-brand-primary text-white' : 'text-gray-500 hover:text-white'}`}>Accumulate Quote (Normal)</button>
-                                            <button onClick={() => setStrategyMode('short')} className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded transition-all flex items-center justify-center gap-1 ${strategyMode === 'short' ? 'bg-yellow-600 text-white shadow-[0_0_10px_rgba(202,138,4,0.3)]' : 'text-gray-500 hover:text-white'}`}>
+                                        <div className="flex bg-black/40 rounded-lg p-1 border border-white/10 gap-1">
+                                            <button onClick={() => setStrategyMode('long')} className={`flex-1 py-1.5 text-[9px] font-bold uppercase rounded transition-all ${strategyMode === 'long' ? 'bg-brand-primary text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}>Long (Quote)</button>
+                                            <button onClick={() => setStrategyMode('short')} className={`flex-1 py-1.5 text-[9px] font-bold uppercase rounded transition-all flex items-center justify-center gap-1 ${strategyMode === 'short' ? 'bg-yellow-600 text-white shadow-[0_0_10px_rgba(202,138,4,0.3)]' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}>
                                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
-                                                Accumulate Base (Short)
+                                                Short (Base)
+                                            </button>
+                                            <button onClick={() => setStrategyMode('auto')} className={`flex-1 py-1.5 text-[9px] font-bold uppercase rounded transition-all flex items-center justify-center gap-1 ${strategyMode === 'auto' ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(147,51,234,0.3)]' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}>
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                                                Bi-Directional
                                             </button>
                                         </div>
                                     </div>
+                                    {strategyMode === 'auto' && (
+                                        <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl flex gap-3 items-start animate-fadeIn">
+                                            <div className="bg-purple-500/20 p-2 rounded-lg mt-0.5">
+                                                <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xs font-bold text-purple-400 mb-1">Bi-Directional (Auto) Mode</h4>
+                                                <p className="text-[10px] text-gray-400 leading-relaxed">
+                                                    Requires both USDT (Quote) and {form.symbol ? form.symbol.split('/')[0] : 'Base Token'} balances. The bot will automatically Accumulate from Buy Walls and Distribute from Sell Walls based on ML Filter predictions.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -1375,9 +1395,23 @@ export const WallHunterModal: FC<{ isOpen: boolean; onClose: () => void; symbol:
                                     </div>
                                 </div>
                             </div>
-
-                            <InputField label={`Margin Allocation (${form.symbol ? (tradingMode === 'spot' && strategyMode === 'short' ? form.symbol.split('/')[0] : (form.symbol.split('/')[1] || 'USDT')) : 'USDT'})`} value={form.amount} onChange={(v: number) => setForm({ ...form, amount: v })} step={10} />
-
+                            {tradingMode === 'spot' && strategyMode === 'auto' ? (
+                                <div className="flex gap-4">
+                                    <div className="flex-1">
+                                        <InputField label={`Margin Allocation (${form.symbol ? form.symbol.split('/')[1] || 'USDT' : 'USDT'})`} value={form.amount} onChange={(v: number) => setForm({ ...form, amount: v })} step={10} />
+                                    </div>
+                                    <div className="flex-1 relative group">
+                                        <InputField label={`Margin Allocation (${form.symbol ? form.symbol.split('/')[0] : 'Base'})`} value={form.amount_base} onChange={(v: any) => setForm({ ...form, amount_base: v === '' ? '' : String(v) })} step={1} />
+                                        {!form.amount_base && (
+                                            <div className="absolute top-0 right-0 -mt-2 -mr-2 text-[8px] text-gray-500 italic bg-black/60 px-1.5 py-0.5 rounded">
+                                                Auto Calculate
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <InputField label={`Margin Allocation (${form.symbol ? (tradingMode === 'spot' && strategyMode === 'short' ? form.symbol.split('/')[0] : (form.symbol.split('/')[1] || 'USDT')) : 'USDT'})`} value={form.amount} onChange={(v: number) => setForm({ ...form, amount: v })} step={10} />
+                            )}
 
                             {/* --- NATIVE TOKEN FEE TOGGLE --- */}
                             {(form.exchange === 'binance' || form.exchange === 'mexc' || form.exchange === 'kucoin') && (

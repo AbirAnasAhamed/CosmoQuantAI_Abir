@@ -3049,7 +3049,7 @@ const OrderFlowHeatmap: React.FC = () => {
                                     <circle cx="2" cy="14" r="1.5"/><circle cx="8" cy="14" r="1.5"/>
                                 </svg>
                                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${botStatus.position ? 'bg-yellow-400 animate-pulse' : 'bg-indigo-500 animate-pulse'}`} />
-                                {botStatus.position ? 'In Trade' : 'Monitoring L2 Wall'}
+                                {botStatus.position ? `In Trade${botStatus.position_side ? ` (${botStatus.position_side === 'sell' ? 'Short' : 'Long'})` : ''}` : 'Monitoring L2 Wall'}
                             </h4>
 
                             <div className="flex flex-col gap-2">
@@ -3090,22 +3090,18 @@ const OrderFlowHeatmap: React.FC = () => {
                                             {botStatus.total_losses || 0}
                                         </span>
                                     </div>
-                                    {botStatus.trading_mode === 'futures' && (
-                                        <>
-                                            <div className="bg-black/20 p-2 rounded-lg border border-white/5 flex flex-col">
-                                                <span className="text-gray-400 font-mono text-[10px] uppercase">Longs</span>
-                                                <span className="font-mono font-bold text-green-400">
-                                                    {botStatus.total_longs || 0}
-                                                </span>
-                                            </div>
-                                            <div className="bg-black/20 p-2 rounded-lg border border-white/5 flex flex-col">
-                                                <span className="text-gray-400 font-mono text-[10px] uppercase">Shorts</span>
-                                                <span className="font-mono font-bold text-red-400">
-                                                    {botStatus.total_shorts || 0}
-                                                </span>
-                                            </div>
-                                        </>
-                                    )}
+                                    <div className="bg-black/20 p-2 rounded-lg border border-white/5 flex flex-col">
+                                        <span className="text-gray-400 font-mono text-[10px] uppercase">Longs</span>
+                                        <span className="font-mono font-bold text-green-400">
+                                            {botStatus.total_longs || 0}
+                                        </span>
+                                    </div>
+                                    <div className="bg-black/20 p-2 rounded-lg border border-white/5 flex flex-col">
+                                        <span className="text-gray-400 font-mono text-[10px] uppercase">Shorts</span>
+                                        <span className="font-mono font-bold text-red-400">
+                                            {botStatus.total_shorts || 0}
+                                        </span>
+                                    </div>
                                 </div>
                                 {botStatus.position && (
                                     <>

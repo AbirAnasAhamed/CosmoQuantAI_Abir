@@ -30,6 +30,7 @@ from app.strategies.helpers.advanced_risk_manager import AdvancedRiskManager
 from app.services.ta_snapshot_service import ta_snapshot_service
 from app.strategies.smart_chase_executor import execute_smart_chase
 from app.strategies.helpers.zero_tolerance_tracker import ZeroToleranceTracker
+from app.strategies.helpers.spot_bidirectional_executor import SpotBiDirectionalExecutor
 
 try:
     from app.core.security import decrypt_key
@@ -354,6 +355,8 @@ class WallHunterBot:
         self._total_realized_pnl = 0.0
         self.total_wins = 0
         self.total_losses = 0
+        self.total_longs = 0
+        self.total_shorts = 0
         self.auto_stop_manager = AutoStopManager(config)
         self.advanced_risk_manager = AdvancedRiskManager(config)
         self.zero_tolerance_tracker = ZeroToleranceTracker(
@@ -364,6 +367,7 @@ class WallHunterBot:
         self.total_fees_paid = 0.0
         self.maker_fee = 0.001
         self.taker_fee = 0.001
+        self.spot_bidirectional_executor = SpotBiDirectionalExecutor(self)
 
     async def _on_trading_session_end(self, session_name: str):
         """Callback triggered when the active trading session ends."""
@@ -1200,6 +1204,21 @@ class WallHunterBot:
         except Exception as e:
             self.logger.error(f"Failed to send Telegram in WallHunterBot: {e}")
 
+    def _is_active_short(self, explicit_side=None):
+        """
+        Determines if the bot should act on 'short' direction rules (SL above entry, TP below entry, etc).
+        For explicit entry calculations, provide explicit_side ('sell' or 'buy').
+        Otherwise, it evaluates the currently active position's side or the general strategy_mode.
+        """
+        if explicit_side:
+            return explicit_side == 'sell'
+            
+        pos_side = self.active_pos.get('side') if self.active_pos else None
+        if pos_side:
+            return pos_side == 'sell'
+            
+        return getattr(self, 'strategy_mode', 'long') == 'short'
+
     def _publish_status(self, current_price: float):
         try:
             pnl_val = 0.0
@@ -1216,7 +1235,9 @@ class WallHunterBot:
                 tp_price = self.active_pos.get('tp', 0)
                 
                 amount = self.active_pos.get('amount', 0)
-                if getattr(self, 'strategy_mode', 'long') == 'short':
+                is_short = self._is_active_short()
+                
+                if is_short:
                     pnl_val = (entry_price - current_price) * amount
                     if entry_price > 0:
                         pnl_pct = ((entry_price - current_price) / entry_price) * 100
@@ -1229,6 +1250,7 @@ class WallHunterBot:
                 "id": self.bot_id,
                 "status": "active" if self.running else "inactive",
                 "mode": getattr(self, 'strategy_mode', 'long'),
+                "trading_mode": getattr(self, 'trading_mode', 'spot'),
                 "pnl": float(f"{pnl_val:.2f}"),
                 "pnl_percent": float(f"{pnl_pct:.2f}"),
                 "total_pnl": float(f"{self.total_realized_pnl:.2f}"),
@@ -1238,8 +1260,11 @@ class WallHunterBot:
                 "total_orders": self.total_executed_orders,
                 "total_wins": self.total_wins,
                 "total_losses": self.total_losses,
+                "total_longs": self.total_longs,
+                "total_shorts": self.total_shorts,
                 "price": float(f"{current_price:.10f}"),
                 "position": position,
+                "position_side": self.active_pos.get('side') if self.active_pos else None,
                 "entry_price": float(f"{entry_price:.10f}"),
                 "sl_price": float(f"{sl_price:.10f}") if sl_price != float('inf') else 0.0,
                 "tp_price": float(f"{tp_price:.10f}"),
@@ -1871,7 +1896,7 @@ class WallHunterBot:
                                 # Strict Entry Direction Guard: 
                                 # A Short bot must only open positions with SELL. A Long bot must only open positions with BUY.
                                 if not self.active_pos:
-                                    expected_entry_side = 'sell' if getattr(self, 'strategy_mode', 'long') == 'short' else 'buy'
+                                    expected_entry_side = 'sell' if self._is_active_short() else 'buy'
                                     if target_side != expected_entry_side:
                                         self.logger.info(f"🚫 Wick SR Snipe ({w_sig['mode'].upper()}) rejected! Strategy Mode ({getattr(self, 'strategy_mode', 'long').upper()}) only allows {expected_entry_side.upper()} entries.")
                                         continue
@@ -1965,8 +1990,8 @@ class WallHunterBot:
                                 if distance_pct <= self.max_wall_distance_pct:
                                     current_walls[price] = {'vol': vol, 'type': 'buy'}
 
-                    # Scan SELL walls for Futures mode OR Spot Short mode
-                    if self.trading_mode == 'futures' or getattr(self, 'strategy_mode', 'long') == 'short':
+                    # Scan SELL walls for Futures mode OR Spot Short/Auto mode
+                    if self.trading_mode == 'futures' or getattr(self, 'strategy_mode', 'long') in ['short', 'auto']:
                         for level in orderbook['asks']:
                             price, vol = level[0], level[1]
                             if vol >= self.vol_threshold:
@@ -1974,6 +1999,10 @@ class WallHunterBot:
                                 distance_pct = abs(price - mid_price) / mid_price * 100.0
                                 if distance_pct <= self.max_wall_distance_pct:
                                     current_walls[price] = {'vol': vol, 'type': 'sell'}
+
+                    # Apply Bi-directional Auto Logic to filter priority
+                    if getattr(self, 'strategy_mode', 'long') == 'auto':
+                        current_walls = await self.spot_bidirectional_executor.evaluate_walls(current_walls, orderbook, mid_price)
 
                     # 2. ওয়াল অ্যানালাইসিস এবং স্পুফিং ডিটেকশন
                     for price, wall_info in current_walls.items():
@@ -2096,6 +2125,12 @@ class WallHunterBot:
                                     continue
                                 elif side == "sell" and (1 - oib_ratio) < min_oib_threshold:
                                     self.logger.info(f"🚫 [OIB Filter] Instant Snipe at {price} rejected! Weak Ask presence ({(1-oib_ratio)*100:.1f}%).")
+                                    continue
+
+                            # --- Spot Auto Balance Validation ---
+                            if getattr(self, 'strategy_mode', 'long') == 'auto':
+                                has_balance = await self.spot_bidirectional_executor.validate_balance_for_side(side)
+                                if not has_balance:
                                     continue
                                 else:
                                     support = oib_ratio if side == "buy" else (1-oib_ratio)
@@ -2465,9 +2500,17 @@ class WallHunterBot:
 
         # Calculate base asset amount
         input_amount = self.config.get("amount_per_trade", 10.0)
-        if getattr(self, 'strategy_mode', 'long') == 'short':
-            # In Short/Accumulate mode, the UI input is directly the Base Asset amount
-            base_amount = float(f"{input_amount:.6f}")
+        strategy_mode = getattr(self, 'strategy_mode', 'long')
+        
+        if strategy_mode == 'short' or (strategy_mode == 'auto' and side == 'sell'):
+            # It's a Short/Distribution entry.
+            input_base_amount = self.config.get("amount_base_per_trade")
+            if input_base_amount is not None and input_base_amount > 0:
+                base_amount = float(f"{input_base_amount:.6f}")
+                self.logger.info(f"💡 [Dual Allocation] Using explicit Base Allocation: {base_amount} {self.symbol.split('/')[0]}")
+            else:
+                base_amount = float(f"{input_amount / entry_price:.6f}")
+                self.logger.info(f"💡 [Auto Calculation] Converted {input_amount} Quote to {base_amount} Base at price {entry_price}")
         else:
             # In Long mode, the UI input is Quote Asset, so convert to Base Asset
             base_amount = float(f"{input_amount / entry_price:.6f}")
@@ -2502,8 +2545,8 @@ class WallHunterBot:
             # Pre-calculate targets for immediate state save
             if self.enable_micro_scalp:
                 tick_profit_pct = self.micro_scalp_profit_ticks * 0.0001
-                tp_price = initial_entry * (1 - tick_profit_pct) if getattr(self, 'strategy_mode', 'long') == 'short' else initial_entry * (1 + tick_profit_pct)
-                sl_price = initial_entry * (1 + (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else (float('inf') if getattr(self, 'strategy_mode', 'long') == 'short' else 0.0)
+                tp_price = initial_entry * (1 - tick_profit_pct) if self._is_active_short(side) else initial_entry * (1 + tick_profit_pct)
+                sl_price = initial_entry * (1 + (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else (float('inf') if self._is_active_short(side) else 0.0)
             else:
                 dynamic_tp_price = None
                 if getattr(self, 'enable_wick_sr', False) and getattr(self, 'enable_dynamic_wick_tp', False) and hasattr(self, 'wick_sr_tracker'):
@@ -2529,7 +2572,7 @@ class WallHunterBot:
                     except Exception as e:
                         self.logger.error(f"Failed to compute Auto-Fibo TP! Falling back to spread. Err: {e}")
 
-                if getattr(self, 'strategy_mode', 'long') == 'short':
+                if self._is_active_short(side):
                     sl_price = override_sl_price if override_sl_price else (initial_entry * (1 + (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else float('inf'))
                     if override_tp_price:
                         tp_price = override_tp_price
@@ -2555,6 +2598,7 @@ class WallHunterBot:
                             self.logger.info(f"⚠️ [Dynamic TP] Fallback Spread TP activated: {tp_price:.6f}")
 
             self.active_pos = {
+                "side": side,
                 "entry": initial_entry,
                 "amount": base_amount,
                 "sl": sl_price,
@@ -2567,6 +2611,10 @@ class WallHunterBot:
                 "limit_order_id": None,
                 "micro_scalp": self.enable_micro_scalp
             }
+            if side == "buy":
+                self.total_longs += 1
+            else:
+                self.total_shorts += 1
             self.highest_price = initial_entry
             self.lowest_price = initial_entry
             self._save_state()
@@ -2647,24 +2695,24 @@ class WallHunterBot:
                 else:
                     tick_profit_pct = self.micro_scalp_profit_ticks * 0.0001
                     
-                tp_price = actual_entry * (1 - tick_profit_pct) if getattr(self, 'strategy_mode', 'long') == 'short' else actual_entry * (1 + tick_profit_pct)
+                tp_price = actual_entry * (1 - tick_profit_pct) if self._is_active_short() else actual_entry * (1 + tick_profit_pct)
                 
                 # Make SL dynamic as well if configured, otherwise fallback to initial_risk_pct
                 if getattr(self, 'enable_dynamic_atr_scalp', False) and getattr(self, 'current_atr', 0) > 0:
                     sl_distance = self.current_atr * getattr(self, 'atr_multiplier', 1.0)
                     sl_pct = sl_distance / actual_entry if actual_entry > 0 else 0
-                    atr_sl = actual_entry * (1 + sl_pct) if getattr(self, 'strategy_mode', 'long') == 'short' else actual_entry * (1 - sl_pct)
+                    atr_sl = actual_entry * (1 + sl_pct) if self._is_active_short() else actual_entry * (1 - sl_pct)
                     # Guard: ATR SL should never degrade protection vs initial_risk_pct SL
                     if self.initial_risk_pct > 0:
-                        base_sl = actual_entry * (1 + (self.initial_risk_pct / 100)) if getattr(self, 'strategy_mode', 'long') == 'short' else actual_entry * (1 - (self.initial_risk_pct / 100))
-                        sl_price = min(atr_sl, base_sl) if getattr(self, 'strategy_mode', 'long') == 'short' else max(atr_sl, base_sl)
+                        base_sl = actual_entry * (1 + (self.initial_risk_pct / 100)) if self._is_active_short() else actual_entry * (1 - (self.initial_risk_pct / 100))
+                        sl_price = min(atr_sl, base_sl) if self._is_active_short() else max(atr_sl, base_sl)
                     else:
                         sl_price = atr_sl
                 else:
                     if self.initial_risk_pct > 0:
-                        sl_price = actual_entry * (1 + (self.initial_risk_pct / 100)) if getattr(self, 'strategy_mode', 'long') == 'short' else actual_entry * (1 - (self.initial_risk_pct / 100))
+                        sl_price = actual_entry * (1 + (self.initial_risk_pct / 100)) if self._is_active_short() else actual_entry * (1 - (self.initial_risk_pct / 100))
                     else:
-                        sl_price = float('inf') if getattr(self, 'strategy_mode', 'long') == 'short' else 0.0
+                        sl_price = float('inf') if self._is_active_short() else 0.0
                 
                 self.active_pos = {
                     "entry": actual_entry,
@@ -2710,7 +2758,13 @@ class WallHunterBot:
                     self.zero_tolerance_tracker.activate(actual_entry, side, tick_size)
                     self.logger.info(f"🛡️ Zero Tolerance Tracker Activated! Trigger Price: {self.zero_tolerance_tracker.trigger_price:.6f}")
                 # ------------------------------------------
-                trade_type = "Long"
+                strategy_m = getattr(self, 'strategy_mode', 'long')
+                if strategy_m == 'auto':
+                    trade_type = f"Spot Auto ({'Buy' if side == 'buy' else 'Sell'})"
+                elif strategy_m == 'short':
+                    trade_type = "Spot Base (Short)"
+                else:
+                    trade_type = "Long" if side == 'buy' else "Short"
                 await self._send_telegram(
                     f"⚡ Micro-Scalp Entered!\n"
                     f"Bot Name: {getattr(self, 'bot_name', f'Bot {self.bot_id}')}\n"
@@ -2724,7 +2778,7 @@ class WallHunterBot:
                 asyncio.create_task(ta_snapshot_service.send_snapshot_telegram(self, actual_entry, trade_type))
                 
             else:
-                if getattr(self, 'strategy_mode', 'long') == 'short':
+                if self._is_active_short():
                     tp1_price = actual_entry * (1 - (getattr(self, 'partial_tp_trigger_pct', 0.0) / 100)) if getattr(self, 'partial_tp_trigger_pct', 0.0) > 0 else actual_entry - (self.target_spread * 0.5)
                     tp_price = actual_entry - self.target_spread
                     sl_price = actual_entry * (1 + (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else float('inf')
@@ -2780,7 +2834,13 @@ class WallHunterBot:
                     self.zero_tolerance_tracker.activate(actual_entry, side, tick_size)
                     self.logger.info(f"🛡️ Zero Tolerance Tracker Activated! Trigger Price: {self.zero_tolerance_tracker.trigger_price:.6f}")
                 # ------------------------------------------
-                trade_type = "Long"
+                strategy_m = getattr(self, 'strategy_mode', 'long')
+                if strategy_m == 'auto':
+                    trade_type = f"Spot Auto ({'Buy' if side == 'buy' else 'Sell'})"
+                elif strategy_m == 'short':
+                    trade_type = "Spot Base (Short)"
+                else:
+                    trade_type = "Long" if side == 'buy' else "Short"
                 
                 ml_health_str = ""
                 if self.enable_ml_filter and hasattr(self, 'ml_predictor') and self.ml_predictor:
@@ -2837,7 +2897,7 @@ class WallHunterBot:
                         sl_distance = self.current_atr * getattr(self, 'atr_multiplier', 1.0)
                         sl_pct = sl_distance / actual_entry if actual_entry > 0 else 0
                         
-                        if getattr(self, 'strategy_mode', 'long') == 'short':
+                        if self._is_active_short():
                             tp_price = actual_entry * (1 - tick_profit_pct)
                             self.active_pos['sl'] = actual_entry * (1 + sl_pct)
                         else:
@@ -2845,7 +2905,7 @@ class WallHunterBot:
                             self.active_pos['sl'] = actual_entry * (1 - sl_pct)
                     else:
                         tick_profit_pct = self.micro_scalp_profit_ticks * 0.0001
-                        if getattr(self, 'strategy_mode', 'long') == 'short':
+                        if self._is_active_short():
                             tp_price = actual_entry * (1 - tick_profit_pct)
                             self.active_pos['sl'] = actual_entry * (1 + (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else float('inf')
                         else:
@@ -2854,7 +2914,7 @@ class WallHunterBot:
                     self.active_pos['tp'] = tp_price
                     self.active_pos['tp1'] = tp_price
                 else:
-                    if getattr(self, 'strategy_mode', 'long') == 'short':
+                    if self._is_active_short():
                         self.active_pos['sl'] = actual_entry * (1 + (self.initial_risk_pct / 100)) if self.initial_risk_pct > 0 else float('inf')
                         self.active_pos['tp1'] = actual_entry - (self.target_spread * 0.5)
                         self.active_pos['tp'] = actual_entry - self.target_spread
@@ -3035,7 +3095,7 @@ class WallHunterBot:
         supertrend_reversal = False
         if getattr(self, 'enable_supertrend_exit', False) and getattr(self, 'supertrend_tracker', None):
             # Check for reversal based on mode. Reversal to opposite direction means exit.
-            if getattr(self, 'strategy_mode', 'long') == 'short':
+            if self._is_active_short():
                 if self.supertrend_tracker.is_entry_signal('buy'): # Reverses to LONG -> exit short
                     supertrend_reversal = True
             else:
@@ -3096,7 +3156,7 @@ class WallHunterBot:
         # Capture old SL to detect changes for state saving
         old_sl = self.active_pos.get('sl')
         
-        if getattr(self, 'strategy_mode', 'long') == 'short':
+        if self._is_active_short():
             if not hasattr(self, 'lowest_price') or self.lowest_price == 0:
                 self.lowest_price = current_price
             if current_price < self.lowest_price:
@@ -3213,7 +3273,7 @@ class WallHunterBot:
 
         # --- Partial TP Logic ---
         # Only execute TP1 logic if partial_tp_pct > 0
-        hit_tp1 = current_price <= self.active_pos['tp1'] if getattr(self, 'strategy_mode', 'long') == 'short' else current_price >= self.active_pos['tp1']
+        hit_tp1 = current_price <= self.active_pos['tp1'] if self._is_active_short() else current_price >= self.active_pos['tp1']
         
         if not is_risk_triggered and not self.active_pos.get('micro_scalp') and self.partial_tp_pct > 0 and not self.active_pos.get('tp1_hit') and hit_tp1:
             self.logger.info("🟢 TP1 Hit! Executing Partial Close.")
@@ -3299,7 +3359,7 @@ class WallHunterBot:
                 self.logger.info(f"🚨 Zero Tolerance Triggered! Price hit {current_price:.6f}")
         # ------------------------------------
 
-        elif is_risk_triggered or is_zero_tolerance_triggered or (current_price >= self.active_pos['sl'] if getattr(self, 'strategy_mode', 'long') == 'short' else current_price <= self.active_pos['sl']):
+        elif is_risk_triggered or is_zero_tolerance_triggered or (current_price >= self.active_pos['sl'] if self._is_active_short() else current_price <= self.active_pos['sl']):
             if is_risk_triggered:
                 self.logger.info(f"⚠️ Triggering Advanced Risk Exit: {risk_reason}")
             elif is_zero_tolerance_triggered:
@@ -3581,7 +3641,7 @@ class WallHunterBot:
             self.active_pos = None
             self.logger.info("Exit: Stop Loss / TSL Hit")
             
-        elif (current_price <= self.active_pos['tp'] if getattr(self, 'strategy_mode', 'long') == 'short' else current_price >= self.active_pos['tp']):
+        elif (current_price <= self.active_pos['tp'] if self._is_active_short() else current_price >= self.active_pos['tp']):
             self.logger.info(f"✅ Triggering Final TP: Current Price ({current_price:.6f}) hit TP ({self.active_pos['tp']:.6f})")
             
             sell_amount_raw = self.active_pos['amount']

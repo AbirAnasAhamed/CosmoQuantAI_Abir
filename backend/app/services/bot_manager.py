@@ -173,7 +173,12 @@ class BotManager:
             strategy_mode = config.get('strategy_mode', 'long').lower()
             mode_display = f"{trading_mode}"
             if trading_mode == 'SPOT':
-                mode_display += " (Accumulation Base/Short)" if strategy_mode == "short" else " (Accumulation Quote/Long)"
+                if strategy_mode == "short":
+                    mode_display += " (Accumulation Base/Short)"
+                elif strategy_mode == "auto":
+                    mode_display += " (Bi-Directional Auto)"
+                else:
+                    mode_display += " (Accumulation Quote/Long)"
             
             logger.info("="*50)
             logger.info(f"🚀 BOT ACTIVATED: ID {bot_id} | {bot.market} on {bot.exchange}")

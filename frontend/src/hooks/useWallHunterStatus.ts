@@ -6,6 +6,7 @@ export interface WallHunterStatusData {
     pnl_percent: number;
     price: number;
     position: boolean;
+    position_side?: string;
     entry_price: number;
     sl_price: number;
     tp_price: number;
