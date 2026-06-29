@@ -2509,8 +2509,15 @@ class WallHunterBot:
                 base_amount = float(f"{input_base_amount:.6f}")
                 self.logger.info(f"💡 [Dual Allocation] Using explicit Base Allocation: {base_amount} {self.symbol.split('/')[0]}")
             else:
-                base_amount = float(f"{input_amount / entry_price:.6f}")
-                self.logger.info(f"💡 [Auto Calculation] Converted {input_amount} Quote to {base_amount} Base at price {entry_price}")
+                trading_mode = getattr(self, 'trading_mode', 'spot')
+                if trading_mode == 'spot':
+                    # In Spot Short, the input amount is already the Base asset
+                    base_amount = float(f"{input_amount:.6f}")
+                    self.logger.info(f"💡 [Spot Short] Using {input_amount} Base directly")
+                else:
+                    # In Futures Short, convert Quote to Base
+                    base_amount = float(f"{input_amount / entry_price:.6f}")
+                    self.logger.info(f"💡 [Auto Calculation] Converted {input_amount} Quote to {base_amount} Base at price {entry_price}")
         else:
             # In Long mode, the UI input is Quote Asset, so convert to Base Asset
             base_amount = float(f"{input_amount / entry_price:.6f}")
