@@ -28,6 +28,10 @@ export interface IndicatorSettings {
     quantumVolatilityFilter: boolean;
     quantumVolThreshold: number;
     showLiquidationHeatmap: boolean;
+    liquidationNumZones: number;
+    liquidationMinVol: number;
+    liquidationShowBubbles: boolean;
+    liquidationHeatmapIntensity: number;
     emaPeriod: number;
     bbPeriod: number;
     bbStdDev: number;
@@ -170,8 +174,6 @@ export interface IndicatorSettings {
     luxFibMode: 'FVG' | 'BPR' | 'OB' | 'Liq' | 'VI' | 'NWOG' | 'NONE';
     luxFibExtend: boolean;
     luxShowKillzones: boolean;
-    liquidationHeatmapIntensity: number;
-    liquidationShowBubbles: boolean;
     // MSB-OB Settings
     showMsbOb: boolean;
     msbObZigzagLen: number;
@@ -1336,6 +1338,37 @@ export const IndicatorSelector: React.FC<IndicatorSelectorProps> = ({ settings, 
                                             <span className="text-gray-400 font-bold group-hover:text-gray-200">Show Live Bubbles</span>
                                             <input type="checkbox" checked={settings.liquidationShowBubbles as boolean} onChange={() => onSettingsChange({ ...settings, liquidationShowBubbles: !settings.liquidationShowBubbles })} className="w-3 h-3 rounded" />
                                         </label>
+                                    </div>
+                                    <div className="flex flex-col gap-1.5 mt-1 border-t dark:border-white/10 pt-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-400 font-bold">Number of Zones</span>
+                                            <span className="text-brand-primary">{settings.liquidationNumZones || 3}</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min="1" 
+                                            max="10" 
+                                            value={settings.liquidationNumZones || 3} 
+                                            onChange={(e) => updateSetting('liquidationNumZones' as any, Number(e.target.value))}
+                                            className="w-full accent-orange-500"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-1.5 mt-1 border-t dark:border-white/10 pt-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-400 font-bold">Min Volume (USD)</span>
+                                            <span className="text-brand-primary">
+                                                ${((settings.liquidationMinVol || 0) / 1000).toFixed(0)}k
+                                            </span>
+                                        </div>
+                                        <input 
+                                            type="number"
+                                            min="0"
+                                            step="10000"
+                                            placeholder="e.g. 50000"
+                                            value={settings.liquidationMinVol || 0}
+                                            onChange={(e) => updateSetting('liquidationMinVol' as any, Number(e.target.value))}
+                                            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-gray-900 dark:text-gray-100 outline-none focus:border-brand-primary"
+                                        />
                                     </div>
                                     <div className="flex flex-col gap-1.5 mt-1 border-t dark:border-white/10 pt-2">
                                         <div className="flex justify-between items-center">

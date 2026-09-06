@@ -69,17 +69,26 @@ export const LiquidationRenderer: React.FC<LiquidationRendererProps> = ({ chart,
                 // Base opacity scaled by user intensity ratio 
                 const alpha = (zone.intensity / 100) * (intensityScale / 100);
                 
-                // Color logic: Cascade Red, Magnet Green
-                let colorBase = zone.type === 'magnet' ? `34, 197, 94` : `239, 68, 68`; // Green, Red
+                // Color logic: Above price (Short Liq/Resistance) = Red, Below price (Long Liq/Support) = Green
+                const isAbovePrice = zone.price > currentPrice;
+                let colorBase = isAbovePrice ? `239, 68, 68` : `34, 197, 94`; // Red, Green
                 
-                // ── TRADITIONAL HEATMAP BAND (Spans behind candles) ──
-                // Draw glow block exactly behind the candles
-                ctx.fillStyle = `rgba(${colorBase}, ${alpha * 0.25})`; // Soften background
-                ctx.fillRect(0, Math.min(yTop, yBottom), timeWidth, height);
+                // ── FOGGY HEATMAP BAND (Spans behind candles) ──
+                const yMin = Math.min(yTop, yBottom);
+                const yMax = Math.max(yTop, yBottom);
                 
-                // Center Horizontal Laser Line
+                // Draw foggy gradient block exactly behind the candles
+                const foggyGradient = ctx.createLinearGradient(0, yMin, 0, yMax);
+                foggyGradient.addColorStop(0, `rgba(${colorBase}, 0)`); // Transparent at top edge
+                foggyGradient.addColorStop(0.5, `rgba(${colorBase}, ${alpha * 0.4})`); // Denser fog in the center
+                foggyGradient.addColorStop(1, `rgba(${colorBase}, 0)`); // Transparent at bottom edge
+                
+                ctx.fillStyle = foggyGradient;
+                ctx.fillRect(0, yMin, timeWidth, height);
+                
+                // Center Horizontal Laser Line (Softened to match foggy look)
                 ctx.beginPath();
-                ctx.strokeStyle = `rgba(${colorBase}, ${alpha * 0.8})`;
+                ctx.strokeStyle = `rgba(${colorBase}, ${alpha * 0.5})`;
                 ctx.setLineDash([4, 4]);
                 ctx.lineWidth = 1;
                 ctx.moveTo(0, yCenter);
@@ -213,6 +222,59 @@ export const LiquidationRenderer: React.FC<LiquidationRendererProps> = ({ chart,
                     ctx.fillText(valK, x, y - radius - 8);
                 }
             });
+        }
+
+        // 3. Draw AI Trajectory Prediction Arrow
+        if (data.ai_trajectory && data.ai_trajectory.target_price) {
+            const startY = series.priceToCoordinate(currentPrice);
+            const endY = series.priceToCoordinate(data.ai_trajectory.target_price);
+            
+            if (startY !== null && endY !== null) {
+                const isUp = data.ai_trajectory.direction === 'UP';
+                // Color matches movement direction (Green for UP pump, Red for DOWN dump)
+                const arrowColorStr = isUp ? '34, 197, 94' : '239, 68, 68'; 
+                
+                // Position arrow to the left of the HUD labels
+                const arrowX = timeWidth - 200; 
+                
+                // Draw Dashed Line
+                ctx.beginPath();
+                ctx.strokeStyle = `rgba(${arrowColorStr}, 1)`;
+                ctx.lineWidth = 4;
+                ctx.setLineDash([8, 8]);
+                ctx.moveTo(arrowX, startY);
+                ctx.lineTo(arrowX, endY);
+                ctx.stroke();
+                ctx.setLineDash([]); // reset
+                
+                // Draw Triangle Arrowhead
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(${arrowColorStr}, 1)`;
+                ctx.moveTo(arrowX, endY);
+                if (isUp) {
+                    ctx.lineTo(arrowX - 10, endY + 12);
+                    ctx.lineTo(arrowX + 10, endY + 12);
+                } else {
+                    ctx.lineTo(arrowX - 10, endY - 12);
+                    ctx.lineTo(arrowX + 10, endY - 12);
+                }
+                ctx.fill();
+                
+                // Draw "ALGO TARGET" Text
+                ctx.font = 'bold 11px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                const textY = endY + (isUp ? -15 : 15);
+                const text = `ALGO TARGET`;
+                
+                // Draw slight text shadow for readability
+                ctx.shadowColor = '#000';
+                ctx.shadowBlur = 4;
+                ctx.fillStyle = `rgba(${arrowColorStr}, 1)`;
+                ctx.fillText(text, arrowX, textY);
+                ctx.shadowBlur = 0; // reset
+            }
         }
 
     }, [chart, series, data, showBubbles, intensityScale]);

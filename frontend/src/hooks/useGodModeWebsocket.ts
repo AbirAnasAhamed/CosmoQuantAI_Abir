@@ -14,6 +14,7 @@ export interface GodModeState {
     whale_feed: any[];
     magnet_zones: any[];
     cascade_probs: any[];
+    ai_trajectory?: { direction: string; target_price: number; confidence: number } | null;
 }
 
 export const useGodModeWebsocket = (symbol: string = 'BTC/USDT') => {

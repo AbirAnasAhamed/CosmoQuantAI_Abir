@@ -9,14 +9,26 @@ export interface GodModeState {
     dumb_money: number;
     cvd_spoof: string;
     whale_feed: any[];
-    magnet_zones: { price: number, intensity: number }[];
+    magnet_zones: { price: number, intensity: number, leverage?: string, type?: string }[];
+    ai_trajectory?: { direction: string, target_price: number, confidence: number } | null;
     cascade_probs: { price: number, prob: number }[];
     current_price: number;
 }
 
-export const useGodModeData = (symbol: string) => {
+export const useGodModeData = (symbol: string, numZones: number = 3, minVol: number = 0) => {
     const [godModeData, setGodModeData] = useState<GodModeState | null>(null);
     const wsRef = useRef<WebSocket | null>(null);
+
+    // Send config when it changes
+    useEffect(() => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+                action: 'update_config',
+                num_zones: numZones,
+                min_vol: minVol
+            }));
+        }
+    }, [numZones, minVol]);
 
     useEffect(() => {
         if (!symbol) return;
@@ -40,6 +52,12 @@ export const useGodModeData = (symbol: string) => {
 
             ws.onopen = () => {
                 console.log(`📡 Connected to God Mode Stream: ${symbol}`);
+                // Send initial config on connect
+                ws.send(JSON.stringify({
+                    action: 'update_config',
+                    num_zones: numZones,
+                    min_vol: minVol
+                }));
             };
 
             ws.onmessage = (event) => {

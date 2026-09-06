@@ -7,6 +7,8 @@ from typing import Dict, Any, Callable, Awaitable, List
 import ccxt.pro as ccxtpro
 from ccxt.base.errors import NetworkError
 
+from app.services.advanced_orderbook_service import get_orderbook_service
+
 logger = logging.getLogger(__name__)
 
 class GodModeService:
@@ -14,16 +16,18 @@ class GodModeService:
     Advanced mathematical service for God Mode Liquidation Map.
     Handles multi-exchange streams, heuristic AI modeling, and orderbook aggregation.
     """
-    def __init__(self):
+    def __init__(self, symbol: str):
+        self.symbol = symbol
         self._running = False
         self._callbacks: List[Callable[[Dict[str, Any]], Awaitable[None]]] = []
         self._lock = asyncio.Lock()
         
         self.exchanges: Dict[str, ccxtpro.Exchange] = {}
+        self.orderbook_service = get_orderbook_service(symbol)
         
         # Centralized State Object that will be broadcasted every second
         self.state = {
-            "symbol": "",
+            "symbol": symbol,
             "vulnerability": [], 
             "arbitrage": [],
             "pain_threshold": {"level": 0, "status": "NORMAL", "value": 0}, 
@@ -51,12 +55,20 @@ class GodModeService:
         if callback in self._callbacks:
             self._callbacks.remove(callback)
 
+    def update_config(self, num_zones: int, min_vol: float):
+        if hasattr(self.orderbook_service, 'update_config'):
+            self.orderbook_service.update_config(num_zones, min_vol)
+
     async def _broadcast_loop(self):
         """Continuously broadcasts the aggregated state to all connected websockets at roughly 10Hz"""
         while self._running:
             if self._callbacks:
                 for cb in self._callbacks:
                     try:
+                        # Merge the real-time orderbook state into the main state before sending
+                        self.state["magnet_zones"] = self.orderbook_service.state.get("magnet_zones", [])
+                        self.state["ai_trajectory"] = self.orderbook_service.state.get("ai_trajectory", None)
+                        
                         await cb(self.state)
                     except Exception as e:
                         logger.error(f"God Mode Callback err: {e}")
@@ -268,14 +280,10 @@ class GodModeService:
                     self.state["cvd_spoof"] = "NEGATIVE"
 
                 # --- D. Heuristic AI Cascade Models / Magnet Zones ---
-                # Based on current price, generate magnetic pull zones (density clusters)
+                # We are now using real orderbook data from orderbook_service for magnet_zones
+                # So we only need to keep the cascade probs (or we could also move them)
                 cp = self.state['current_price']
                 if cp > 0:
-                    self.state["magnet_zones"] = [
-                        {"price": round(cp * 1.02, 5), "intensity": 80}, # +2%
-                        {"price": round(cp * 0.97, 5), "intensity": 90}, # -3%
-                    ]
-                    
                     self.state["cascade_probs"] = [
                         {"price": round(cp * 1.015, 5), "prob": 85},
                         {"price": round(cp * 0.98, 5), "prob": 70},
@@ -288,27 +296,29 @@ class GodModeService:
             await asyncio.sleep(1) # Re-calculate mathematical states every second
 
 
-    async def start(self, symbol: str):
+    async def start(self):
         """Initialize the streams for a specific symbol"""
         if self._running:
             return
             
         self._running = True
-        self.state["symbol"] = symbol
         
-        logger.info(f"GodMode Pipeline initializing for {symbol}")
+        logger.info(f"GodMode Pipeline initializing for {self.symbol}")
         
         # Start core loops
         self._active_tasks.append(asyncio.create_task(self._broadcast_loop()))
-        self._active_tasks.append(asyncio.create_task(self._calculate_heuristics_loop(symbol)))
+        self._active_tasks.append(asyncio.create_task(self._calculate_heuristics_loop(self.symbol)))
         self._active_tasks.append(asyncio.create_task(self._scan_global_vulnerabilities()))
         
-        # Start multi-exchange hooks
-        self._active_tasks.append(asyncio.create_task(self._watch_liquidations('binance', symbol)))
-        self._active_tasks.append(asyncio.create_task(self._watch_liquidations('bybit', symbol)))
+        # Start modular orderbook service
+        await self.orderbook_service.start()
         
-        self._active_tasks.append(asyncio.create_task(self._watch_ticker_for_arb('binance', symbol)))
-        self._active_tasks.append(asyncio.create_task(self._watch_ticker_for_arb('bybit', symbol)))
+        # Start multi-exchange hooks
+        self._active_tasks.append(asyncio.create_task(self._watch_liquidations('binance', self.symbol)))
+        self._active_tasks.append(asyncio.create_task(self._watch_liquidations('bybit', self.symbol)))
+        
+        self._active_tasks.append(asyncio.create_task(self._watch_ticker_for_arb('binance', self.symbol)))
+        self._active_tasks.append(asyncio.create_task(self._watch_ticker_for_arb('bybit', self.symbol)))
 
     async def stop(self):
         """Cleanup resources"""
@@ -318,6 +328,8 @@ class GodModeService:
             
         for name, ex in self.exchanges.items():
             await ex.close()
+            
+        await self.orderbook_service.stop()
             
         self._active_tasks.clear()
         self.exchanges.clear()
@@ -329,5 +341,8 @@ class GodModeService:
         self.state["whale_feed"] = []
         logger.info("GodMode Pipeline stopped.")
 
-# Global Singleton
-god_mode_service = GodModeService()
+_instances = {}
+def get_god_mode_service(symbol: str) -> GodModeService:
+    if symbol not in _instances:
+        _instances[symbol] = GodModeService(symbol)
+    return _instances[symbol]

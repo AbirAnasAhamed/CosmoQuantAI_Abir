@@ -128,7 +128,7 @@ const OrderFlowChart: React.FC<{ exchange: string; symbol: string; interval: str
     const { heatmapData: realHeatmapData } = useHeatmapData(symbol, exchange);
     useIcebergEvents(symbol);
     const mlSetup = useMLSetupEvents(symbol);
-    const godModeData = useGodModeData(symbol);
+    const godModeData = useGodModeData(symbol, indicatorSettings.liquidationNumZones, indicatorSettings.liquidationMinVol);
     const [sessionsData, setSessionsData] = useState<{ a: SessionData[]; b: SessionData[]; c: SessionData[]; d: SessionData[]; }>({
         a: [], b: [], c: [], d: []
     });

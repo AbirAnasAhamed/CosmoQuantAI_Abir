@@ -24,6 +24,9 @@ from app.services.websocket_manager import manager
 from app.utils import RedisLogHandler
 import ccxt.pro as ccxtpro
 from datetime import datetime
+import os
+from collections import defaultdict
+from typing import Dict, List, Any
 from app.core.redis import redis_manager # ✅ Import RedisManager
 from app.services.liquidation_service import liquidation_service # ✅ Import Liquidation Service
 from app.services.block_trade_worker import block_trade_worker # ✅ Import Block Trade Worker
@@ -31,7 +34,7 @@ from app.services.block_trade_monitor import block_trade_monitor # ✅ Import Bl
 from app.services.orderbook_snapshot_service import orderbook_snapshot_service # ✅ Import Orderbook Snapshot Service
 from app.services.binance_liq_stream import liquidation_stream # ✅ Import Binance Liquidation Stream
 from app.services.portfolio_price_service import portfolio_price_service # ✅ Import Portfolio Price Service
-from app.services.god_mode_liquidation_service import god_mode_service # ✅ Import God Mode Liquidation Service
+from app.services.god_mode_liquidation_service import get_god_mode_service # ✅ Import God Mode Liquidation Service Factory
 from app.services import exchange_pool # ✅ Import Exchange Pool (ManualTradeModal fast-path)
 from app.services.market_depth_service import market_depth_service # ✅ Import Market Depth Service (CCXT pool cleanup)
 from app.services.l2_data_collector import l2_collector # ✅ Import L2 Data Collector
@@ -852,20 +855,32 @@ async def websocket_godmode(websocket: WebSocket, symbol: str):
     channel_id = f"godmode_{symbol}"
     await manager.connect(websocket, channel_id)
     
+    # Instantiate or retrieve the dedicated service for this symbol
+    gm_service = get_god_mode_service(symbol)
+    
     async def state_callback(state: dict):
         # We broadcast the state to everyone connected to this symbol's godmode channel
         if channel_id in manager.active_connections:
             await manager.broadcast_to_symbol(channel_id, state)
             
-    god_mode_service.register_callback(state_callback)
+    gm_service.register_callback(state_callback)
     
     # Start the service for this symbol in the background
-    asyncio.create_task(god_mode_service.start(symbol))
+    asyncio.create_task(gm_service.start())
     
     try:
         while True: 
-            await websocket.receive_text()
+            data = await websocket.receive_text()
+            try:
+                msg = json.loads(data)
+                if msg.get("action") == "update_config":
+                    gm_service.update_config(
+                        num_zones=int(msg.get("num_zones", 3)),
+                        min_vol=float(msg.get("min_vol", 0))
+                    )
+            except Exception as e:
+                print(f"Error parsing godmode ws message: {e}")
     except WebSocketDisconnect:
         manager.disconnect(websocket, channel_id)
-        god_mode_service.remove_callback(state_callback)
+        gm_service.remove_callback(state_callback)
 

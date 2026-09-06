@@ -1,7 +1,7 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import logging
 import asyncio
-from app.services.god_mode_liquidation_service import god_mode_service
+from app.services.god_mode_liquidation_service import get_god_mode_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -16,9 +16,10 @@ async def websocket_god_mode_stream(websocket: WebSocket, symbol: str = "BTC/USD
     logger.info(f"Client connected to God Mode Stream for {symbol}")
     
     target_symbol = symbol.upper()
+    god_mode_service = get_god_mode_service(target_symbol)
     
     # Start the background pipeline if not already running for this symbol
-    asyncio.create_task(god_mode_service.start(target_symbol))
+    asyncio.create_task(god_mode_service.start())
     
     async def send_to_client(data):
         try:

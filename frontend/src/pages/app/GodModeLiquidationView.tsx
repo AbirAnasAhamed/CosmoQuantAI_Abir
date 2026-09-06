@@ -183,10 +183,13 @@ const GodModeLiquidationView: React.FC = () => {
                                  <div className="absolute top-2 right-0 w-full text-center text-[7px] sm:text-[8px] text-gray-500 font-mono uppercase tracking-widest px-1">Magnets</div>
                                  
                                  {/* Map Short Magnets (above price) */}
-                                 {state.magnet_zones.map((zone, i) => zone.price > state.current_price && (
-                                     <div key={`mag-short-${i}`} className="h-6 w-full border border-yellow-500/20 rounded-sm mb-1 relative group cursor-crosshair overflow-hidden">
-                                         <div className="absolute left-0 h-full bg-yellow-500/80 shadow-[0_0_10px_rgba(234,179,8,0.5)] transition-all" style={{width: `${zone.intensity}%`}}></div>
-                                         <div className="absolute inset-0 flex items-center justify-center text-[9px] sm:text-[10px] text-yellow-100 font-mono font-bold z-10 drop-shadow-[0_0_3px_black]">${zone.price}</div>
+                                 {state.magnet_zones.map((zone, i) => zone.type === 'SHORT' && (
+                                     <div key={`mag-short-${i}`} className="h-6 w-full border border-rose-500/20 rounded-sm mb-1 relative group cursor-crosshair overflow-hidden bg-black/40">
+                                         <div className="absolute left-0 h-full bg-rose-500/80 shadow-[0_0_10px_rgba(244,63,94,0.5)] transition-all" style={{width: `${zone.intensity}%`}}></div>
+                                         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 drop-shadow-[0_0_3px_black]">
+                                            <span className="text-[10px] text-rose-100 font-mono font-bold">${zone.price}</span>
+                                            {zone.leverage && <span className="text-[7px] bg-rose-600/90 text-white px-0.5 rounded leading-none border border-rose-400/50">{zone.leverage}</span>}
+                                         </div>
                                      </div>
                                  ))}
                                  
@@ -194,16 +197,41 @@ const GodModeLiquidationView: React.FC = () => {
                                  <div className="h-16 w-full"></div>
 
                                  {/* Map Long Magnets (below price) */}
-                                 {state.magnet_zones.map((zone, i) => zone.price <= state.current_price && (
-                                     <div key={`mag-long-${i}`} className="h-6 w-full border border-yellow-500/20 rounded-sm mt-1 relative group cursor-crosshair overflow-hidden">
-                                         <div className="absolute left-0 h-full bg-yellow-500/80 shadow-[0_0_10px_rgba(234,179,8,0.5)] transition-all" style={{width: `${zone.intensity}%`}}></div>
-                                         <div className="absolute inset-0 flex items-center justify-center text-[9px] sm:text-[10px] text-yellow-100 font-mono font-bold z-10 drop-shadow-[0_0_3px_black]">${zone.price}</div>
+                                 {state.magnet_zones.map((zone, i) => zone.type === 'LONG' && (
+                                     <div key={`mag-long-${i}`} className="h-6 w-full border border-emerald-500/20 rounded-sm mt-1 relative group cursor-crosshair overflow-hidden bg-black/40">
+                                         <div className="absolute left-0 h-full bg-emerald-500/80 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all" style={{width: `${zone.intensity}%`}}></div>
+                                         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 drop-shadow-[0_0_3px_black]">
+                                            <span className="text-[10px] text-emerald-100 font-mono font-bold">${zone.price}</span>
+                                            {zone.leverage && <span className="text-[7px] bg-emerald-600/90 text-white px-0.5 rounded leading-none border border-emerald-400/50">{zone.leverage}</span>}
+                                         </div>
                                      </div>
                                  ))}
                              </div>
 
-                             <div className="flex-1 relative bg-black/50">
+                             <div className="flex-1 relative bg-black/50 overflow-hidden">
                                   <div id="tradingview_godmode_chart" className="absolute inset-0"></div>
+                                  
+                                  {/* AI Trajectory Overlay */}
+                                  {state.ai_trajectory && (
+                                      <div className={`absolute left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-20 transition-all duration-1000 ${state.ai_trajectory.direction === 'UP' ? 'bottom-[55%]' : 'top-[55%]'}`}>
+                                          <div className={`flex flex-col items-center animate-pulse ${state.ai_trajectory.direction === 'UP' ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                              <span className="text-[10px] font-bold uppercase tracking-widest bg-black/60 px-2 py-0.5 rounded border border-current mb-1 backdrop-blur-sm">
+                                                  Smart Money Hunt: {state.ai_trajectory.direction}
+                                              </span>
+                                              <span className="text-[8px] font-mono mb-2">Target: ${state.ai_trajectory.target_price} ({state.ai_trajectory.confidence}% CONF)</span>
+                                              
+                                              {state.ai_trajectory.direction === 'UP' ? (
+                                                  <svg className="w-8 h-16 animate-[bounce_2s_infinite]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5m-7 7l7-7 7 7" />
+                                                  </svg>
+                                              ) : (
+                                                  <svg className="w-8 h-16 animate-[bounce_2s_infinite]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7l-7 7-7-7" />
+                                                  </svg>
+                                              )}
+                                          </div>
+                                      </div>
+                                  )}
                              </div>
                              
                              {/* AI Predicted Cascade Overlay (Right Edge) */}
