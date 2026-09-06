@@ -199,12 +199,34 @@ def generate_ohlcv_features(df: pd.DataFrame, selected_features: list[str]) -> p
             from app.services.advanced_ml.features.forex.statistical_features import StatisticalFeatures
             df = StatisticalFeatures.calculate_all(df, requested_features=stat_features)
 
-        # --- 7. Call SMC & Psychology Engine ---
-        # If any SMC, Candlestick, or Psychology features were selected, process them
+        # --- 7. Call Legacy SMC & Psychology Engine ---
+        # If any legacy SMC, Candlestick, or Psychology features were selected, process them
         from app.services.ml.smc_feature_engine import generate_smc_and_pattern_features
         df = generate_smc_and_pattern_features(df, selected_features)
 
+        # --- 8. Call NEW Advanced SMC & Market Structure Engine (54 Metrics) ---
+        has_new_smc = any(f.startswith('smc_') for f in selected_features)
+        if has_new_smc:
+            try:
+                from app.services.advanced_ml.features.forex.smc_market_structure_features import SMCMarketStructureFeatures
+                df = SMCMarketStructureFeatures.calculate_all(df)
+            except ImportError as e:
+                logger.error(f"Could not import SMCMarketStructureFeatures: {e}")
+
+        # --- 9. Call NEW Advanced Candlestick Pattern Engine (65 Metrics) ---
+        has_new_cdl = any(f.startswith('cdl_') for f in selected_features)
+        if has_new_cdl:
+            try:
+                from app.services.advanced_ml.features.forex.candlestick_pattern_features import CandlestickPatternFeatures
+                df = CandlestickPatternFeatures.calculate_all(df)
+            except Exception as e:
+                logger.error(f"\n{'='*60}\nCRITICAL PIPELINE ERROR in Candlestick Engine:\n{e}\n{'='*60}")
+                raise e  # Fail Fast! Stop Training immediately.
+
     except Exception as e:
+        # Re-raise critical training errors
+        if "CRITICAL ERROR" in str(e):
+            raise e
         logger.error(f"Error calculating some features: {e}")
         
     return df
