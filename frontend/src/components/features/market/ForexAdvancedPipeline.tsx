@@ -668,12 +668,78 @@ export const FOREX_MODULES = [
         id: 'market_psychology',
         title: 'Market Psychology',
         icon: Target,
-        description: 'Consecutive moves, gaps, and buying/selling pressure.',
+        description: 'Emotion, Traps, Patience, and Crowd Behavior (49 Metrics).',
         source: 'ohlcv',
         features: [
+            // --- Legacy Psychology Metrics (3) ---
             { id: 'consecutive_candles', name: 'Consecutive Bull/Bear Candles' },
             { id: 'buying_selling_pressure', name: 'Buying & Selling Pressure' },
-            { id: 'gap_analysis', name: 'Session & Weekend Gap Analysis' }
+            { id: 'gap_analysis', name: 'Session & Weekend Gap Analysis' },
+            
+            // --- Advanced Quant Metrics (46) ---
+            // Group 1: Extreme Emotion & Capitulation
+            { id: 'psych_capitulation_spike', name: 'Capitulation Spike Proxy' },
+            { id: 'psych_fomo_acceleration', name: 'FOMO Acceleration Index' },
+            { id: 'psych_euphoria_despair', name: 'Euphoria/Despair Oscillator' },
+            { id: 'psych_trend_fatigue', name: 'Trend Fatigue Score' },
+            { id: 'psych_loss_aversion', name: 'Loss Aversion Asymmetry' },
+            
+            // Group 2: Pain Thresholds & Traps
+            { id: 'psych_retail_trap_div', name: 'Retail Trap Divergence' },
+            { id: 'psych_short_squeeze_pot', name: 'Short Squeeze Potential' },
+            { id: 'psych_long_liq_pot', name: 'Long Liquidation Potential' },
+            { id: 'psych_pain_index', name: 'Pain Index' },
+            { id: 'psych_time_in_drawdown', name: 'Time-in-Drawdown (TiD)' },
+            { id: 'psych_stop_hunt_rejection', name: 'Stop-Hunt Rejection Magnitude' },
+            
+            // Group 3: Gap & Session Psychology
+            { id: 'psych_runaway_exhaustion_gap', name: 'Runaway vs Exhaustion Gap' },
+            { id: 'psych_weekend_gap_zscore', name: 'Weekend Gap Z-Score' },
+            { id: 'psych_orb_trap_rate', name: 'ORB Trap Rate' },
+            { id: 'psych_dead_cat_bounce', name: 'Dead Cat Bounce Probability' },
+            
+            // Group 4: Order Flow & Crowd Behavior
+            { id: 'psych_true_buying_selling', name: 'True Buying/Selling Pressure' },
+            { id: 'psych_tick_velocity_ext', name: 'Tick Velocity Extremes' },
+            { id: 'psych_cot_retail_proxy', name: 'COT Retail Proxy' },
+            { id: 'psych_aggressive_imbalance', name: 'Aggressive Order Imbalance' },
+            { id: 'psych_herd_behavior', name: 'Herd Behavior Index' },
+            
+            // Group 5: Price Level Psychology
+            { id: 'psych_round_number_prox', name: 'Round Number Proximity' },
+            { id: 'psych_round_number_rej', name: 'Round Number Rejection Rate' },
+            { id: 'psych_news_reaction_pers', name: 'News Reaction Persistence' },
+            { id: 'psych_time_capitulation', name: 'Time-based Capitulation' },
+            { id: 'psych_extended_runs', name: 'Extended Bull/Bear Runs' },
+            
+            // Group 6: Time, Patience & Frustration
+            { id: 'psych_ttr_oscillator', name: 'Time-to-Recovery (TTR)' },
+            { id: 'psych_consolidation_boredom', name: 'Consolidation Boredom Index' },
+            { id: 'psych_false_breakout_freq', name: 'False Breakout Frequency' },
+            { id: 'psych_session_overlap', name: 'Session Overlap Ratio' },
+            { id: 'psych_volatility_shock_mem', name: 'Volatility Shock Memory' },
+            
+            // Group 7: Micro-Behavior Psychology
+            { id: 'psych_micro_gap_freq', name: 'Micro-Gap Frequency' },
+            { id: 'psych_wba', name: 'Wick-to-Body Asymmetry (WBA)' },
+            { id: 'psych_intra_bar_rejection', name: 'Intra-bar Rejection Velocity' },
+            { id: 'psych_c2c_churn', name: 'Close-to-Close Churn' },
+            { id: 'psych_bailout_metric', name: 'The "Bailout" Metric' },
+            
+            // Group 8: Mathematical Momentum Psychology
+            { id: 'psych_pv_div_severity', name: 'Price-Volume Divergence Severity' },
+            { id: 'psych_trend_angle_decel', name: 'Trend Angle Deceleration' },
+            { id: 'psych_sunk_cost', name: 'Sunk Cost Indicator' },
+            { id: 'psych_oscillator_sticky', name: 'Oscillator Sticky Time' },
+            { id: 'psych_mean_rev_elasticity', name: 'Mean-Reversion Elasticity' },
+            
+            // Group 9: Advanced Trap Dynamics
+            { id: 'psych_turtle_soup_score', name: 'Turtle Soup Reversal Score' },
+            { id: 'psych_retail_sr_touches', name: 'Retail S/R Touch Count' },
+            { id: 'psych_breakout_vol_deficit', name: 'Breakout Volume Deficit' },
+            { id: 'psych_v_shape_improb', name: 'V-Shape Recovery Improbability' },
+            { id: 'psych_friday_close_capitulation', name: 'Friday Close Capitulation' },
+            { id: 'psych_monday_open_correction', name: 'Monday Open Correction' }
         ]
     },
     {
@@ -683,11 +749,48 @@ export const FOREX_MODULES = [
         description: 'Time-based killzones and session volatilities.',
         source: 'ohlcv',
         features: [
+            // Legacy Metrics (5)
             { id: 'london_ny_killzone', name: 'London & NY Killzone Momentum' },
             { id: 'judas_swing', name: 'Judas Swing & Turtle Soup Fakeouts' },
             { id: 'pdh_pdl_sweep', name: 'PDH/PDL Sweep Proxy' },
             { id: 'session_features', name: 'Market Session Pipeline' },
             { id: 'weekend_gap', name: 'Weekend Gap Handler' },
+            
+            // Phase 1: IPDA (Institutional Price Delivery Algorithm)
+            { id: 'ict_ipda_20d_lookback', name: 'IPDA 20-Day Liquidity Range' },
+            { id: 'ict_ipda_40d_lookback', name: 'IPDA 40-Day Macro Range' },
+            { id: 'ict_ipda_60d_lookback', name: 'IPDA 60-Day Cycle Tracking' },
+            
+            // Phase 2: CBDR, Flout & Midnight Divergences
+            { id: 'ict_cbdr_range_compression', name: 'CBDR Range Compression' },
+            { id: 'ict_asian_float_divergence', name: 'Asian Float Divergence' },
+            { id: 'ict_true_day_open_dist', name: 'True Day (Midnight) Open Dist' },
+            { id: 'ict_midnight_open_cross', name: 'Midnight Open Cross (Fakeout)' },
+            { id: 'ict_midnight_ny_divergence', name: 'Midnight vs NY Divergence' },
+            { id: 'ict_ny_mid_vs_london_mid', name: 'NY vs London Midnight Spread' },
+            
+            // Phase 3: AMDX & Macro Time Cycles
+            { id: 'ict_quarterly_shift_amdx', name: 'Quarterly Shift AMDX Phase' },
+            { id: 'ict_monthly_manipulation_window', name: 'Monthly Manipulation Window' },
+            { id: 'ict_monthly_expansion_window', name: 'Monthly Expansion Window' },
+            { id: 'ict_tuesday_low_prob', name: 'Tuesday Low of Week Prob' },
+            { id: 'ict_wednesday_high_prob', name: 'Wednesday High of Week Prob' },
+            { id: 'ict_seek_and_destroy_prob', name: 'Seek & Destroy Profile Prob' },
+            
+            // Phase 4: Market Maker Models (MMBM/MMSM)
+            { id: 'ict_mmbm_consolidation_proxy', name: 'MMBM Consolidation Phase' },
+            { id: 'ict_mmbm_smr_proxy', name: 'MMBM Smart Money Reversal' },
+            { id: 'ict_mmsm_distribution_proxy', name: 'MMSM Distribution Phase' },
+            { id: 'ict_mmsm_smr_proxy', name: 'MMSM Smart Money Reversal' },
+            
+            // Phase 5: Intermarket, Time Distortion & Yield Proxies
+            { id: 'ict_time_distortion_index_tdi', name: 'Time Distortion Index (TDI)' },
+            { id: 'ict_london_ny_overlap_anomaly', name: 'London-NY Overlap Anomaly' },
+            { id: 'ict_smt_momentum_divergence', name: 'SMT Momentum Divergence (DXY)' },
+            { id: 'ict_yield_spread_momentum', name: 'Yield Spread Momentum Proxy' },
+            { id: 'ict_seasonal_tendency', name: 'Seasonal Tendency Trend' },
+            { id: 'ict_interest_rate_shock_proxy', name: 'Interest Rate Shock Expansion' },
+            { id: 'ict_macro_regime_shift_proxy', name: 'Macro Regime Shift (Vol Spike)' }
         ]
     },
     {

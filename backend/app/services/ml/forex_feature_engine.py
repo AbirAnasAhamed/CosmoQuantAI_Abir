@@ -223,6 +223,28 @@ def generate_ohlcv_features(df: pd.DataFrame, selected_features: list[str]) -> p
                 logger.error(f"\n{'='*60}\nCRITICAL PIPELINE ERROR in Candlestick Engine:\n{e}\n{'='*60}")
                 raise e  # Fail Fast! Stop Training immediately.
 
+        # --- 10. Call NEW Advanced Market Psychology Engine (49 Metrics) ---
+        has_psychology = any(f.startswith('psych_') for f in selected_features)
+        if has_psychology:
+            try:
+                from app.services.advanced_ml.features.forex.market_psychology.market_psychology_features import MarketPsychologyEngine
+                engine = MarketPsychologyEngine(df)
+                df = engine.generate_all_features()
+            except Exception as e:
+                logger.error(f"\n{'='*60}\nCRITICAL PIPELINE ERROR in Psychology Engine:\n{e}\n{'='*60}")
+                raise e  # Fail Fast! Stop Training immediately.
+
+        # --- 11. Call NEW Advanced ICT Time & Macro Dynamics Engine (26 Metrics) ---
+        has_ict = any(f.startswith('ict_') for f in selected_features)
+        if has_ict:
+            try:
+                from app.services.advanced_ml.features.forex.ict_macro.ict_macro_features import ICTMacroEngine
+                engine = ICTMacroEngine(df)
+                df = engine.generate_all_features()
+            except Exception as e:
+                logger.error(f"\n{'='*60}\nCRITICAL PIPELINE ERROR in ICT Macro Engine:\n{e}\n{'='*60}")
+                raise e  # Fail Fast! Stop Training immediately.
+
     except Exception as e:
         # Re-raise critical training errors
         if "CRITICAL ERROR" in str(e):
